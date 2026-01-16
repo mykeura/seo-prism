@@ -106,6 +106,10 @@ function App() {
         return 'Missing Title'
       case 'missing_description':
         return 'Missing Description'
+      case 'duplicate_title':
+        return 'Duplicate Title'
+      case 'duplicate_description':
+        return 'Duplicate Description'
       case 'missing_robots_txt':
         return 'Missing robots.txt'
       case 'missing_security_txt':
@@ -135,6 +139,10 @@ function App() {
         return '📝'
       case 'missing_description':
         return '📄'
+      case 'duplicate_title':
+        return '📋'
+      case 'duplicate_description':
+        return '📑'
       case 'robots_txt_found':
         return '🤖'
       case 'security_txt_found':
@@ -154,6 +162,7 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal')
   const [metaTab, setMetaTab] = useState<'titles' | 'descriptions'>('titles')
+  const [duplicateTab, setDuplicateTab] = useState<'titles' | 'descriptions'>('titles')
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
     try {
@@ -165,7 +174,7 @@ function App() {
     }
   }
 
-  const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => string, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
+  const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, duplicateTab: 'titles' | 'descriptions', setDuplicateTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => string, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
     const brokenLinkIssues = results.issues.filter(issue =>
       issue.issue_type === 'broken_link' ||
       issue.issue_type === 'broken_image' ||
@@ -202,6 +211,19 @@ function App() {
       issue.issue_type === 'missing_robots_txt' ||
       issue.issue_type === 'missing_security_txt' ||
       issue.issue_type === 'missing_sitemap'
+    )
+
+    const duplicateContentIssues = results.issues.filter(issue =>
+      issue.issue_type === 'duplicate_title' ||
+      issue.issue_type === 'duplicate_description'
+    )
+
+    const duplicateTitles = duplicateContentIssues.filter(issue =>
+      issue.issue_type === 'duplicate_title'
+    )
+
+    const duplicateDescriptions = duplicateContentIssues.filter(issue =>
+      issue.issue_type === 'duplicate_description'
     )
 
     return (
@@ -392,6 +414,89 @@ function App() {
 
             <Card>
               <CardHeader>
+                <CardTitle>Duplicate Content</CardTitle>
+                <CardDescription>
+                  {duplicateContentIssues.length} duplicate content issue{duplicateContentIssues.length !== 1 ? 's' : ''} detected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {duplicateContentIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">✅</div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Duplicate Content Found!</h3>
+                    <p className="text-muted-foreground">All titles and descriptions are unique.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2 mb-4 border-b border-border">
+                      <button
+                        onClick={() => setDuplicateTab('titles')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          duplicateTab === 'titles'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Duplicate Titles ({duplicateTitles.length})
+                      </button>
+                      <button
+                        onClick={() => setDuplicateTab('descriptions')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          duplicateTab === 'descriptions'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Duplicate Descriptions ({duplicateDescriptions.length})
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {(duplicateTab === 'titles' ? duplicateTitles : duplicateDescriptions).map((issue) => (
+                        <div
+                          key={issue.id}
+                          className="p-4 rounded-lg border border-border bg-accent-600/5 hover:bg-accent-600/10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                              <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                            </div>
+                            <Badge variant={getSeverityColor(issue.severity)}>
+                              {issue.severity.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm text-muted-foreground">URL:</span>
+                              <a
+                                href={issue.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                              >
+                                {issue.url}
+                              </a>
+                            </div>
+                            {issue.description && (
+                              <div className="text-sm text-muted-foreground">{issue.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {(duplicateTab === 'titles' ? duplicateTitles : duplicateDescriptions).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No {duplicateTab === 'titles' ? 'duplicate titles' : 'duplicate descriptions'} found
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Standard Files</CardTitle>
                 <CardDescription>
                   {standardFilesIssues.length} standard file{standardFilesIssues.length !== 1 ? 's' : ''} found
@@ -524,7 +629,7 @@ function App() {
               </CardContent>
             </Card>
 
-            {renderResultsContent(results, activeTab, setActiveTab, metaTab, setMetaTab, isInternalUrl, getIssueIcon, getIssueTypeLabel, getSeverityColor)}
+            {renderResultsContent(results, activeTab, setActiveTab, metaTab, setMetaTab, duplicateTab, setDuplicateTab, isInternalUrl, getIssueIcon, getIssueTypeLabel, getSeverityColor)}
           </div>
         )}
         
