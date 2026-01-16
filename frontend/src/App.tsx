@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './components/ui/card'
 import { Badge } from './components/ui/badge'
 
 interface Issue {
@@ -393,6 +393,16 @@ function App() {
             })()}
           </div>
         )}
+        
+        <footer className="mt-12 text-center">
+          <Card>
+            <CardFooter className="justify-center py-6 pt-4">
+              <p className="text-sm text-muted-foreground">
+                Todos los derechos reservados © 2026 Intellectus Labs
+              </p>
+            </CardFooter>
+          </Card>
+        </footer>
       </div>
     </div>
   )
