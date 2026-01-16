@@ -83,6 +83,8 @@ function App() {
         return 'warning'
       case 'low':
         return 'secondary'
+      case 'info':
+        return 'default'
       default:
         return 'outline'
     }
@@ -104,6 +106,18 @@ function App() {
         return 'Missing Title'
       case 'missing_description':
         return 'Missing Description'
+      case 'missing_robots_txt':
+        return 'Missing robots.txt'
+      case 'missing_security_txt':
+        return 'Missing security.txt'
+      case 'missing_sitemap':
+        return 'Missing Sitemap'
+      case 'robots_txt_found':
+        return 'robots.txt'
+      case 'security_txt_found':
+        return 'security.txt'
+      case 'sitemap_found':
+        return 'Sitemap'
       default:
         return type
     }
@@ -121,6 +135,18 @@ function App() {
         return '📝'
       case 'missing_description':
         return '📄'
+      case 'robots_txt_found':
+        return '🤖'
+      case 'security_txt_found':
+        return '🔒'
+      case 'sitemap_found':
+        return '🗺️'
+      case 'missing_robots_txt':
+        return '🤖'
+      case 'missing_security_txt':
+        return '🔒'
+      case 'missing_sitemap':
+        return '🗺️'
       default:
         return '⚠️'
     }
@@ -169,14 +195,13 @@ function App() {
       issue.issue_type === 'missing_description'
     )
 
-    const otherIssues = results.issues.filter(issue =>
-      issue.issue_type !== 'broken_link' &&
-      issue.issue_type !== 'broken_image' &&
-      issue.issue_type !== 'broken_script' &&
-      issue.issue_type !== 'broken_stylesheet' &&
-      issue.issue_type !== 'broken_resource' &&
-      issue.issue_type !== 'missing_title' &&
-      issue.issue_type !== 'missing_description'
+    const standardFilesIssues = results.issues.filter(issue =>
+      issue.issue_type === 'robots_txt_found' ||
+      issue.issue_type === 'security_txt_found' ||
+      issue.issue_type === 'sitemap_found' ||
+      issue.issue_type === 'missing_robots_txt' ||
+      issue.issue_type === 'missing_security_txt' ||
+      issue.issue_type === 'missing_sitemap'
     )
 
     return (
@@ -367,24 +392,24 @@ function App() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Other Issues</CardTitle>
+                <CardTitle>Standard Files</CardTitle>
                 <CardDescription>
-                  {otherIssues.length} other issue{otherIssues.length !== 1 ? 's' : ''} detected
+                  {standardFilesIssues.length} standard file{standardFilesIssues.length !== 1 ? 's' : ''} found
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {otherIssues.length === 0 ? (
+                {standardFilesIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">✅</div>
-                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Other Issues Found!</h3>
-                    <p className="text-muted-foreground">All other SEO checks passed successfully.</p>
+                    <div className="text-4xl mb-4">📁</div>
+                    <h3 className="text-xl font-semibold text-muted-foreground mb-2">No Standard Files Found</h3>
+                    <p className="text-muted-foreground">No robots.txt, security.txt or sitemap files were detected.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {otherIssues.map((issue) => (
+                    {standardFilesIssues.map((issue) => (
                       <div
                         key={issue.id}
-                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                        className="p-4 rounded-lg border border-border bg-emerald-600/5 hover:bg-emerald-600/10 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-4 mb-2">
                           <div className="flex items-center gap-2">
@@ -407,12 +432,6 @@ function App() {
                               {issue.url}
                             </a>
                           </div>
-                          {issue.source_page && (
-                            <div>
-                              <span className="text-sm text-muted-foreground">Source:</span>
-                              <span className="ml-2 text-sm break-all">{issue.source_page}</span>
-                            </div>
-                          )}
                           {issue.description && (
                             <div className="text-sm text-muted-foreground">{issue.description}</div>
                           )}

@@ -14,6 +14,7 @@ from core.url_utils import is_local, validate_url
 from database import Database
 from modules.broken_links import BrokenLinksModule
 from modules.meta_tags import MetaTagsModule
+from modules.standard_files import StandardFilesModule
 
 
 app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API")
@@ -120,12 +121,14 @@ async def start_scan(request: ScanRequest):
         # Run analysis modules
         broken_links_module = BrokenLinksModule(db)
         meta_tags_module = MetaTagsModule(db)
+        standard_files_module = StandardFilesModule(db)
         
         broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
         meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
+        standard_files_issues = await standard_files_module.analyze(scan_id, request.url)
         
         # Update scan totals
-        total_issues = len(broken_link_issues) + len(meta_tag_issues)
+        total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(standard_files_issues)
         db.update_scan_totals(scan_id, len(crawled_pages), total_issues)
         db.close()
         
