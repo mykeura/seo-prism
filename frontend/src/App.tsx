@@ -26,6 +26,8 @@ interface ScanResults {
 }
 
 function App() {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
   const [results, setResults] = useState<ScanResults | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +44,7 @@ function App() {
     setResults(null)
 
     try {
-      const scanResponse = await fetch('http://localhost:8000/scan', {
+      const scanResponse = await fetch(`${API_BASE_URL}/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +59,7 @@ function App() {
       const scanData = await scanResponse.json()
       setMessage(scanData.message)
 
-      const resultsResponse = await fetch('http://localhost:8000/results')
+      const resultsResponse = await fetch(`${API_BASE_URL}/results`)
       
       if (!resultsResponse.ok) {
         throw new Error('Failed to get results')
