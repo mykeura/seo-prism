@@ -127,6 +127,7 @@ function App() {
   }
 
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal')
+  const [metaTab, setMetaTab] = useState<'titles' | 'descriptions'>('titles')
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
     try {
@@ -136,6 +137,282 @@ function App() {
     } catch {
       return false
     }
+  }
+
+  const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => string, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
+    const brokenLinkIssues = results.issues.filter(issue =>
+      issue.issue_type === 'broken_link' ||
+      issue.issue_type === 'broken_image' ||
+      issue.issue_type === 'broken_script' ||
+      issue.issue_type === 'broken_stylesheet' ||
+      issue.issue_type === 'broken_resource'
+    )
+
+    const internalLinks = brokenLinkIssues.filter(issue =>
+      isInternalUrl(issue.url, results.scan.url)
+    )
+
+    const externalLinks = brokenLinkIssues.filter(issue =>
+      !isInternalUrl(issue.url, results.scan.url)
+    )
+
+    const metaTagsIssues = results.issues.filter(issue =>
+      issue.issue_type === 'missing_title' ||
+      issue.issue_type === 'missing_description'
+    )
+
+    const missingTitles = metaTagsIssues.filter(issue =>
+      issue.issue_type === 'missing_title'
+    )
+
+    const missingDescriptions = metaTagsIssues.filter(issue =>
+      issue.issue_type === 'missing_description'
+    )
+
+    const otherIssues = results.issues.filter(issue =>
+      issue.issue_type !== 'broken_link' &&
+      issue.issue_type !== 'broken_image' &&
+      issue.issue_type !== 'broken_script' &&
+      issue.issue_type !== 'broken_stylesheet' &&
+      issue.issue_type !== 'broken_resource' &&
+      issue.issue_type !== 'missing_title' &&
+      issue.issue_type !== 'missing_description'
+    )
+
+    return (
+      <>
+        {results.issues.length === 0 ? (
+          <Card className="border-emerald-600/20 bg-emerald-600/5">
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">✅</div>
+                <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Issues Found!</h3>
+                <p className="text-muted-foreground">Your website looks great!</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Broken Links</CardTitle>
+                <CardDescription>
+                  {brokenLinkIssues.length} broken link{brokenLinkIssues.length !== 1 ? 's' : ''} detected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {brokenLinkIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">✅</div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Broken Links Found!</h3>
+                    <p className="text-muted-foreground">All internal and external links are working correctly.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2 mb-4 border-b border-border">
+                      <button
+                        onClick={() => setActiveTab('internal')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          activeTab === 'internal'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Internal Links ({internalLinks.length})
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('external')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          activeTab === 'external'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        External Links ({externalLinks.length})
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {(activeTab === 'internal' ? internalLinks : externalLinks).map((issue) => (
+                        <div
+                          key={issue.id}
+                          className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                              <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                            </div>
+                            <Badge variant={getSeverityColor(issue.severity)}>
+                              {issue.severity.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm text-muted-foreground">URL:</span>
+                              <a
+                                href={issue.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                              >
+                                {issue.url}
+                              </a>
+                            </div>
+                            {issue.source_page && (
+                              <div>
+                                <span className="text-sm text-muted-foreground">Source:</span>
+                                <span className="ml-2 text-sm break-all">{issue.source_page}</span>
+                              </div>
+                            )}
+                            {issue.description && (
+                              <div className="text-sm text-muted-foreground">{issue.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {(activeTab === 'internal' ? internalLinks : externalLinks).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No {activeTab === 'internal' ? 'internal' : 'external'} broken links found
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {metaTagsIssues.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Meta Tags Issues</CardTitle>
+                  <CardDescription>
+                    {metaTagsIssues.length} meta tag issue{metaTagsIssues.length !== 1 ? 's' : ''} detected
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2 mb-4 border-b border-border">
+                    <button
+                      onClick={() => setMetaTab('titles')}
+                      className={`px-4 py-2 font-medium transition-colors ${
+                        metaTab === 'titles'
+                          ? 'text-primary-400 border-b-2 border-primary-400'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Missing Titles ({missingTitles.length})
+                    </button>
+                    <button
+                      onClick={() => setMetaTab('descriptions')}
+                      className={`px-4 py-2 font-medium transition-colors ${
+                        metaTab === 'descriptions'
+                          ? 'text-primary-400 border-b-2 border-primary-400'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Missing Descriptions ({missingDescriptions.length})
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {(metaTab === 'titles' ? missingTitles : missingDescriptions).map((issue) => (
+                      <div
+                        key={issue.id}
+                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                            <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                          </div>
+                          <Badge variant={getSeverityColor(issue.severity)}>
+                            {issue.severity.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm text-muted-foreground">URL:</span>
+                            <a
+                              href={issue.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                            >
+                              {issue.url}
+                            </a>
+                          </div>
+                          {issue.description && (
+                            <div className="text-sm text-muted-foreground">{issue.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {(metaTab === 'titles' ? missingTitles : missingDescriptions).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No {metaTab === 'titles' ? 'missing titles' : 'missing descriptions'} found
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {otherIssues.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Other Issues</CardTitle>
+                  <CardDescription>
+                    {otherIssues.length} other issue{otherIssues.length !== 1 ? 's' : ''} detected
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {otherIssues.map((issue) => (
+                      <div
+                        key={issue.id}
+                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                            <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                          </div>
+                          <Badge variant={getSeverityColor(issue.severity)}>
+                            {issue.severity.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm text-muted-foreground">URL:</span>
+                            <a
+                              href={issue.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                            >
+                              {issue.url}
+                            </a>
+                          </div>
+                          {issue.source_page && (
+                            <div>
+                              <span className="text-sm text-muted-foreground">Source:</span>
+                              <span className="ml-2 text-sm break-all">{issue.source_page}</span>
+                            </div>
+                          )}
+                          {issue.description && (
+                            <div className="text-sm text-muted-foreground">{issue.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </>
+    )
   }
 
   return (
@@ -214,183 +491,7 @@ function App() {
               </CardContent>
             </Card>
 
-            {(() => {
-              const brokenLinkIssues = results.issues.filter(issue =>
-                issue.issue_type === 'broken_link' ||
-                issue.issue_type === 'broken_image' ||
-                issue.issue_type === 'broken_script' ||
-                issue.issue_type === 'broken_stylesheet' ||
-                issue.issue_type === 'broken_resource'
-              )
-
-              const internalLinks = brokenLinkIssues.filter(issue =>
-                isInternalUrl(issue.url, results.scan.url)
-              )
-
-              const externalLinks = brokenLinkIssues.filter(issue =>
-                !isInternalUrl(issue.url, results.scan.url)
-              )
-
-              const otherIssues = results.issues.filter(issue =>
-                issue.issue_type !== 'broken_link' &&
-                issue.issue_type !== 'broken_image' &&
-                issue.issue_type !== 'broken_script' &&
-                issue.issue_type !== 'broken_stylesheet' &&
-                issue.issue_type !== 'broken_resource'
-              )
-
-              return (
-                <>
-                  {results.issues.length === 0 ? (
-                    <Card className="border-emerald-600/20 bg-emerald-600/5">
-                      <CardContent className="pt-6">
-                        <div className="text-center py-8">
-                          <div className="text-4xl mb-4">✅</div>
-                          <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Issues Found!</h3>
-                          <p className="text-muted-foreground">Your website looks great!</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <>
-                      {brokenLinkIssues.length > 0 && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Broken Links</CardTitle>
-                            <CardDescription>
-                              {brokenLinkIssues.length} broken link{brokenLinkIssues.length !== 1 ? 's' : ''} detected
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex gap-2 mb-4 border-b border-border">
-                              <button
-                                onClick={() => setActiveTab('internal')}
-                                className={`px-4 py-2 font-medium transition-colors ${
-                                  activeTab === 'internal'
-                                    ? 'text-primary-400 border-b-2 border-primary-400'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                              >
-                                Internal Links ({internalLinks.length})
-                              </button>
-                              <button
-                                onClick={() => setActiveTab('external')}
-                                className={`px-4 py-2 font-medium transition-colors ${
-                                  activeTab === 'external'
-                                    ? 'text-primary-400 border-b-2 border-primary-400'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                              >
-                                External Links ({externalLinks.length})
-                              </button>
-                            </div>
-
-                            <div className="space-y-4">
-                              {(activeTab === 'internal' ? internalLinks : externalLinks).map((issue) => (
-                                <div
-                                  key={issue.id}
-                                  className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
-                                >
-                                  <div className="flex items-start justify-between gap-4 mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
-                                      <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
-                                    </div>
-                                    <Badge variant={getSeverityColor(issue.severity)}>
-                                      {issue.severity.toUpperCase()}
-                                    </Badge>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <div>
-                                      <span className="text-sm text-muted-foreground">URL:</span>
-                                      <a
-                                        href={issue.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-2 text-sm text-primary-400 hover:underline break-all"
-                                      >
-                                        {issue.url}
-                                      </a>
-                                    </div>
-                                    {issue.source_page && (
-                                      <div>
-                                        <span className="text-sm text-muted-foreground">Source:</span>
-                                        <span className="ml-2 text-sm break-all">{issue.source_page}</span>
-                                      </div>
-                                    )}
-                                    {issue.description && (
-                                      <div className="text-sm text-muted-foreground">{issue.description}</div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                              {(activeTab === 'internal' ? internalLinks : externalLinks).length === 0 && (
-                                <div className="text-center py-8 text-muted-foreground">
-                                  No {activeTab === 'internal' ? 'internal' : 'external'} broken links found
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {otherIssues.length > 0 && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Other Issues</CardTitle>
-                            <CardDescription>
-                              {otherIssues.length} other issue{otherIssues.length !== 1 ? 's' : ''} detected
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-4">
-                              {otherIssues.map((issue) => (
-                                <div
-                                  key={issue.id}
-                                  className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
-                                >
-                                  <div className="flex items-start justify-between gap-4 mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
-                                      <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
-                                    </div>
-                                    <Badge variant={getSeverityColor(issue.severity)}>
-                                      {issue.severity.toUpperCase()}
-                                    </Badge>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <div>
-                                      <span className="text-sm text-muted-foreground">URL:</span>
-                                      <a
-                                        href={issue.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-2 text-sm text-primary-400 hover:underline break-all"
-                                      >
-                                        {issue.url}
-                                      </a>
-                                    </div>
-                                    {issue.source_page && (
-                                      <div>
-                                        <span className="text-sm text-muted-foreground">Source:</span>
-                                        <span className="ml-2 text-sm break-all">{issue.source_page}</span>
-                                      </div>
-                                    )}
-                                    {issue.description && (
-                                      <div className="text-sm text-muted-foreground">{issue.description}</div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </>
-                  )}
-                </>
-              )
-            })()}
+            {renderResultsContent(results, activeTab, setActiveTab, metaTab, setMetaTab, isInternalUrl, getIssueIcon, getIssueTypeLabel, getSeverityColor)}
           </div>
         )}
         
