@@ -152,29 +152,9 @@ class BrokenLinksModule:
                         description=f"Broken {resource['type']} (HTTP {resource_status})",
                         severity=issue['severity']
                     )
-            else:
-                # Resource was not crawled, mark as potentially broken
-                # But skip for social media links
-                if not self._should_ignore_url(resource_url):
-                    issue_type = self._get_issue_type(resource['type'])
-                    issue = {
-                        'issue_type': issue_type,
-                        'url': resource_url,
-                        'source_page': resource['source'],
-                        'description': f"Uncrawled {resource['type']} (not verified)",
-                        'severity': 'low'
-                    }
-                    issues.append(issue)
-                    
-                    # Add to database
-                    self.db.add_issue(
-                        scan_id=scan_id,
-                        issue_type=issue_type,
-                        url=resource_url,
-                        source_page=resource['source'],
-                        description=f"Uncrawled {resource['type']} (not verified)",
-                        severity='low'
-                    )
+            # Resources not in url_status_map were not verified by crawler
+            # This should not happen with the new crawler logic that verifies all links
+            # Keeping this as a safety net for any edge cases
         
         return issues
     

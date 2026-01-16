@@ -285,6 +285,7 @@ class Crawler:
         results = []
         urls_to_visit = [self.base_url]
         resources_to_verify: Set[str] = set()
+        external_links_to_verify: Set[str] = set()
         
         while urls_to_visit and len(results) < max_pages:
             # Get next batch of URLs
@@ -305,13 +306,18 @@ class Crawler:
                             if link not in self.visited_urls and link not in urls_to_visit:
                                 urls_to_visit.append(link)
                     
-                    # Collect internal resources to verify
+                    # Collect internal resources to verify and external links
                     if result.get('resources'):
                         for resource in result['resources']:
                             resource_url = resource['url']
-                            # Only verify internal resources (same domain)
+                            resource_type = resource.get('type', '')
+                            
+                            # Verify internal resources (same domain)
                             if self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
                                 resources_to_verify.add(resource_url)
+                            # Collect external anchor links to verify
+                            elif resource_type == 'anchor' and not self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
+                                external_links_to_verify.add(resource_url)
         
         # Verify internal resources (images, scripts, stylesheets)
         if resources_to_verify:
@@ -328,6 +334,22 @@ class Crawler:
                 for resource_result in resource_results:
                     if resource_result:
                         results.append(resource_result)
+        
+        # Verify external anchor links
+        if external_links_to_verify:
+            # Process external links in batches
+            external_links_list = list(external_links_to_verify)
+            batch_size = 20
+            
+            for i in range(0, len(external_links_list), batch_size):
+                current_batch = external_links_list[i:i + batch_size]
+                # Fetch external links concurrently
+                tasks = [self._fetch_resource(url) for url in current_batch]
+                external_link_results = await asyncio.gather(*tasks)
+                
+                for external_link_result in external_link_results:
+                    if external_link_result:
+                        results.append(external_link_result)
         
         self.results = results
         return results
