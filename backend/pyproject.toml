@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "seo-prism"
+version = "0.1.0"
+description = "SEO Analyzer Tool - Detect broken links and missing meta-tags"
+authors = ["Miguel <miguel@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiohttp = "^3.9.0"
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+beautifulsoup4 = "^4.12.0"
+click = "^8.1.0"
+
+[tool.poetry.scripts]
+scan = "cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
