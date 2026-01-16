@@ -64,6 +64,65 @@ class Crawler:
         except Exception:
             return False
     
+    async def _fetch_resource(self, url: str) -> Optional[Dict]:
+        """
+        Fetch a single resource (image, script, stylesheet) and verify its status.
+        
+        Args:
+            url: URL to fetch
+        
+        Returns:
+            Dictionary with resource info or None if failed
+        """
+        if not self.session:
+            return None
+        
+        normalized_url = normalize_url(url)
+        
+        # Skip if already visited
+        if normalized_url in self.visited_urls:
+            return None
+        
+        self.visited_urls.add(normalized_url)
+        
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (compatible; SEO-Prism/1.0; +https://seo-prism.local)'
+            }
+            
+            # Use HEAD request for resources (faster, doesn't download content)
+            async with self.session.head(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                status = response.status
+                
+                return {
+                    'url': normalized_url,
+                    'status': status,
+                    'links': [],
+                    'resources': [],
+                    'html': None,
+                    'is_resource': True
+                }
+        
+        except asyncio.TimeoutError:
+            return {
+                'url': normalized_url,
+                'status': 408,  # Request Timeout
+                'links': [],
+                'resources': [],
+                'html': None,
+                'is_resource': True
+            }
+        except Exception as e:
+            return {
+                'url': normalized_url,
+                'status': 0,  # Connection error
+                'links': [],
+                'resources': [],
+                'html': None,
+                'error': str(e),
+                'is_resource': True
+            }
+    
     async def _fetch_page(self, url: str) -> Optional[Dict]:
         """
         Fetch a single page and extract links.
@@ -225,6 +284,7 @@ class Crawler:
         
         results = []
         urls_to_visit = [self.base_url]
+        resources_to_verify: Set[str] = set()
         
         while urls_to_visit and len(results) < max_pages:
             # Get next batch of URLs
@@ -244,6 +304,30 @@ class Crawler:
                         for link in result['links']:
                             if link not in self.visited_urls and link not in urls_to_visit:
                                 urls_to_visit.append(link)
+                    
+                    # Collect internal resources to verify
+                    if result.get('resources'):
+                        for resource in result['resources']:
+                            resource_url = resource['url']
+                            # Only verify internal resources (same domain)
+                            if self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
+                                resources_to_verify.add(resource_url)
+        
+        # Verify internal resources (images, scripts, stylesheets)
+        if resources_to_verify:
+            # Process resources in batches
+            resource_list = list(resources_to_verify)
+            batch_size = 20
+            
+            for i in range(0, len(resource_list), batch_size):
+                current_batch = resource_list[i:i + batch_size]
+                # Fetch resources concurrently
+                tasks = [self._fetch_resource(url) for url in current_batch]
+                resource_results = await asyncio.gather(*tasks)
+                
+                for resource_result in resource_results:
+                    if resource_result:
+                        results.append(resource_result)
         
         self.results = results
         return results
