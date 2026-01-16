@@ -282,90 +282,104 @@ function App() {
               </CardContent>
             </Card>
 
-            {metaTagsIssues.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Meta Tags Issues</CardTitle>
-                  <CardDescription>
-                    {metaTagsIssues.length} meta tag issue{metaTagsIssues.length !== 1 ? 's' : ''} detected
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2 mb-4 border-b border-border">
-                    <button
-                      onClick={() => setMetaTab('titles')}
-                      className={`px-4 py-2 font-medium transition-colors ${
-                        metaTab === 'titles'
-                          ? 'text-primary-400 border-b-2 border-primary-400'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Missing Titles ({missingTitles.length})
-                    </button>
-                    <button
-                      onClick={() => setMetaTab('descriptions')}
-                      className={`px-4 py-2 font-medium transition-colors ${
-                        metaTab === 'descriptions'
-                          ? 'text-primary-400 border-b-2 border-primary-400'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Missing Descriptions ({missingDescriptions.length})
-                    </button>
+            <Card>
+              <CardHeader>
+                <CardTitle>Meta Tags Issues</CardTitle>
+                <CardDescription>
+                  {metaTagsIssues.length} meta tag issue{metaTagsIssues.length !== 1 ? 's' : ''} detected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {metaTagsIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">✅</div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Meta Tag Issues Found!</h3>
+                    <p className="text-muted-foreground">All pages have proper title tags and descriptions.</p>
                   </div>
-
-                  <div className="space-y-4">
-                    {(metaTab === 'titles' ? missingTitles : missingDescriptions).map((issue) => (
-                      <div
-                        key={issue.id}
-                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                ) : (
+                  <>
+                    <div className="flex gap-2 mb-4 border-b border-border">
+                      <button
+                        onClick={() => setMetaTab('titles')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          metaTab === 'titles'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
                       >
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
-                            <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
-                          </div>
-                          <Badge variant={getSeverityColor(issue.severity)}>
-                            {issue.severity.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <div className="space-y-2">
-                          <div>
-                            <span className="text-sm text-muted-foreground">URL:</span>
-                            <a
-                              href={issue.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="ml-2 text-sm text-primary-400 hover:underline break-all"
-                            >
-                              {issue.url}
-                            </a>
-                          </div>
-                          {issue.description && (
-                            <div className="text-sm text-muted-foreground">{issue.description}</div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {(metaTab === 'titles' ? missingTitles : missingDescriptions).length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No {metaTab === 'titles' ? 'missing titles' : 'missing descriptions'} found
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                        Missing Titles ({missingTitles.length})
+                      </button>
+                      <button
+                        onClick={() => setMetaTab('descriptions')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          metaTab === 'descriptions'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Missing Descriptions ({missingDescriptions.length})
+                      </button>
+                    </div>
 
-            {otherIssues.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Other Issues</CardTitle>
-                  <CardDescription>
-                    {otherIssues.length} other issue{otherIssues.length !== 1 ? 's' : ''} detected
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                    <div className="space-y-4">
+                      {(metaTab === 'titles' ? missingTitles : missingDescriptions).map((issue) => (
+                        <div
+                          key={issue.id}
+                          className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                              <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                            </div>
+                            <Badge variant={getSeverityColor(issue.severity)}>
+                              {issue.severity.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm text-muted-foreground">URL:</span>
+                              <a
+                                href={issue.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                              >
+                                {issue.url}
+                              </a>
+                            </div>
+                            {issue.description && (
+                              <div className="text-sm text-muted-foreground">{issue.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {(metaTab === 'titles' ? missingTitles : missingDescriptions).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No {metaTab === 'titles' ? 'missing titles' : 'missing descriptions'} found
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Other Issues</CardTitle>
+                <CardDescription>
+                  {otherIssues.length} other issue{otherIssues.length !== 1 ? 's' : ''} detected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {otherIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">✅</div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Other Issues Found!</h3>
+                    <p className="text-muted-foreground">All other SEO checks passed successfully.</p>
+                  </div>
+                ) : (
                   <div className="space-y-4">
                     {otherIssues.map((issue) => (
                       <div
@@ -406,9 +420,9 @@ function App() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
       </>
