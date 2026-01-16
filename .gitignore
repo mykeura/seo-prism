@@ -100,3 +100,6 @@ Thumbs.db
 *.bak
 *.tmp
 *.swp
+
+# json
+package-lock.json
