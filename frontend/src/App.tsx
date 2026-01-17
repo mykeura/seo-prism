@@ -26,6 +26,17 @@ interface Issue {
   severity: string
 }
 
+interface SEOGrade {
+  score: number
+  grade: string
+  breakdown: {
+    high: number
+    medium: number
+    low: number
+    total: number
+  }
+}
+
 interface ScanResults {
   scan: {
     id: number
@@ -36,6 +47,7 @@ interface ScanResults {
   }
   issues: Issue[]
   pages: any[]
+  seo_grade?: SEOGrade
 }
 
 function App() {
@@ -45,6 +57,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [seoGrade, setSeoGrade] = useState<SEOGrade | null>(null)
   const [url, setUrl] = useState('')
 
   const handleScan = async (e: React.FormEvent) => {
@@ -71,6 +84,11 @@ function App() {
 
       const scanData = await scanResponse.json()
       setMessage(scanData.message)
+      
+      // Store SEO grade from scan response
+      if (scanData.seo_grade) {
+        setSeoGrade(scanData.seo_grade)
+      }
 
       const resultsResponse = await fetch(`${API_BASE_URL}/results`)
       
@@ -100,6 +118,40 @@ function App() {
         return 'default'
       default:
         return 'outline'
+    }
+  }
+
+  const getGradeColor = (grade: string) => {
+    switch (grade) {
+      case 'A':
+        return 'text-emerald-400'
+      case 'B':
+        return 'text-blue-400'
+      case 'C':
+        return 'text-yellow-400'
+      case 'D':
+        return 'text-orange-400'
+      case 'F':
+        return 'text-red-400'
+      default:
+        return 'text-muted-foreground'
+    }
+  }
+
+  const getGradeBgColor = (grade: string) => {
+    switch (grade) {
+      case 'A':
+        return 'bg-emerald-600/10 border-emerald-600/20'
+      case 'B':
+        return 'bg-blue-600/10 border-blue-600/20'
+      case 'C':
+        return 'bg-yellow-600/10 border-yellow-600/20'
+      case 'D':
+        return 'bg-orange-600/10 border-orange-600/20'
+      case 'F':
+        return 'bg-red-600/10 border-red-600/20'
+      default:
+        return 'bg-secondary-600/10 border-secondary-600/20'
     }
   }
 
@@ -917,19 +969,29 @@ function App() {
                 <CardTitle>Scan Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20">
                     <div className="text-sm text-muted-foreground mb-1">URL</div>
                     <div className="font-semibold text-sm truncate">{results.scan.url}</div>
                   </div>
-                  <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20">
+                  <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20 col-span-1">
                     <div className="text-sm text-muted-foreground mb-1">Pages Analyzed</div>
                     <div className="text-2xl font-bold text-primary-400">{results.scan.total_pages}</div>
                   </div>
-                  <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20">
+                  <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20 col-span-1">
                     <div className="text-sm text-muted-foreground mb-1">Total Issues</div>
                     <div className={`text-2xl font-bold ${results.scan.total_issues === 0 ? "text-emerald-400" : "text-accent-400"}`}>{results.scan.total_issues}</div>
                   </div>
+                  
+                  {seoGrade && (
+                    <div className={`p-4 rounded-lg border ${getGradeBgColor(seoGrade.grade)} col-span-1`}>
+                      <div className="text-sm text-muted-foreground mb-1">SEO Grade</div>
+                      <div className={`text-2xl font-bold ${getGradeColor(seoGrade.grade)}`}>
+                        {seoGrade.grade}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20">
                     <div className="text-sm text-muted-foreground mb-1">Scan Time</div>
                     <div className="text-sm font-semibold">{new Date(results.scan.timestamp).toLocaleString()}</div>

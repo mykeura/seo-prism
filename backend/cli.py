@@ -7,6 +7,7 @@ from modules.broken_links import BrokenLinksModule
 from modules.meta_tags import MetaTagsModule
 from modules.standard_files import StandardFilesModule
 from modules.missing_alt_tags import MissingAltTagsModule
+from modules.seo_grade import SEOGradeCalculator
 
 
 @click.command()
@@ -97,8 +98,14 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(standard_files_issues) + len(missing_alt_tags_issues)
     db.update_scan_totals(scan_id, len(crawled_pages), total_issues)
     
+    # Calculate SEO grade
+    all_issues = broken_link_issues + meta_tag_issues + standard_files_issues + missing_alt_tags_issues
+    grade_calculator = SEOGradeCalculator()
+    seo_grade = grade_calculator.calculate_grade(len(crawled_pages), all_issues)
+    
     # Get complete results
     results = db.get_scan_results(scan_id)
+    results['seo_grade'] = seo_grade
     db.close()
     
     return results
@@ -113,6 +120,7 @@ def display_results(results: dict):
     """
     scan = results.get('scan', {})
     issues = results.get('issues', [])
+    seo_grade = results.get('seo_grade', {})
     
     click.echo()
     click.echo("=" * 60)
@@ -122,6 +130,14 @@ def display_results(results: dict):
     click.echo(f"📅 Scan Time: {scan.get('timestamp', 'N/A')}")
     click.echo(f"📄 Pages Analyzed: {scan.get('total_pages', 0)}")
     click.echo(f"⚠️  Total Issues: {scan.get('total_issues', 0)}")
+    
+    # Display SEO grade
+    if seo_grade:
+        grade = seo_grade.get('grade', 'N/A')
+        score = seo_grade.get('score', 0)
+        grade_color = _get_grade_color_ansi(grade)
+        click.echo(f"🎯 SEO Grade: {grade_color}{grade} ({score}%)\033[0m")
+    
     click.echo()
     
     if issues:
@@ -160,6 +176,26 @@ def display_results(results: dict):
 def main():
     """Entry point for CLI."""
     scan()
+
+
+def _get_grade_color_ansi(grade: str) -> str:
+    """
+    Get ANSI color code for grade display in terminal.
+    
+    Args:
+        grade: Grade letter ('A', 'B', 'C', 'D', 'F')
+    
+    Returns:
+        ANSI color code
+    """
+    colors = {
+        'A': '\033[92m',  # Green
+        'B': '\033[94m',  # Blue
+        'C': '\033[93m',  # Yellow
+        'D': '\033[95m',  # Orange/Magenta
+        'F': '\033[91m'   # Red
+    }
+    return colors.get(grade, '\033[0m')
 
 
 if __name__ == '__main__':
