@@ -5,9 +5,15 @@ from core.url_utils import is_local, validate_url
 from database import Database
 from modules.broken_links import BrokenLinksModule
 from modules.meta_tags import MetaTagsModule
+from modules.meta_robots import MetaRobotsModule
+from modules.hreflang import HreflangModule
 from modules.standard_files import StandardFilesModule
-from modules.missing_alt_tags import MissingAltTagsModule
+from modules.duplicate_content import DuplicateContentModule
+from modules.image_alt_text import ImageAltTextModule
+from modules import h1_analysis
+from modules import header_hierarchy
 from modules.seo_grade import SEOGradeCalculator
+from modules.resource_analyzer import ResourceAnalyzer
 
 
 @click.command()
@@ -86,26 +92,57 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     # Run analysis modules
     broken_links_module = BrokenLinksModule(db)
     meta_tags_module = MetaTagsModule(db)
+    meta_robots_module = MetaRobotsModule(db)
+    hreflang_module = HreflangModule(db)
     standard_files_module = StandardFilesModule(db)
-    missing_alt_tags_module = MissingAltTagsModule(db)
+    duplicate_content_module = DuplicateContentModule(db)
+    image_alt_text_module = ImageAltTextModule(db)
     
     broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
     meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
+    meta_robots_issues = meta_robots_module.analyze(scan_id, crawled_pages)
+    hreflang_issues = hreflang_module.analyze(scan_id, crawled_pages)
     standard_files_issues = await standard_files_module.analyze(scan_id, url)
-    missing_alt_tags_issues = missing_alt_tags_module.analyze(scan_id, crawled_pages)
+    duplicate_content_issues = duplicate_content_module.analyze(scan_id, crawled_pages)
+    image_alt_text_issues = image_alt_text_module.analyze(scan_id, crawled_pages)
+    
+    # Analyze H1 headers and header hierarchy using functions
+    all_pages_data = {page['url']: page for page in crawled_pages}
+    h1_issues = []
+    header_hierarchy_issues = []
+    
+    for page in crawled_pages:
+        if page.get('html'):
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(page['html'], 'html.parser')
+            
+            # H1 analysis
+            page_h1_issues = h1_analysis.analyze_h1_headers(soup, page['url'], all_pages_data)
+            h1_issues.extend(page_h1_issues)
+            
+            # Header hierarchy analysis
+            page_hierarchy_issues = header_hierarchy.analyze_header_hierarchy(soup, page['url'])
+            header_hierarchy_issues.extend(page_hierarchy_issues)
     
     # Update scan totals
-    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(standard_files_issues) + len(missing_alt_tags_issues)
-    db.update_scan_totals(scan_id, len(crawled_pages), total_issues)
+    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(h1_issues) + len(header_hierarchy_issues)
+    
+    # Analyze resources to get actual HTML page count
+    resource_analyzer = ResourceAnalyzer()
+    resource_analysis = resource_analyzer.analyze_resources(crawled_pages)
+    html_page_count = resource_analysis['html_pages']
+    
+    db.update_scan_totals(scan_id, html_page_count, total_issues)
     
     # Calculate SEO grade
-    all_issues = broken_link_issues + meta_tag_issues + standard_files_issues + missing_alt_tags_issues
+    all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + h1_issues + header_hierarchy_issues
     grade_calculator = SEOGradeCalculator()
-    seo_grade = grade_calculator.calculate_grade(len(crawled_pages), all_issues)
+    seo_grade = grade_calculator.calculate_grade(html_page_count, all_issues)
     
     # Get complete results
     results = db.get_scan_results(scan_id)
     results['seo_grade'] = seo_grade
+    results['resource_analysis'] = resource_analysis
     db.close()
     
     return results
@@ -138,6 +175,17 @@ def display_results(results: dict):
         grade_color = _get_grade_color_ansi(grade)
         click.echo(f"🎯 SEO Grade: {grade_color}{grade} ({score}%)\033[0m")
     
+    # Display resource analysis
+    if resource_analysis:
+        click.echo()
+        click.echo("📦 Resources Found:")
+        click.echo(f"   • HTML Pages: {resource_analysis['html_pages']}")
+        click.echo(f"   • CSS Files: {resource_analysis['css_files']}")
+        click.echo(f"   • JavaScript Files: {resource_analysis['js_files']}")
+        click.echo(f"   • Images: {resource_analysis['images']}")
+        click.echo(f"   • Other Resources: {resource_analysis['other_resources']}")
+        click.echo(f"   • Total Resources: {resource_analysis['total_resources']}")
+    
     click.echo()
     
     if issues:
@@ -145,26 +193,93 @@ def display_results(results: dict):
         broken_links = [i for i in issues if i['issue_type'] == 'broken_link']
         missing_titles = [i for i in issues if i['issue_type'] == 'missing_title']
         missing_descriptions = [i for i in issues if i['issue_type'] == 'missing_description']
+        duplicate_titles = [i for i in issues if i['issue_type'] == 'duplicate_title']
+        duplicate_descriptions = [i for i in issues if i['issue_type'] == 'duplicate_description']
+        missing_alt_tags = [i for i in issues if i['issue_type'] in ['missing_alt_tag', 'missing_alt_text', 'short_alt_text']]
+        missing_h1 = [i for i in issues if i['issue_type'] == 'missing_h1']
+        multiple_h1 = [i for i in issues if i['issue_type'] == 'multiple_h1_same_page']
+        duplicate_h1 = [i for i in issues if i['issue_type'] == 'duplicate_h1']
+        invalid_hierarchy = [i for i in issues if i['issue_type'] == 'invalid_header_hierarchy']
+        meta_robots_issues = [i for i in issues if i['issue_type'].startswith('meta_robots')]
+        hreflang_issues = [i for i in issues if i['issue_type'].startswith('hreflang')]
+        standard_files_issues = [i for i in issues if i['issue_type'] in ['missing_robots_txt', 'missing_security_txt', 'missing_sitemap']]
         
         # Display broken links
         if broken_links:
             click.echo("🔗 Broken Links:")
-            for issue in broken_links:
+            for issue in broken_links[:10]:
                 click.echo(f"   • {issue['url']} (in {issue['source_page']}) - {issue['description']}")
+            if len(broken_links) > 10:
+                click.echo(f"   ... and {len(broken_links) - 10} more")
             click.echo()
         
         # Display missing titles
         if missing_titles:
             click.echo("📝 Missing Titles:")
-            for issue in missing_titles:
+            for issue in missing_titles[:10]:
                 click.echo(f"   • {issue['url']}")
+            if len(missing_titles) > 10:
+                click.echo(f"   ... and {len(missing_titles) - 10} more")
             click.echo()
         
         # Display missing descriptions
         if missing_descriptions:
             click.echo("📄 Missing Descriptions:")
-            for issue in missing_descriptions:
+            for issue in missing_descriptions[:10]:
                 click.echo(f"   • {issue['url']}")
+            if len(missing_descriptions) > 10:
+                click.echo(f"   ... and {len(missing_descriptions) - 10} more")
+            click.echo()
+        
+        # Display duplicate content
+        if duplicate_titles or duplicate_descriptions:
+            click.echo("📋 Duplicate Content:")
+            if duplicate_titles:
+                click.echo(f"   • {len(duplicate_titles)} pages with duplicate titles")
+            if duplicate_descriptions:
+                click.echo(f"   • {len(duplicate_descriptions)} pages with duplicate descriptions")
+            click.echo()
+        
+        # Display image alt issues
+        if missing_alt_tags:
+            click.echo("🖼️  Images Without Alt Tags:")
+            click.echo(f"   • {len(missing_alt_tags)} images missing alt text")
+            click.echo()
+        
+        # Display H1 issues
+        if missing_h1 or multiple_h1 or duplicate_h1:
+            click.echo("🏷️  H1 Header Issues:")
+            if missing_h1:
+                click.echo(f"   • {len(missing_h1)} pages missing H1 header")
+            if multiple_h1:
+                click.echo(f"   • {len(multiple_h1)} pages with multiple H1 headers")
+            if duplicate_h1:
+                click.echo(f"   • {len(duplicate_h1)} pages with duplicate H1 headers")
+            click.echo()
+        
+        # Display header hierarchy issues
+        if invalid_hierarchy:
+            click.echo("📐 Invalid Header Hierarchy:")
+            click.echo(f"   • {len(invalid_hierarchy)} pages with invalid header structure")
+            click.echo()
+        
+        # Display meta robots issues
+        if meta_robots_issues:
+            click.echo("🤖 Meta Robots Issues:")
+            click.echo(f"   • {len(meta_robots_issues)} meta robots directive issues")
+            click.echo()
+        
+        # Display hreflang issues
+        if hreflang_issues:
+            click.echo("🌍 Hreflang Issues:")
+            click.echo(f"   • {len(hreflang_issues)} hreflang validation issues")
+            click.echo()
+        
+        # Display standard files issues
+        if standard_files_issues:
+            click.echo("📁 Standard Files Missing:")
+            for issue in standard_files_issues:
+                click.echo(f"   • {issue['issue_type']}")
             click.echo()
     else:
         click.echo("✅ No issues found!")

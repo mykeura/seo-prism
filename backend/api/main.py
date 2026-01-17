@@ -20,6 +20,7 @@ from modules.standard_files import StandardFilesModule
 from modules.duplicate_content import DuplicateContentModule
 from modules.image_alt_text import ImageAltTextModule
 from modules.seo_grade import SEOGradeCalculator
+from modules.resource_analyzer import ResourceAnalyzer
 
 
 app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API")
@@ -48,6 +49,7 @@ class ScanResponse(BaseModel):
     total_issues: int
     message: str
     seo_grade: dict
+    resource_analysis: dict
 
 
 class Issue(BaseModel):
@@ -143,12 +145,18 @@ async def start_scan(request: ScanRequest):
         
         # Update scan totals
         total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues)
-        db.update_scan_totals(scan_id, len(crawled_pages), total_issues)
+        
+        # Analyze resources to get actual HTML page count
+        resource_analyzer = ResourceAnalyzer()
+        resource_analysis = resource_analyzer.analyze_resources(crawled_pages)
+        html_page_count = resource_analysis['html_pages']
+        
+        db.update_scan_totals(scan_id, html_page_count, total_issues)
         
         # Calculate SEO grade
         all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues
         grade_calculator = SEOGradeCalculator()
-        seo_grade = grade_calculator.calculate_grade(len(crawled_pages), all_issues)
+        seo_grade = grade_calculator.calculate_grade(html_page_count, all_issues)
         
         db.close()
         
@@ -161,10 +169,11 @@ async def start_scan(request: ScanRequest):
         return ScanResponse(
             scan_id=scan_id,
             url=request.url,
-            total_pages=len(crawled_pages),
+            total_pages=html_page_count,
             total_issues=total_issues,
             message=message,
-            seo_grade=seo_grade
+            seo_grade=seo_grade,
+            resource_analysis=resource_analysis
         )
     
     except Exception as e:
