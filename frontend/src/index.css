@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  /* Prism Crystal Color Palette - Translucent, Reflective, Prismatic */
+  
+  /* Primary - Crystal Blue (reflejo del prisma) */
+  --color-primary-50: hsl(220, 70%, 95%);
+  --color-primary-100: hsl(220, 70%, 88%);
+  --color-primary-200: hsl(220, 70%, 80%);
+  --color-primary-300: hsl(220, 70%, 72%);
+  --color-primary-400: hsl(220, 70%, 64%);
+  --color-primary-500: hsl(220, 70%, 56%);
+  --color-primary-600: hsl(220, 70%, 48%);
+  --color-primary-700: hsl(220, 70%, 40%);
+  --color-primary-800: hsl(220, 70%, 32%);
+  --color-primary-900: hsl(220, 70%, 24%);
+  --color-primary-950: hsl(220, 70%, 16%);
+
+  /* Secondary - Deep Purple (transparencia del cristal) */
+  --color-secondary-50: hsl(270, 60%, 95%);
+  --color-secondary-100: hsl(270, 60%, 88%);
+  --color-secondary-200: hsl(270, 60%, 80%);
+  --color-secondary-300: hsl(270, 60%, 72%);
+  --color-secondary-400: hsl(270, 60%, 64%);
+  --color-secondary-500: hsl(270, 60%, 56%);
+  --color-secondary-600: hsl(270, 60%, 48%);
+  --color-secondary-700: hsl(270, 60%, 40%);
+  --color-secondary-800: hsl(270, 60%, 32%);
+  --color-secondary-900: hsl(270, 60%, 24%);
+  --color-secondary-950: hsl(270, 60%, 16%);
+
+  /* Accent - Prism Pink (reflejo cálido) */
+  --color-accent-50: hsl(330, 80%, 95%);
+  --color-accent-100: hsl(330, 80%, 88%);
+  --color-accent-200: hsl(330, 80%, 80%);
+  --color-accent-300: hsl(330, 80%, 72%);
+  --color-accent-400: hsl(330, 80%, 64%);
+  --color-accent-500: hsl(330, 80%, 56%);
+  --color-accent-600: hsl(330, 80%, 48%);
+  --color-accent-700: hsl(330, 80%, 40%);
+  --color-accent-800: hsl(330, 80%, 32%);
+  --color-accent-900: hsl(330, 80%, 24%);
+  --color-accent-950: hsl(330, 80%, 16%);
+
+  /* Additional Prism Colors - Cyan and Violet */
+  --color-cyan-50: hsl(180, 70%, 95%);
+  --color-cyan-500: hsl(180, 70%, 56%);
+  --color-cyan-600: hsl(180, 70%, 48%);
+  
+  --color-violet-50: hsl(260, 65%, 95%);
+  --color-violet-500: hsl(260, 65%, 56%);
+  --color-violet-600: hsl(260, 65%, 48%);
+
+  /* Background colors - Dark Crystal */
+  --color-background: hsl(240, 30%, 8%);
+  --color-foreground: hsl(220, 20%, 95%);
+
+  /* Card colors - Glass effect */
+  --color-card: hsl(240, 30%, 12%);
+  --color-card-foreground: hsl(220, 20%, 95%);
+
+  /* Popover colors - Glass effect */
+  --color-popover: hsl(240, 30%, 14%);
+  --color-popover-foreground: hsl(220, 20%, 95%);
+
+  /* Muted colors - Subtle crystal */
+  --color-muted: hsl(240, 25%, 20%);
+  --color-muted-foreground: hsl(220, 15%, 65%);
+
+  /* Border colors - Crystal edges */
+  --color-border: hsl(240, 30%, 22%);
+  --color-input: hsl(240, 30%, 22%);
+
+  /* Ring colors - Light reflection */
+  --color-ring: hsl(220, 70%, 64%);
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Font family */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}

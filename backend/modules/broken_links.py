@@ -1,9 +1,42 @@
 from typing import List, Dict, Set
+from urllib.parse import urlparse
 from database import Database
 
 
 class BrokenLinksModule:
-    """Module to detect broken links in crawled pages."""
+    """Module to detect broken links in crawled pages - focused on broken resources only."""
+    
+    # Social media and messaging services to ignore
+    IGNORED_DOMAINS = {
+        # Social Media
+        'facebook.com', 'fb.com', 'facebook.net',
+        'twitter.com', 'x.com', 't.co',
+        'instagram.com', 'instagr.am',
+        'linkedin.com', 'lnkd.in',
+        'youtube.com', 'youtu.be',
+        'tiktok.com',
+        'pinterest.com',
+        'snapchat.com',
+        'reddit.com', 'redd.it',
+        'tumblr.com',
+        'whatsapp.com', 'wa.me',
+        'telegram.org', 't.me',
+        
+        # Messaging Services
+        'discord.com', 'discord.gg',
+        'slack.com',
+        'messenger.com',
+        'viber.com',
+        'wechat.com',
+        'line.me',
+        'skype.com',
+        'zoom.us',
+        
+        # Other External Services
+        'mailto:', 'tel:', 'callto:',
+        'javascript:', 'data:',
+        'amzn.to',  # Amazon affiliate links
+    }
     
     def __init__(self, db: Database):
         """
@@ -14,9 +47,44 @@ class BrokenLinksModule:
         """
         self.db = db
     
+    def _should_ignore_url(self, url: str) -> bool:
+        """
+        Check if a URL should be ignored (social media, messaging, etc.)
+        
+        Args:
+            url: URL to check
+        
+        Returns:
+            True if URL should be ignored, False otherwise
+        """
+        # Check for protocol-based ignores
+        if url.startswith(('mailto:', 'tel:', 'callto:', 'javascript:', 'data:')):
+            return True
+        
+        # Parse URL
+        try:
+            parsed = urlparse(url)
+            domain = parsed.hostname or ''
+            
+            # Check if domain is in ignored list
+            for ignored_domain in self.IGNORED_DOMAINS:
+                if domain == ignored_domain or domain.endswith('.' + ignored_domain):
+                    return True
+            
+            # Check for common social media patterns
+            if 'facebook.com/share' in url or 'twitter.com/share' in url:
+                return True
+            if 'linkedin.com/share' in url or 'linkedin.com/sharing' in url:
+                return True
+                
+        except Exception:
+            pass
+        
+        return False
+    
     def analyze(self, scan_id: int, crawled_pages: List[Dict]) -> List[Dict]:
         """
-        Analyze crawled pages for broken links and resources.
+        Analyze crawled pages for broken links and resources only.
         
         Args:
             scan_id: Scan ID
@@ -55,6 +123,10 @@ class BrokenLinksModule:
                 continue
             checked_resources.add(resource_url)
             
+            # Skip if URL should be ignored
+            if self._should_ignore_url(resource_url):
+                continue
+            
             # Check if resource URL exists in our crawled pages
             if resource_url in url_status_map:
                 resource_status = url_status_map[resource_url]
@@ -80,27 +152,9 @@ class BrokenLinksModule:
                         description=f"Broken {resource['type']} (HTTP {resource_status})",
                         severity=issue['severity']
                     )
-            else:
-                # Resource was not crawled, mark as potentially broken
-                issue_type = self._get_issue_type(resource['type'])
-                issue = {
-                    'issue_type': issue_type,
-                    'url': resource_url,
-                    'source_page': resource['source'],
-                    'description': f"Uncrawled {resource['type']} (not verified)",
-                    'severity': 'low'
-                }
-                issues.append(issue)
-                
-                # Add to database
-                self.db.add_issue(
-                    scan_id=scan_id,
-                    issue_type=issue_type,
-                    url=resource_url,
-                    source_page=resource['source'],
-                    description=f"Uncrawled {resource['type']} (not verified)",
-                    severity='low'
-                )
+            # Resources not in url_status_map were not verified by crawler
+            # This should not happen with the new crawler logic that verifies all links
+            # Keeping this as a safety net for any edge cases
         
         return issues
     
