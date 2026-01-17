@@ -238,10 +238,12 @@ class Crawler:
             src = img['src'].strip()
             if src:
                 absolute_url = resolve_relative_url(base_url, src)
+                alt = img.get('alt', '').strip()
                 all_resources.append({
                     'url': absolute_url,
                     'type': 'image',
-                    'source': base_url
+                    'source': base_url,
+                    'alt': alt
                 })
         
         # Extract link tags (stylesheets, etc.)

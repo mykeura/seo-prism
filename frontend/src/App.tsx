@@ -110,6 +110,8 @@ function App() {
         return 'Duplicate Title'
       case 'duplicate_description':
         return 'Duplicate Description'
+      case 'missing_alt_tag':
+        return 'Missing Alt Tag'
       case 'missing_robots_txt':
         return 'Missing robots.txt'
       case 'missing_security_txt':
@@ -143,6 +145,8 @@ function App() {
         return '📋'
       case 'duplicate_description':
         return '📑'
+      case 'missing_alt_tag':
+        return '🖼️'
       case 'robots_txt_found':
         return '🤖'
       case 'security_txt_found':
@@ -224,6 +228,10 @@ function App() {
 
     const duplicateDescriptions = duplicateContentIssues.filter(issue =>
       issue.issue_type === 'duplicate_description'
+    )
+
+    const missingAltTagIssues = results.issues.filter(issue =>
+      issue.issue_type === 'missing_alt_tag'
     )
 
     return (
@@ -491,6 +499,72 @@ function App() {
                       )}
                     </div>
                   </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Images Without Alt</CardTitle>
+                <CardDescription>
+                  {missingAltTagIssues.length} image{missingAltTagIssues.length !== 1 ? 's' : ''} missing alt tag{missingAltTagIssues.length !== 1 ? 's' : ''}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {missingAltTagIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">✅</div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">All Images Have Alt Tags!</h3>
+                    <p className="text-muted-foreground">All images have proper alt tags for SEO and accessibility.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {missingAltTagIssues.map((issue) => (
+                      <div
+                        key={issue.id}
+                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                            <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                          </div>
+                          <Badge variant={getSeverityColor(issue.severity)}>
+                            {issue.severity.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm text-muted-foreground">Image URL:</span>
+                            <a
+                              href={issue.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                            >
+                              {issue.url}
+                            </a>
+                          </div>
+                          {issue.source_page && (
+                            <div>
+                              <span className="text-sm text-muted-foreground">Found on page:</span>
+                              <a
+                                href={issue.source_page}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                              >
+                                {issue.source_page}
+                              </a>
+                            </div>
+                          )}
+                          {issue.description && (
+                            <div className="text-sm text-muted-foreground">{issue.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
