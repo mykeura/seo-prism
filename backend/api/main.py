@@ -17,8 +17,6 @@ from modules.meta_tags import MetaTagsModule
 from modules.standard_files import StandardFilesModule
 from modules.duplicate_content import DuplicateContentModule
 from modules.image_alt_text import ImageAltTextModule
-from modules.duplicate_content import DuplicateContentModule
-from modules.image_alt_text import ImageAltTextModule
 
 
 app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API")

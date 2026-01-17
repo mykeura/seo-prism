@@ -4,7 +4,7 @@ from database import Database
 
 
 class BrokenLinksModule:
-    """Module to detect broken links in crawled pages."""
+    """Module to detect broken links in crawled pages - focused on broken resources only."""
     
     # Social media and messaging services to ignore
     IGNORED_DOMAINS = {
@@ -84,7 +84,7 @@ class BrokenLinksModule:
     
     def analyze(self, scan_id: int, crawled_pages: List[Dict]) -> List[Dict]:
         """
-        Analyze crawled pages for broken links and resources.
+        Analyze crawled pages for broken links and resources only.
         
         Args:
             scan_id: Scan ID
