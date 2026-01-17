@@ -32,7 +32,7 @@ class MetaTagsModule:
         """
         issues = []
         
-        # Preparar datos para análisis de H1 entre páginas
+        # Prepare data for H1 analysis between pages
         all_pages_data = {}
         for page in crawled_pages:
             all_pages_data[page['url']] = {'html': page.get('html', '')}
@@ -100,12 +100,12 @@ class MetaTagsModule:
             h1_texts = [h1.get_text(strip=True) for h1 in h1_elements if h1.get_text(strip=True)]
             
             if len(h1_elements) == 0:
-                # No hay H1 en la página
+                # No H1 on the page
                 issue = {
                     'issue_type': 'missing_h1',
                     'url': page_url,
                     'source_page': page_url,
-                    'description': 'La página no contiene ningún encabezado H1',
+                    'description': 'The page does not contain any H1 header',
                     'severity': 'high'
                 }
                 issues.append(issue)
@@ -116,16 +116,16 @@ class MetaTagsModule:
                     issue_type='missing_h1',
                     url=page_url,
                     source_page=page_url,
-                    description='La página no contiene ningún encabezado H1',
+                    description='The page does not contain any H1 header',
                     severity='high'
                 )
             elif len(h1_elements) > 1:
-                # Hay múltiples H1 en la misma página
+                # Multiple H1 on the same page
                 issue = {
                     'issue_type': 'multiple_h1_same_page',
                     'url': page_url,
                     'source_page': page_url,
-                    'description': f'La página contiene {len(h1_elements)} encabezados H1',
+                    'description': f'The page contains {len(h1_elements)} H1 headers',
                     'severity': 'high'
                 }
                 issues.append(issue)
@@ -136,14 +136,14 @@ class MetaTagsModule:
                     issue_type='multiple_h1_same_page',
                     url=page_url,
                     source_page=page_url,
-                    description=f'La página contiene {len(h1_elements)} encabezados H1',
+                    description=f'The page contains {len(h1_elements)} H1 headers',
                     severity='high'
                 )
             else:
-                # Solo hay un H1 en la página, ahora verificamos si está duplicado en otras páginas
+                # Only one H1 on the page, now check if it's duplicated on other pages
                 current_h1 = h1_texts[0].lower() if h1_texts else ''
                 
-                # Buscar H1 duplicados en otras páginas
+                # Search for duplicate H1 on other pages
                 for other_url, page_data in all_pages_data.items():
                     if other_url == page_url or not page_data.get('html'):
                         continue
@@ -158,7 +158,7 @@ class MetaTagsModule:
                                 'issue_type': 'duplicate_h1',
                                 'url': page_url,
                                 'source_page': page_url,
-                                'description': f'H1 duplicado encontrado en otra página: {other_url}',
+                                'description': f'Duplicate H1 found on another page: {other_url}',
                                 'severity': 'high'
                             }
                             issues.append(issue)
@@ -169,14 +169,14 @@ class MetaTagsModule:
                                 issue_type='duplicate_h1',
                                 url=page_url,
                                 source_page=page_url,
-                                description=f'H1 duplicado encontrado en otra página: {other_url}',
+                                description=f'Duplicate H1 found on another page: {other_url}',
                                 severity='high'
                             )
                     except Exception as e:
-                        print(f"Error analizando H1 en {other_url}: {str(e)}")
+                        print(f"Error analyzing H1 on {other_url}: {str(e)}")
                         continue
             
-            # Analizar jerarquía de encabezados
+            # Analyze header hierarchy
             header_hierarchy_issues = analyze_header_hierarchy(soup, page_url)
             for issue in header_hierarchy_issues:
                 issues.append(issue)

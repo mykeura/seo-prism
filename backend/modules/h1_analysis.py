@@ -4,38 +4,38 @@ from urllib.parse import urljoin
 
 def analyze_h1_headers(soup: BeautifulSoup, url: str, all_pages_data: dict):
     """
-    Analiza los encabezados H1 de una página y compara con otras páginas
-    para detectar duplicados.
+    Analyzes H1 headers of a page and compares with other pages
+    to detect duplicates.
     """
     issues = []
     
-    # Obtener todos los encabezados H1 en la página actual
+    # Get all H1 headers on the current page
     h1_elements = soup.find_all('h1')
     h1_texts = [h1.get_text(strip=True) for h1 in h1_elements if h1.get_text(strip=True)]
     
     if len(h1_elements) == 0:
-        # No hay H1 en la página
+        # No H1 on the page
         issues.append({
             'issue_type': 'missing_h1',
             'url': url,
             'source_page': url,
-            'description': 'La página no contiene ningún encabezado H1',
+            'description': 'The page does not contain any H1 header',
             'severity': 'high'
         })
     elif len(h1_elements) > 1:
-        # Hay múltiples H1 en la misma página
+        # Multiple H1 on the same page
         issues.append({
             'issue_type': 'multiple_h1_same_page',
             'url': url,
             'source_page': url,
-            'description': f'La página contiene {len(h1_elements)} encabezados H1',
+            'description': f'The page contains {len(h1_elements)} H1 headers',
             'severity': 'high'
         })
     else:
-        # Solo hay un H1 en la página, ahora verificamos si está duplicado en otras páginas
+        # Only one H1 on the page, now check if it's duplicated on other pages
         current_h1 = h1_texts[0].lower() if h1_texts else ''
         
-        # Buscar H1 duplicados en otras páginas
+        # Search for duplicate H1 on other pages
         for other_url, page_data in all_pages_data.items():
             if other_url == url or not page_data.get('html'):
                 continue
@@ -50,19 +50,19 @@ def analyze_h1_headers(soup: BeautifulSoup, url: str, all_pages_data: dict):
                         'issue_type': 'duplicate_h1',
                         'url': url,
                         'source_page': url,
-                        'description': f'H1 duplicado encontrado en otra página: {other_url}',
+                        'description': f'Duplicate H1 found on another page: {other_url}',
                         'severity': 'high'
                     })
-                    # También reportar en la otra página
+                    # Also report on the other page
                     issues.append({
                         'issue_type': 'duplicate_h1',
                         'url': other_url,
                         'source_page': other_url,
-                        'description': f'H1 duplicado encontrado en otra página: {url}',
+                        'description': f'Duplicate H1 found on another page: {url}',
                         'severity': 'high'
                     })
             except Exception as e:
-                print(f"Error analizando H1 en {other_url}: {str(e)}")
+                print(f"Error analyzing H1 on {other_url}: {str(e)}")
                 continue
     
     return issues
