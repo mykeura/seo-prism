@@ -12,6 +12,7 @@ SEO Analyzer Tool - Detect broken links and missing meta-tags
 - ✅ Validates header hierarchy (proper H1-H6 structure)
 - ✅ Checks image alt text (missing, short alt tags)
 - ✅ Validates standard files (robots.txt, security.txt, sitemap.xml)
+- ✅ Analyzes meta robots directives (noindex, nofollow, nosnippet, etc.)
 - ✅ Simple web panel without authentication
 - ✅ CLI for quick testing
 - ✅ Local mode (ignores robots.txt)
@@ -85,6 +86,7 @@ seo-prism/
 │   │   ├── h1_analysis.py
 │   │   ├── header_hierarchy.py
 │   │   ├── image_alt_text.py
+│   │   ├── meta_robots.py
 │   │   ├── meta_tags.py
 │   │   ├── missing_alt_tags.py
 │   │   └── standard_files.py
