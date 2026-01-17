@@ -322,7 +322,7 @@ function App() {
               <CardContent>
                 {brokenLinkIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">✅</div>
+                    <div className="text-4xl mb-4">🔗</div>
                     <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Broken Links Found!</h3>
                     <p className="text-muted-foreground">All internal and external links are working correctly.</p>
                   </div>
@@ -414,7 +414,7 @@ function App() {
               <CardContent>
                 {metaTagsIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">✅</div>
+                    <div className="text-4xl mb-4">📝</div>
                     <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Meta Tag Issues Found!</h3>
                     <p className="text-muted-foreground">All pages have proper title tags and descriptions.</p>
                   </div>
@@ -501,7 +501,7 @@ function App() {
               <CardContent>
                 {missingAltTagIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">✅</div>
+                    <div className="text-4xl mb-4">🖼️</div>
                     <h3 className="text-xl font-semibold text-emerald-400 mb-2">All Images Have Alt Tags!</h3>
                     <p className="text-muted-foreground">All images have proper alt tags for SEO and accessibility.</p>
                   </div>
