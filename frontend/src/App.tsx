@@ -128,6 +128,14 @@ function App() {
         return 'security.txt'
       case 'sitemap_found':
         return 'Sitemap'
+      case 'missing_h1':
+        return 'Missing H1 Header'
+      case 'multiple_h1_same_page':
+        return 'Multiple H1 Headers on Same Page'
+      case 'duplicate_h1':
+        return 'Duplicate H1 Header'
+      case 'invalid_header_hierarchy':
+        return 'Invalid Header Hierarchy'
       default:
         return type
     }
@@ -167,6 +175,14 @@ function App() {
         return '🔒'
       case 'missing_sitemap':
         return '🗺️'
+      case 'missing_h1':
+        return '🏷️'
+      case 'multiple_h1_same_page':
+        return '🏷️'
+      case 'duplicate_h1':
+        return '🏷️'
+      case 'invalid_header_hierarchy':
+        return '📊'
       default:
         return '⚠️'
     }
@@ -174,9 +190,13 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal')
   const [metaTab, setMetaTab] = useState<'titles' | 'descriptions'>('titles')
+  const [headerAnalysisTab, setHeaderAnalysisTab] = useState<'all' | 'hierarchy' | 'h1'>('all')
   const [showMoreBrokenLinks, setShowMoreBrokenLinks] = useState(5)
   const [showMoreMetaTags, setShowMoreMetaTags] = useState(5)
   const [showMoreImages, setShowMoreImages] = useState(5)
+  const [showMoreH1, setShowMoreH1] = useState(5)
+  const [showMoreHeaderHierarchy, setShowMoreHeaderHierarchy] = useState(5)
+  const [showMoreHeaders, setShowMoreHeaders] = useState(5)
   const [showMoreStandardFiles, setShowMoreStandardFiles] = useState(5)
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
@@ -259,6 +279,23 @@ function App() {
       issue.issue_type === 'missing_alt_tag' ||
       issue.issue_type === 'missing_alt_text' ||
       issue.issue_type === 'short_alt_text'
+    )
+
+    const h1Issues = results.issues.filter(issue =>
+      issue.issue_type === 'missing_h1' ||
+      issue.issue_type === 'multiple_h1_same_page' ||
+      issue.issue_type === 'duplicate_h1'
+    )
+
+    const headerHierarchyIssues = results.issues.filter(issue =>
+      issue.issue_type === 'invalid_header_hierarchy'
+    )
+
+    const headerIssues = results.issues.filter(issue =>
+      issue.issue_type === 'missing_h1' ||
+      issue.issue_type === 'multiple_h1_same_page' ||
+      issue.issue_type === 'duplicate_h1' ||
+      issue.issue_type === 'invalid_header_hierarchy'
     )
 
     return (
@@ -523,6 +560,118 @@ function App() {
                         >
                           Showing {showMoreImages} of {missingAltTagIssues.length} items.
                         </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Headers Analysis Section with Tabs */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Header Analysis</CardTitle>
+                <CardDescription>
+                  Comprehensive header analysis showing all header-related issues
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 mb-4 border-b border-border">
+                  <button
+                    onClick={() => setHeaderAnalysisTab('all')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      headerAnalysisTab === 'all'
+                        ? 'text-primary-400 border-b-2 border-primary-400'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    All Headers ({headerIssues.length})
+                  </button>
+                  <button
+                    onClick={() => setHeaderAnalysisTab('hierarchy')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      headerAnalysisTab === 'hierarchy'
+                        ? 'text-primary-400 border-b-2 border-primary-400'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Hierarchy Issues ({headerHierarchyIssues.length})
+                  </button>
+                  <button
+                    onClick={() => setHeaderAnalysisTab('h1')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      headerAnalysisTab === 'h1'
+                        ? 'text-primary-400 border-b-2 border-primary-400'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    H1 Issues ({h1Issues.length})
+                  </button>
+                </div>
+
+                {headerIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">🏷️</div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Header Issues Found!</h3>
+                    <p className="text-muted-foreground">All pages have proper header structure.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {renderLimitedItems(
+                      (headerAnalysisTab === 'all' ? headerIssues :
+                       headerAnalysisTab === 'hierarchy' ? headerHierarchyIssues :
+                       h1Issues),
+                      (issue: any) => (
+                        <div
+                          key={issue.id}
+                          className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                              <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                            </div>
+                            <Badge variant={getSeverityColor(issue.severity)}>
+                              {issue.severity.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm text-muted-foreground">URL:</span>
+                              <a
+                                href={issue.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                              >
+                                {issue.url}
+                              </a>
+                            </div>
+                            {issue.source_page && issue.source_page !== issue.url && (
+                              <div>
+                                <span className="text-sm text-muted-foreground">Source:</span>
+                                <span className="ml-2 text-sm break-all">{issue.source_page}</span>
+                              </div>
+                            )}
+                            {issue.description && (
+                              <div className="text-sm text-muted-foreground">{issue.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ),
+                      (headerAnalysisTab === 'all' ? showMoreHeaders :
+                       headerAnalysisTab === 'hierarchy' ? showMoreHeaderHierarchy :
+                       showMoreH1),
+                      (headerAnalysisTab === 'all' ? setShowMoreHeaders :
+                       headerAnalysisTab === 'hierarchy' ? setShowMoreHeaderHierarchy :
+                       setShowMoreH1)
+                    )}
+                    {(headerAnalysisTab === 'all' ? headerIssues :
+                     headerAnalysisTab === 'hierarchy' ? headerHierarchyIssues :
+                     h1Issues).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No {headerAnalysisTab === 'all' ? 'header' :
+                             headerAnalysisTab === 'hierarchy' ? 'hierarchy' : 'H1'} issues found
                       </div>
                     )}
                   </div>
