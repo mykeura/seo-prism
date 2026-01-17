@@ -3,6 +3,18 @@ import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './components/ui/card'
 import { Badge } from './components/ui/badge'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faLink,
+  faFileAlt,
+  faFileImage,
+  faTag,
+  faRobot,
+  faShieldAlt,
+  faMap,
+  faFolder,
+  faExclamationTriangle
+} from '@fortawesome/free-solid-svg-icons'
 
 interface Issue {
   id: number
@@ -148,43 +160,43 @@ function App() {
       case 'broken_script':
       case 'broken_stylesheet':
       case 'broken_resource':
-        return '🔗'
+        return <FontAwesomeIcon icon={faLink} className="text-destructive" />;
       case 'missing_title':
-        return '📝'
+        return <FontAwesomeIcon icon={faFileAlt} className="text-primary-400" />;
       case 'missing_description':
-        return '📄'
+        return <FontAwesomeIcon icon={faFileAlt} className="text-primary-400" />;
       case 'duplicate_title':
-        return '📋'
+        return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
       case 'duplicate_description':
-        return '📑'
+        return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
       case 'missing_alt_tag':
-        return '🖼️'
+        return <FontAwesomeIcon icon={faFileImage} className="text-secondary" />;
       case 'missing_alt_text':
-        return '🖼️'
+        return <FontAwesomeIcon icon={faFileImage} className="text-secondary" />;
       case 'short_alt_text':
-        return '🖼️'
+        return <FontAwesomeIcon icon={faFileImage} className="text-secondary" />;
       case 'robots_txt_found':
-        return '🤖'
+        return <FontAwesomeIcon icon={faRobot} className="text-success" />;
       case 'security_txt_found':
-        return '🔒'
+        return <FontAwesomeIcon icon={faShieldAlt} className="text-success" />;
       case 'sitemap_found':
-        return '🗺️'
+        return <FontAwesomeIcon icon={faMap} className="text-success" />;
       case 'missing_robots_txt':
-        return '🤖'
+        return <FontAwesomeIcon icon={faRobot} className="text-destructive" />;
       case 'missing_security_txt':
-        return '🔒'
+        return <FontAwesomeIcon icon={faShieldAlt} className="text-destructive" />;
       case 'missing_sitemap':
-        return '🗺️'
+        return <FontAwesomeIcon icon={faMap} className="text-destructive" />;
       case 'missing_h1':
-        return '🏷️'
+        return <FontAwesomeIcon icon={faTag} className="text-destructive" />;
       case 'multiple_h1_same_page':
-        return '🏷️'
+        return <FontAwesomeIcon icon={faTag} className="text-destructive" />;
       case 'duplicate_h1':
-        return '🏷️'
+        return <FontAwesomeIcon icon={faTag} className="text-warning" />;
       case 'invalid_header_hierarchy':
-        return '📊'
+        return <FontAwesomeIcon icon={faTag} className="text-warning" />;
       default:
-        return '⚠️'
+        return <FontAwesomeIcon icon={faExclamationTriangle} className="text-outline" />;
     }
   }
 
@@ -209,7 +221,7 @@ function App() {
     }
   }
 
-  const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => string, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
+  const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => React.ReactNode, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
     
     // Helper function to render limited items with "Show More" option
     const renderLimitedItems = (items: any[], renderItem: (item: any) => React.ReactNode, showMoreState: number, setShowMoreState: React.Dispatch<React.SetStateAction<number>>) => {
@@ -322,7 +334,7 @@ function App() {
               <CardContent>
                 {brokenLinkIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">🔗</div>
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faLink} className="text-primary-400" /></div>
                     <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Broken Links Found!</h3>
                     <p className="text-muted-foreground">All internal and external links are working correctly.</p>
                   </div>
@@ -414,7 +426,7 @@ function App() {
               <CardContent>
                 {metaTagsIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">📝</div>
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faFileAlt} className="text-primary-400" /></div>
                     <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Meta Tag Issues Found!</h3>
                     <p className="text-muted-foreground">All pages have proper title tags and descriptions.</p>
                   </div>
@@ -501,7 +513,7 @@ function App() {
               <CardContent>
                 {missingAltTagIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">🖼️</div>
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faFileImage} className="text-primary-400" /></div>
                     <h3 className="text-xl font-semibold text-emerald-400 mb-2">All Images Have Alt Tags!</h3>
                     <p className="text-muted-foreground">All images have proper alt tags for SEO and accessibility.</p>
                   </div>
@@ -611,7 +623,7 @@ function App() {
 
                 {headerIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">🏷️</div>
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faTag} className="text-primary-400" /></div>
                     <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Header Issues Found!</h3>
                     <p className="text-muted-foreground">All pages have proper header structure.</p>
                   </div>
@@ -689,7 +701,7 @@ function App() {
               <CardContent>
                 {standardFilesIssues.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">📁</div>
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faFolder} className="text-primary-400" /></div>
                     <h3 className="text-xl font-semibold text-muted-foreground mb-2">No Standard Files Found</h3>
                     <p className="text-muted-foreground">No robots.txt, security.txt or sitemap files were detected.</p>
                   </div>
