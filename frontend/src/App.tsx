@@ -174,6 +174,10 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal')
   const [metaTab, setMetaTab] = useState<'titles' | 'descriptions'>('titles')
+  const [showMoreBrokenLinks, setShowMoreBrokenLinks] = useState(5)
+  const [showMoreMetaTags, setShowMoreMetaTags] = useState(5)
+  const [showMoreImages, setShowMoreImages] = useState(5)
+  const [showMoreStandardFiles, setShowMoreStandardFiles] = useState(5)
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
     try {
@@ -186,6 +190,28 @@ function App() {
   }
 
   const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => string, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
+    
+    // Helper function to render limited items with "Show More" option
+    const renderLimitedItems = (items: any[], renderItem: (item: any) => React.ReactNode, showMoreState: number, setShowMoreState: React.Dispatch<React.SetStateAction<number>>) => {
+      const visibleItems = items.slice(0, showMoreState);
+      const hasMore = items.length > showMoreState;
+      
+      return (
+        <div className="space-y-4">
+          {visibleItems.map(renderItem)}
+          {hasMore && (
+            <div className="text-center mt-4">
+              <button
+                onClick={() => setShowMoreState(prev => prev + 10)}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
+              >
+                Showing {showMoreState} of {items.length} items.
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    };
     const brokenLinkIssues = results.issues.filter(issue =>
       issue.issue_type === 'broken_link' ||
       issue.issue_type === 'broken_image' ||
@@ -288,8 +314,9 @@ function App() {
                       </button>
                     </div>
 
-                    <div className="space-y-4">
-                      {(activeTab === 'internal' ? internalLinks : externalLinks).map((issue) => (
+                    {renderLimitedItems(
+                      (activeTab === 'internal' ? internalLinks : externalLinks),
+                      (issue: any) => (
                         <div
                           key={issue.id}
                           className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
@@ -326,13 +353,15 @@ function App() {
                             )}
                           </div>
                         </div>
-                      ))}
-                      {(activeTab === 'internal' ? internalLinks : externalLinks).length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No {activeTab === 'internal' ? 'internal' : 'external'} broken links found
-                        </div>
-                      )}
-                    </div>
+                      ),
+                      showMoreBrokenLinks,
+                      setShowMoreBrokenLinks
+                    )}
+                    {(activeTab === 'internal' ? internalLinks : externalLinks).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No {activeTab === 'internal' ? 'internal' : 'external'} broken links found
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -377,8 +406,9 @@ function App() {
                       </button>
                     </div>
 
-                    <div className="space-y-4">
-                      {(metaTab === 'titles' ? missingTitles : missingDescriptions).map((issue) => (
+                    {renderLimitedItems(
+                      (metaTab === 'titles' ? missingTitles : missingDescriptions),
+                      (issue: any) => (
                         <div
                           key={issue.id}
                           className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
@@ -409,13 +439,15 @@ function App() {
                             )}
                           </div>
                         </div>
-                      ))}
-                      {(metaTab === 'titles' ? missingTitles : missingDescriptions).length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No {metaTab === 'titles' ? 'missing titles' : 'missing descriptions'} found
-                        </div>
-                      )}
-                    </div>
+                      ),
+                      showMoreMetaTags,
+                      setShowMoreMetaTags
+                    )}
+                    {(metaTab === 'titles' ? missingTitles : missingDescriptions).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No {metaTab === 'titles' ? 'missing titles' : 'missing descriptions'} found
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -438,7 +470,7 @@ function App() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {missingAltTagIssues.map((issue) => (
+                    {missingAltTagIssues.slice(0, showMoreImages).map((issue) => (
                       <div
                         key={issue.id}
                         className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
@@ -483,6 +515,16 @@ function App() {
                         </div>
                       </div>
                     ))}
+                    {missingAltTagIssues.length > showMoreImages && (
+                      <div className="text-center mt-4">
+                        <button
+                          onClick={() => setShowMoreImages(prev => prev + 10)}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
+                        >
+                          Showing {showMoreImages} of {missingAltTagIssues.length} items.
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -504,7 +546,7 @@ function App() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {standardFilesIssues.map((issue) => (
+                    {standardFilesIssues.slice(0, showMoreStandardFiles).map((issue) => (
                       <div
                         key={issue.id}
                         className="p-4 rounded-lg border border-border bg-emerald-600/5 hover:bg-emerald-600/10 transition-colors"
@@ -536,6 +578,16 @@ function App() {
                         </div>
                       </div>
                     ))}
+                    {standardFilesIssues.length > showMoreStandardFiles && (
+                      <div className="text-center mt-4">
+                        <button
+                          onClick={() => setShowMoreStandardFiles(prev => prev + 10)}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
+                        >
+                          Showing {showMoreStandardFiles} of {standardFilesIssues.length} items.
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
