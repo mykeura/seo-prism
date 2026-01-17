@@ -13,7 +13,8 @@ import {
   faShieldAlt,
   faMap,
   faFolder,
-  faExclamationTriangle
+  faExclamationTriangle,
+  faGlobe
 } from '@fortawesome/free-solid-svg-icons'
 
 interface Issue {
@@ -148,6 +149,18 @@ function App() {
         return 'Duplicate H1 Header'
       case 'invalid_header_hierarchy':
         return 'Invalid Header Hierarchy'
+      case 'hreflang_missing_self_reference':
+        return 'Hreflang Missing Self Reference'
+      case 'hreflang_missing_x_default':
+        return 'Hreflang Missing x-default'
+      case 'hreflang_duplicate_code':
+        return 'Hreflang Duplicate Code'
+      case 'hreflang_invalid_code':
+        return 'Hreflang Invalid Code'
+      case 'hreflang_missing_return_link':
+        return 'Hreflang Missing Return Link'
+      case 'hreflang_missing_canonical':
+        return 'Hreflang Missing Canonical'
       default:
         return type
     }
@@ -195,6 +208,18 @@ function App() {
         return <FontAwesomeIcon icon={faTag} className="text-warning" />;
       case 'invalid_header_hierarchy':
         return <FontAwesomeIcon icon={faTag} className="text-warning" />;
+      case 'hreflang_missing_self_reference':
+        return <FontAwesomeIcon icon={faGlobe} className="text-destructive" />;
+      case 'hreflang_missing_x_default':
+        return <FontAwesomeIcon icon={faGlobe} className="text-warning" />;
+      case 'hreflang_duplicate_code':
+        return <FontAwesomeIcon icon={faGlobe} className="text-destructive" />;
+      case 'hreflang_invalid_code':
+        return <FontAwesomeIcon icon={faGlobe} className="text-destructive" />;
+      case 'hreflang_missing_return_link':
+        return <FontAwesomeIcon icon={faGlobe} className="text-destructive" />;
+      case 'hreflang_missing_canonical':
+        return <FontAwesomeIcon icon={faGlobe} className="text-destructive" />;
       default:
         return <FontAwesomeIcon icon={faExclamationTriangle} className="text-outline" />;
     }
@@ -210,6 +235,7 @@ function App() {
   const [showMoreHeaderHierarchy, setShowMoreHeaderHierarchy] = useState(5)
   const [showMoreHeaders, setShowMoreHeaders] = useState(5)
   const [showMoreStandardFiles, setShowMoreStandardFiles] = useState(5)
+  const [showMoreHreflang, setShowMoreHreflang] = useState(5)
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
     try {
@@ -286,6 +312,14 @@ function App() {
       issue.issue_type === 'missing_sitemap'
     )
 
+    const hreflangIssues = results.issues.filter(issue =>
+      issue.issue_type === 'hreflang_missing_self_reference' ||
+      issue.issue_type === 'hreflang_missing_x_default' ||
+      issue.issue_type === 'hreflang_duplicate_code' ||
+      issue.issue_type === 'hreflang_invalid_code' ||
+      issue.issue_type === 'hreflang_missing_return_link' ||
+      issue.issue_type === 'hreflang_missing_canonical'
+    )
 
     const missingAltTagIssues = results.issues.filter(issue =>
       issue.issue_type === 'missing_alt_tag' ||
@@ -746,6 +780,75 @@ function App() {
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
                         >
                           Showing {showMoreStandardFiles} of {standardFilesIssues.length} items.
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Hreflang Validation</CardTitle>
+                <CardDescription>
+                  {hreflangIssues.length} hreflang issue{hreflangIssues.length !== 1 ? 's' : ''} found
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {hreflangIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faGlobe} className="text-primary-400" /></div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Hreflang Issues Found!</h3>
+                    <p className="text-muted-foreground">All hreflang tags are properly configured.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {hreflangIssues.slice(0, showMoreHreflang).map((issue) => (
+                      <div
+                        key={issue.id}
+                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                            <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                          </div>
+                          <Badge variant={getSeverityColor(issue.severity)}>
+                            {issue.severity.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm text-muted-foreground">URL:</span>
+                            <a
+                              href={issue.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                            >
+                              {issue.url}
+                            </a>
+                          </div>
+                          {issue.source_page && issue.source_page !== issue.url && (
+                            <div>
+                              <span className="text-sm text-muted-foreground">Source:</span>
+                              <span className="ml-2 text-sm break-all">{issue.source_page}</span>
+                            </div>
+                          )}
+                          {issue.description && (
+                            <div className="text-sm text-muted-foreground">{issue.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {hreflangIssues.length > showMoreHreflang && (
+                      <div className="text-center mt-4">
+                        <button
+                          onClick={() => setShowMoreHreflang(prev => prev + 10)}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
+                        >
+                          Showing {showMoreHreflang} of {hreflangIssues.length} items.
                         </button>
                       </div>
                     )}

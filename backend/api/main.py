@@ -15,6 +15,7 @@ from database import Database
 from modules.broken_links import BrokenLinksModule
 from modules.meta_tags import MetaTagsModule
 from modules.meta_robots import MetaRobotsModule
+from modules.hreflang import HreflangModule
 from modules.standard_files import StandardFilesModule
 from modules.duplicate_content import DuplicateContentModule
 from modules.image_alt_text import ImageAltTextModule
@@ -125,6 +126,7 @@ async def start_scan(request: ScanRequest):
         broken_links_module = BrokenLinksModule(db)
         meta_tags_module = MetaTagsModule(db)
         meta_robots_module = MetaRobotsModule(db)
+        hreflang_module = HreflangModule(db)
         standard_files_module = StandardFilesModule(db)
         duplicate_content_module = DuplicateContentModule(db)
         image_alt_text_module = ImageAltTextModule(db)
@@ -132,12 +134,13 @@ async def start_scan(request: ScanRequest):
         broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
         meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
         meta_robots_issues = meta_robots_module.analyze(scan_id, crawled_pages)
+        hreflang_issues = hreflang_module.analyze(scan_id, crawled_pages)
         standard_files_issues = await standard_files_module.analyze(scan_id, request.url)
         duplicate_content_issues = duplicate_content_module.analyze(scan_id, crawled_pages)
         image_alt_text_issues = image_alt_text_module.analyze(scan_id, crawled_pages)
         
         # Update scan totals
-        total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues)
+        total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues)
         db.update_scan_totals(scan_id, len(crawled_pages), total_issues)
         db.close()
         
