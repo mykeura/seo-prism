@@ -36,11 +36,16 @@ class StandardFilesModule:
             parsed = urlparse(base_url)
             scheme = parsed.scheme or 'https'
             domain = parsed.hostname
+            port = parsed.port
             
             if not domain:
                 return issues
             
-            base_domain = f"{scheme}://{domain}"
+            # Include port if it's not the default for the scheme
+            if port and ((scheme == 'http' and port != 80) or (scheme == 'https' and port != 443)):
+                base_domain = f"{scheme}://{domain}:{port}"
+            else:
+                base_domain = f"{scheme}://{domain}"
             
         except Exception:
             return issues
@@ -212,11 +217,11 @@ class StandardFilesModule:
         """
         sitemaps = []
         
-        # Common sitemap filenames to check
+        # Common sitemap filenames to check (prioritize Astro format)
         common_sitemap_names = [
+            'sitemap-index.xml',  # Astro format (highest priority)
+            'sitemap_index.xml',  # Alternative format
             'sitemap.xml',
-            'sitemap_index.xml',
-            'sitemap-index.xml',
             'sitemap_index.xml.gz',
             'sitemap.xml.gz',
             'sitemap1.xml',
