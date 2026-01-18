@@ -11,6 +11,7 @@ from modules.standard_files import StandardFilesModule
 from modules.duplicate_content import DuplicateContentModule
 from modules.image_alt_text import ImageAltTextModule
 from modules.canonical_tags import CanonicalTagsModule
+from modules.orphan_pages import OrphanPagesModule
 from modules import h1_analysis
 from modules import header_hierarchy
 from modules.seo_grade import SEOGradeCalculator
@@ -99,6 +100,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     duplicate_content_module = DuplicateContentModule(db)
     image_alt_text_module = ImageAltTextModule(db)
     canonical_tags_module = CanonicalTagsModule(db)
+    orphan_pages_module = OrphanPagesModule(db)
     
     broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
     meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
@@ -108,6 +110,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     duplicate_content_issues = duplicate_content_module.analyze(scan_id, crawled_pages)
     image_alt_text_issues = image_alt_text_module.analyze(scan_id, crawled_pages)
     canonical_issues = canonical_tags_module.analyze(scan_id, crawled_pages)
+    orphan_pages_issues = orphan_pages_module.analyze(scan_id, crawled_pages, url)
     
     # Analyze H1 headers and header hierarchy using functions
     all_pages_data = {page['url']: page for page in crawled_pages}
@@ -128,7 +131,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
             header_hierarchy_issues.extend(page_hierarchy_issues)
     
     # Update scan totals
-    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(h1_issues) + len(header_hierarchy_issues) + len(canonical_issues)
+    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(h1_issues) + len(header_hierarchy_issues) + len(canonical_issues) + len(orphan_pages_issues)
     
     # Analyze resources to get actual HTML page count
     resource_analyzer = ResourceAnalyzer()
@@ -138,7 +141,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     db.update_scan_totals(scan_id, html_page_count, total_issues)
     
     # Calculate SEO grade
-    all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + h1_issues + header_hierarchy_issues + canonical_issues
+    all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + h1_issues + header_hierarchy_issues + canonical_issues + orphan_pages_issues
     grade_calculator = SEOGradeCalculator()
     seo_grade = grade_calculator.calculate_grade(html_page_count, all_issues)
     
@@ -305,6 +308,16 @@ def display_results(results: dict):
             click.echo("📁 Standard Files Missing:")
             for issue in standard_files_issues:
                 click.echo(f"   • {issue['issue_type']}")
+            click.echo()
+        
+        # Display orphan pages
+        orphan_pages = [i for i in issues if i['issue_type'] == 'orphan_page']
+        if orphan_pages:
+            click.echo("📁 Orphan Pages (no incoming links):")
+            for issue in orphan_pages[:10]:
+                click.echo(f"   • {issue['url']}")
+            if len(orphan_pages) > 10:
+                click.echo(f"   ... and {len(orphan_pages) - 10} more")
             click.echo()
     else:
         click.echo("✅ No issues found!")
