@@ -223,6 +223,8 @@ function App() {
         return 'Canonical URL Variation'
       case 'missing_canonical':
         return 'Missing Canonical'
+      case 'orphan_page':
+        return 'Orphan Page'
       default:
         return type
     }
@@ -292,6 +294,8 @@ function App() {
         return <FontAwesomeIcon icon={faLink} className="text-secondary" />;
       case 'missing_canonical':
         return <FontAwesomeIcon icon={faLink} className="text-secondary" />;
+      case 'orphan_page':
+        return <FontAwesomeIcon icon={faFolder} className="text-warning" />;
       default:
         return <FontAwesomeIcon icon={faExclamationTriangle} className="text-outline" />;
     }
@@ -310,6 +314,7 @@ function App() {
   const [showMoreStandardFiles, setShowMoreStandardFiles] = useState(5)
   const [showMoreHreflang, setShowMoreHreflang] = useState(5)
   const [showMoreCanonical, setShowMoreCanonical] = useState(5)
+  const [showMoreOrphanPages, setShowMoreOrphanPages] = useState(5)
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
     try {
@@ -421,6 +426,10 @@ function App() {
 
     const missingCanonical = canonicalIssues.filter(issue =>
       issue.issue_type === 'missing_canonical'
+    )
+
+    const orphanPagesIssues = results.issues.filter(issue =>
+      issue.issue_type === 'orphan_page'
     )
 
     const missingAltTagIssues = results.issues.filter(issue =>
@@ -1096,6 +1105,70 @@ function App() {
                       </div>
                     )}
                   </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Orphan Pages Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Orphan Pages</CardTitle>
+                <CardDescription>
+                  {orphanPagesIssues.length} orphan page{orphanPagesIssues.length !== 1 ? 's' : ''} detected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {orphanPagesIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faFolder} className="text-primary-400" /></div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Orphan Pages Found!</h3>
+                    <p className="text-muted-foreground">All pages have incoming internal links.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {orphanPagesIssues.slice(0, showMoreOrphanPages).map((issue) => (
+                      <div
+                        key={issue.id}
+                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                            <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                          </div>
+                          <Badge variant={getSeverityColor(issue.severity)}>
+                            {issue.severity.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm text-muted-foreground">URL:</span>
+                            <a
+                              href={issue.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                            >
+                              {issue.url}
+                            </a>
+                          </div>
+                          {issue.description && (
+                            <div className="text-sm text-muted-foreground">{issue.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {orphanPagesIssues.length > showMoreOrphanPages && (
+                      <div className="text-center mt-4">
+                        <button
+                          onClick={() => setShowMoreOrphanPages(prev => prev + 10)}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
+                        >
+                          Showing {showMoreOrphanPages} of {orphanPagesIssues.length} orphan pages.
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
