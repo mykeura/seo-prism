@@ -1364,7 +1364,7 @@ function App() {
                   </div>
                   
                   {seoGrade && (
-                    <div className={`p-4 rounded-lg border ${getGradeBgColor(seoGrade.grade)} col-span-1`}>
+                    <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20 col-span-1">
                       <div className="text-sm text-muted-foreground mb-1">SEO Grade</div>
                       <div className={`text-2xl font-bold ${getGradeColor(seoGrade.grade)}`}>
                         {seoGrade.grade}
