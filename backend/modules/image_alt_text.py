@@ -67,7 +67,7 @@ class ImageAltTextModule:
                         description=issue['description'],
                         severity='medium'
                     )
-                elif len(alt_attr.strip()) <= 5:  # Very short alt text (might be placeholder)
+                elif len(alt_attr.strip()) < 5:  # Very short alt text (might be placeholder)
                     img_src = img.get('src', 'Unknown')
                     
                     issue = {

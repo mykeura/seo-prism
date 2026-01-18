@@ -13,9 +13,9 @@ class SEOGradeCalculator:
     
     # Severity weights for penalty calculation
     SEVERITY_WEIGHTS = {
-        'high': 8,
-        'medium': 3,
-        'low': 1
+        'high': 3,
+        'medium': 1,
+        'low': 0.5
     }
     
     def __init__(self):

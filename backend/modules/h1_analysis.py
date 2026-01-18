@@ -1,5 +1,19 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+import re
+
+
+def normalize_whitespace(text: str) -> str:
+    """
+    Normalize whitespace in text by collapsing multiple spaces into one.
+    
+    Args:
+        text: Text to normalize
+    
+    Returns:
+        Normalized text
+    """
+    return re.sub(r'\s+', ' ', text.strip())
 
 
 def analyze_h1_headers(soup: BeautifulSoup, url: str, all_pages_data: dict):
@@ -11,7 +25,7 @@ def analyze_h1_headers(soup: BeautifulSoup, url: str, all_pages_data: dict):
     
     # Get all H1 headers on the current page
     h1_elements = soup.find_all('h1')
-    h1_texts = [h1.get_text(strip=True) for h1 in h1_elements if h1.get_text(strip=True)]
+    h1_texts = [normalize_whitespace(h1.get_text()) for h1 in h1_elements if h1.get_text()]
     
     if len(h1_elements) == 0:
         # No H1 on the page
@@ -31,9 +45,18 @@ def analyze_h1_headers(soup: BeautifulSoup, url: str, all_pages_data: dict):
             'description': f'The page contains {len(h1_elements)} H1 headers',
             'severity': 'high'
         })
+    elif len(h1_texts) == 0:
+        # H1 element exists but has no text content
+        issues.append({
+            'issue_type': 'missing_h1',
+            'url': url,
+            'source_page': url,
+            'description': 'The page contains an H1 header with no text content',
+            'severity': 'high'
+        })
     else:
-        # Only one H1 on the page, now check if it's duplicated on other pages
-        current_h1 = h1_texts[0].lower() if h1_texts else ''
+        # Only one H1 on the page with text, now check if it's duplicated on other pages
+        current_h1 = h1_texts[0]
         
         # Search for duplicate H1 on other pages
         for other_url, page_data in all_pages_data.items():
@@ -43,7 +66,7 @@ def analyze_h1_headers(soup: BeautifulSoup, url: str, all_pages_data: dict):
             try:
                 other_soup = BeautifulSoup(page_data['html'], 'html.parser')
                 other_h1_elements = other_soup.find_all('h1')
-                other_h1_texts = [h1.get_text(strip=True).lower() for h1 in other_h1_elements if h1.get_text(strip=True)]
+                other_h1_texts = [normalize_whitespace(h1.get_text()) for h1 in other_h1_elements if h1.get_text()]
                 
                 if current_h1 in other_h1_texts:
                     issues.append({

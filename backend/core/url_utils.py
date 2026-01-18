@@ -30,6 +30,15 @@ def parse_target_url(user_input: str) -> Tuple[str, int, str]:
         if not domain:
             raise ValueError("Invalid URL: missing hostname")
         
+        # Validate hostname format - must contain at least one dot or be localhost
+        # or be a valid IP address
+        if domain != 'localhost' and '.' not in domain:
+            # Check if it's a valid IP address
+            import re
+            ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+            if not re.match(ip_pattern, domain):
+                raise ValueError("Invalid URL: invalid hostname format")
+        
         port = parsed.port
         if port is None:
             port = 80 if parsed.scheme == 'http' else 443

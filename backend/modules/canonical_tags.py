@@ -116,7 +116,16 @@ class CanonicalTagsModule:
                             })
                 
                 # 4. Canonical to non-existent page (404)
-                target_status = page_status_map.get(canonical_url)
+                # Normalize canonical URL before looking up in page_status_map
+                normalized_canonical = self._normalize_url(canonical_url)
+                target_status = None
+                
+                # Search in page_status_map using normalized URLs
+                for page_url_key, status in page_status_map.items():
+                    if self._normalize_url(page_url_key) == normalized_canonical:
+                        target_status = status
+                        break
+                
                 if target_status and target_status >= 400:
                     issues.append({
                         'issue_type': 'canonical_to_404',
