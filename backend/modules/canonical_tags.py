@@ -45,11 +45,18 @@ class CanonicalTagsModule:
         page_status_map = {}
         
         for page in crawled_pages:
-            if page.get('html'):
-                canonical_url = self._extract_canonical(page['html'], page['url'])
+            url = page.get('url', '')
+            status = page.get('status', 0)
+            html = page.get('html')
+            
+            # Always add to page_status_map (even if html is None)
+            page_status_map[url] = status
+            
+            # Only extract canonical if page has HTML
+            if html:
+                canonical_url = self._extract_canonical(html, url)
                 if canonical_url:
-                    canonical_map[page['url']] = canonical_url
-                page_status_map[page['url']] = page.get('status', 0)
+                    canonical_map[url] = canonical_url
         
         # Track visited canonicals for chain detection
         visited_canonicals: Set[str] = set()
@@ -88,45 +95,45 @@ class CanonicalTagsModule:
                 # Resolve relative URLs
                 canonical_url = urljoin(page_url, canonical_href)
                 
+                # Normalize for all checks
+                normalized_canonical = self._normalize_url(canonical_url)
+                normalized_page_url = self._normalize_url(page_url)
+                
                 # 2. Self-canonical (points to self) - normal, just informational
-                if self._normalize_url(canonical_url) == self._normalize_url(page_url):
+                if normalized_canonical == normalized_page_url:
                     # Self-canonical is correct, no issue
                     continue
                 
-                # 3. Canonical chains
-                if canonical_url in canonical_map:
-                    target_canonical = canonical_map.get(canonical_url)
-                    if target_canonical and target_canonical != canonical_url:
-                        # Check for circular chain
-                        if target_canonical == page_url:
-                            issues.append({
-                                'issue_type': 'canonical_chain',
-                                'url': page_url,
-                                'source_page': page_url,
-                                'description': f'Circular canonical chain detected: {page_url} → {canonical_url} → {page_url}',
-                                'severity': 'high'
-                            })
-                        elif len(self._trace_canonical_chain(canonical_map, page_url, visited=set())) > 2:
-                            issues.append({
-                                'issue_type': 'canonical_chain',
-                                'url': page_url,
-                                'source_page': page_url,
-                                'description': f'Excessive canonical chain detected: {self._format_chain(canonical_map, page_url)}',
-                                'severity': 'high'
-                            })
+                # 3. Canonical chains - check using normalized URLs
+                canonical_map_normalized = {self._normalize_url(k): self._normalize_url(v) for k, v in canonical_map.items()}
+                
+                if normalized_canonical in canonical_map_normalized:
+                    # Get the normalized target canonical
+                    target_canonical_normalized = canonical_map_normalized[normalized_canonical]
+                    
+                    # Check for circular chain (points back to original page)
+                    if target_canonical_normalized == normalized_page_url:
+                        issues.append({
+                            'issue_type': 'canonical_chain',
+                            'url': page_url,
+                            'source_page': page_url,
+                            'description': f'Circular canonical chain detected: {page_url} → {canonical_url} → {page_url}',
+                            'severity': 'high'
+                        })
+                    # Check for excessive chain
+                    elif len(self._trace_canonical_chain(canonical_map, page_url, visited=set())) > 2:
+                        issues.append({
+                            'issue_type': 'canonical_chain',
+                            'url': page_url,
+                            'source_page': page_url,
+                            'description': f'Excessive canonical chain detected: {self._format_chain(canonical_map, page_url)}',
+                            'severity': 'high'
+                        })
                 
                 # 4. Canonical to non-existent page (404)
-                # Normalize canonical URL before looking up in page_status_map
-                normalized_canonical = self._normalize_url(canonical_url)
-                target_status = None
+                target_status = page_status_map.get(normalized_canonical)
                 
-                # Search in page_status_map using normalized URLs
-                for page_url_key, status in page_status_map.items():
-                    if self._normalize_url(page_url_key) == normalized_canonical:
-                        target_status = status
-                        break
-                
-                if target_status and target_status >= 400:
+                if target_status is not None and target_status >= 400:
                     issues.append({
                         'issue_type': 'canonical_to_404',
                         'url': page_url,
@@ -136,7 +143,7 @@ class CanonicalTagsModule:
                     })
                 
                 # 5. Canonical to redirected page (301/302)
-                elif target_status and target_status in [301, 302]:
+                elif target_status is not None and target_status in [301, 302]:
                     issues.append({
                         'issue_type': 'canonical_to_redirect',
                         'url': page_url,
