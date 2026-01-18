@@ -139,23 +139,6 @@ function App() {
     }
   }
 
-  const getGradeBgColor = (grade: string) => {
-    switch (grade) {
-      case 'A':
-        return 'bg-emerald-600/10 border-emerald-600/20'
-      case 'B':
-        return 'bg-blue-600/10 border-blue-600/20'
-      case 'C':
-        return 'bg-yellow-600/10 border-yellow-600/20'
-      case 'D':
-        return 'bg-orange-600/10 border-orange-600/20'
-      case 'F':
-        return 'bg-red-600/10 border-red-600/20'
-      default:
-        return 'bg-secondary-600/10 border-secondary-600/20'
-    }
-  }
-
   const getIssueTypeLabel = (type: string) => {
     switch (type) {
       case 'broken_link':
