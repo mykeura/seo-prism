@@ -314,12 +314,19 @@ def display_results(results: dict):
             click.echo()
         
         # Display structured data issues
+        missing_structured_data = [i for i in issues if i['issue_type'] == 'missing_structured_data']
         json_ld_issues = [i for i in issues if i['issue_type'].startswith('json_ld')]
         microdata_issues = [i for i in issues if i['issue_type'].startswith('microdata')]
         rdfa_issues = [i for i in issues if i['issue_type'].startswith('rdfa')]
         
-        if json_ld_issues or microdata_issues or rdfa_issues:
+        if missing_structured_data or json_ld_issues or microdata_issues or rdfa_issues:
             click.echo("📊 Structured Data Issues:")
+            if missing_structured_data:
+                click.echo(f"   • {len(missing_structured_data)} pages without structured data")
+                for issue in missing_structured_data[:10]:
+                    click.echo(f"      - {issue['url']}")
+                if len(missing_structured_data) > 10:
+                    click.echo(f"      ... and {len(missing_structured_data) - 10} more")
             if json_ld_issues:
                 click.echo(f"   • {len(json_ld_issues)} JSON-LD issue(s)")
                 for issue in json_ld_issues[:5]:

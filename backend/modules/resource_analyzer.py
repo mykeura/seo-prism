@@ -115,6 +115,21 @@ class ResourceAnalyzer:
         Returns:
             Resource type: 'html', 'css', 'js', 'image', 'other'
         """
+        # Check if it's marked as a resource (not an HTML page)
+        if page.get('is_resource'):
+            # Determine type by URL extension
+            parsed = urlparse(url)
+            path = parsed.path.lower()
+            
+            if path.endswith(('.css')):
+                return 'css'
+            elif path.endswith(('.js', '.mjs')):
+                return 'js'
+            elif path.endswith(('.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.ico', '.bmp')):
+                return 'image'
+            else:
+                return 'other'
+        
         # Check if it has HTML content (indicates it's an HTML page)
         if page.get('html'):
             return 'html'

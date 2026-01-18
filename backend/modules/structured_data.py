@@ -71,14 +71,29 @@ class StructuredDataModule:
             
             # Analyze JSON-LD
             json_ld_issues = self._analyze_json_ld(soup, page_url)
-            issues.extend(json_ld_issues)
+            json_ld_found = bool(soup.find('script', attrs={'type': 'application/ld+json'}))
             
             # Analyze Microdata
             microdata_issues = self._analyze_microdata(soup, page_url)
-            issues.extend(microdata_issues)
+            microdata_found = soup.find(attrs={'itemscope': True})
             
             # Analyze RDFa
             rdfa_issues = self._analyze_rdfa(soup, page_url)
+            rdfa_found = soup.find(attrs={'typeof': True})
+            
+            # Only report missing schemas if no structured data was found at all
+            if not json_ld_found and not microdata_found and not rdfa_found:
+                issues.append({
+                    'issue_type': 'missing_structured_data',
+                    'url': page_url,
+                    'source_page': page_url,
+                    'description': 'No structured data found (JSON-LD, Microdata, or RDFa)',
+                    'severity': 'medium'
+                })
+            
+            # Add validation issues (not missing schema issues)
+            issues.extend(json_ld_issues)
+            issues.extend(microdata_issues)
             issues.extend(rdfa_issues)
         
         # Add all issues to database
@@ -111,15 +126,7 @@ class StructuredDataModule:
         json_ld_scripts = soup.find_all('script', attrs={'type': 'application/ld+json'})
         
         if not json_ld_scripts:
-            # No JSON-LD found - this is a warning, not an error
-            issue = {
-                'issue_type': 'missing_json_ld',
-                'url': page_url,
-                'source_page': page_url,
-                'description': 'No JSON-LD structured data found',
-                'severity': 'low'
-            }
-            issues.append(issue)
+            # No JSON-LD found - will be handled in analyze() method
             return issues
         
         # Validate each JSON-LD script
@@ -141,7 +148,7 @@ class StructuredDataModule:
                 
                 # Validate each top-level schema
                 for schema in schemas:
-                    self._validate_schema(schema, page_url, issues)
+                    self._validate_schema(schema, page_url, issues, is_top_level=True)
             
             except json.JSONDecodeError as e:
                 issues.append({
@@ -154,7 +161,7 @@ class StructuredDataModule:
         
         return issues
     
-    def _validate_schema(self, schema: Dict, page_url: str, issues: List[Dict]):
+    def _validate_schema(self, schema: Dict, page_url: str, issues: List[Dict], is_top_level: bool = True):
         """
         Validate a single schema object (recursively validates nested schemas).
         
@@ -162,13 +169,14 @@ class StructuredDataModule:
             schema: Schema object to validate
             page_url: Page URL
             issues: List to append issues to
+            is_top_level: Whether this is a top-level schema
         """
         schema_type = schema.get('@type')
         
         if not schema_type:
-            # Only report missing @type for top-level schemas
-            # Nested schemas without @type are often valid (e.g., plain objects)
-            if '@context' in schema or '@id' in schema:
+            # Only report missing @type for top-level schemas that should have it
+            # Nested schemas without @type are often valid (e.g., mainEntityOfPage, logo)
+            if is_top_level and ('@context' in schema or '@id' in schema):
                 issues.append({
                     'issue_type': 'json_ld_missing_type',
                     'url': page_url,
@@ -180,27 +188,31 @@ class StructuredDataModule:
         
         # Check if schema type is recognized
         if schema_type not in self.SCHEMA_TYPES:
-            issues.append({
-                'issue_type': 'json_ld_unknown_type',
-                'url': page_url,
-                'source_page': page_url,
-                'description': f'Unknown schema type: {schema_type}',
-                'severity': 'medium'
-            })
+            # Only report unknown type for top-level schemas
+            # Nested schemas might have custom types
+            if is_top_level:
+                issues.append({
+                    'issue_type': 'json_ld_unknown_type',
+                    'url': page_url,
+                    'source_page': page_url,
+                    'description': f'Unknown schema type: {schema_type}',
+                    'severity': 'medium'
+                })
             return
         
-        # Check for required properties
-        required = self.REQUIRED_PROPERTIES.get(schema_type, [])
-        missing = [prop for prop in required if prop not in schema]
-        
-        if missing:
-            issues.append({
-                'issue_type': 'json_ld_missing_properties',
-                'url': page_url,
-                'source_page': page_url,
-                'description': f'Schema {schema_type} missing required properties: {", ".join(missing)}',
-                'severity': 'high'
-            })
+        # Check for required properties (only for top-level schemas)
+        if is_top_level:
+            required = self.REQUIRED_PROPERTIES.get(schema_type, [])
+            missing = [prop for prop in required if prop not in schema]
+            
+            if missing:
+                issues.append({
+                    'issue_type': 'json_ld_missing_properties',
+                    'url': page_url,
+                    'source_page': page_url,
+                    'description': f'Schema {schema_type} missing required properties: {", ".join(missing)}',
+                    'severity': 'high'
+                })
         
         # Validate specific properties
         if schema_type == 'Article' and 'headline' in schema:
@@ -231,15 +243,7 @@ class StructuredDataModule:
         microdata_elements = soup.find_all(attrs={'itemscope': True})
         
         if not microdata_elements:
-            # No Microdata found
-            issue = {
-                'issue_type': 'missing_microdata',
-                'url': page_url,
-                'source_page': page_url,
-                'description': 'No Microdata structured data found',
-                'severity': 'low'
-            }
-            issues.append(issue)
+            # No Microdata found - will be handled in analyze() method
             return issues
         
         # Validate each microdata element
@@ -287,15 +291,7 @@ class StructuredDataModule:
         rdfa_elements = soup.find_all(attrs={'typeof': True})
         
         if not rdfa_elements:
-            # No RDFa found
-            issue = {
-                'issue_type': 'missing_rdfa',
-                'url': page_url,
-                'source_page': page_url,
-                'description': 'No RDFa structured data found',
-                'severity': 'low'
-            }
-            issues.append(issue)
+            # No RDFa found - will be handled in analyze() method
             return issues
         
         # Validate each RDFa element
