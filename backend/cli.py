@@ -10,6 +10,7 @@ from modules.hreflang import HreflangModule
 from modules.standard_files import StandardFilesModule
 from modules.duplicate_content import DuplicateContentModule
 from modules.image_alt_text import ImageAltTextModule
+from modules.canonical_tags import CanonicalTagsModule
 from modules import h1_analysis
 from modules import header_hierarchy
 from modules.seo_grade import SEOGradeCalculator
@@ -97,6 +98,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     standard_files_module = StandardFilesModule(db)
     duplicate_content_module = DuplicateContentModule(db)
     image_alt_text_module = ImageAltTextModule(db)
+    canonical_tags_module = CanonicalTagsModule(db)
     
     broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
     meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
@@ -105,6 +107,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     standard_files_issues = await standard_files_module.analyze(scan_id, url)
     duplicate_content_issues = duplicate_content_module.analyze(scan_id, crawled_pages)
     image_alt_text_issues = image_alt_text_module.analyze(scan_id, crawled_pages)
+    canonical_issues = canonical_tags_module.analyze(scan_id, crawled_pages)
     
     # Analyze H1 headers and header hierarchy using functions
     all_pages_data = {page['url']: page for page in crawled_pages}
@@ -125,7 +128,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
             header_hierarchy_issues.extend(page_hierarchy_issues)
     
     # Update scan totals
-    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(h1_issues) + len(header_hierarchy_issues)
+    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(h1_issues) + len(header_hierarchy_issues) + len(canonical_issues)
     
     # Analyze resources to get actual HTML page count
     resource_analyzer = ResourceAnalyzer()
@@ -135,7 +138,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     db.update_scan_totals(scan_id, html_page_count, total_issues)
     
     # Calculate SEO grade
-    all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + h1_issues + header_hierarchy_issues
+    all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + h1_issues + header_hierarchy_issues + canonical_issues
     grade_calculator = SEOGradeCalculator()
     seo_grade = grade_calculator.calculate_grade(html_page_count, all_issues)
     
@@ -158,6 +161,7 @@ def display_results(results: dict):
     scan = results.get('scan', {})
     issues = results.get('issues', [])
     seo_grade = results.get('seo_grade', {})
+    resource_analysis = results.get('resource_analysis', {})
     
     click.echo()
     click.echo("=" * 60)
@@ -273,6 +277,27 @@ def display_results(results: dict):
         if hreflang_issues:
             click.echo("🌍 Hreflang Issues:")
             click.echo(f"   • {len(hreflang_issues)} hreflang validation issues")
+            click.echo()
+        
+        # Display canonical issues
+        canonical_chains = [i for i in issues if i['issue_type'] == 'canonical_chain']
+        canonical_404 = [i for i in issues if i['issue_type'] == 'canonical_to_404']
+        canonical_redirect = [i for i in issues if i['issue_type'] == 'canonical_to_redirect']
+        canonical_variations = [i for i in issues if i['issue_type'] == 'canonical_url_variation']
+        missing_canonical = [i for i in issues if i['issue_type'] == 'missing_canonical']
+        
+        if canonical_chains or canonical_404 or canonical_redirect or canonical_variations or missing_canonical:
+            click.echo("🔗 Canonical Tag Issues:")
+            if canonical_chains:
+                click.echo(f"   • {len(canonical_chains)} canonical chain(s) detected")
+            if canonical_404:
+                click.echo(f"   • {len(canonical_404)} canonical(s) pointing to 404 pages")
+            if canonical_redirect:
+                click.echo(f"   • {len(canonical_redirect)} canonical(s) pointing to redirects")
+            if canonical_variations:
+                click.echo(f"   • {len(canonical_variations)} canonical(s) with URL variations")
+            if missing_canonical:
+                click.echo(f"   • {len(missing_canonical)} pages missing canonical tags")
             click.echo()
         
         # Display standard files issues

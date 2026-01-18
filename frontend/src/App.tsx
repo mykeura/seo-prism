@@ -213,6 +213,16 @@ function App() {
         return 'Hreflang Missing Return Link'
       case 'hreflang_missing_canonical':
         return 'Hreflang Missing Canonical'
+      case 'canonical_chain':
+        return 'Canonical Chain'
+      case 'canonical_to_404':
+        return 'Canonical to 404'
+      case 'canonical_to_redirect':
+        return 'Canonical to Redirect'
+      case 'canonical_url_variation':
+        return 'Canonical URL Variation'
+      case 'missing_canonical':
+        return 'Missing Canonical'
       default:
         return type
     }
@@ -272,6 +282,16 @@ function App() {
         return <FontAwesomeIcon icon={faGlobe} className="text-destructive" />;
       case 'hreflang_missing_canonical':
         return <FontAwesomeIcon icon={faGlobe} className="text-destructive" />;
+      case 'canonical_chain':
+        return <FontAwesomeIcon icon={faLink} className="text-destructive" />;
+      case 'canonical_to_404':
+        return <FontAwesomeIcon icon={faLink} className="text-destructive" />;
+      case 'canonical_to_redirect':
+        return <FontAwesomeIcon icon={faLink} className="text-warning" />;
+      case 'canonical_url_variation':
+        return <FontAwesomeIcon icon={faLink} className="text-secondary" />;
+      case 'missing_canonical':
+        return <FontAwesomeIcon icon={faLink} className="text-secondary" />;
       default:
         return <FontAwesomeIcon icon={faExclamationTriangle} className="text-outline" />;
     }
@@ -280,6 +300,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal')
   const [metaTab, setMetaTab] = useState<'titles' | 'descriptions'>('titles')
   const [headerAnalysisTab, setHeaderAnalysisTab] = useState<'all' | 'hierarchy' | 'h1'>('all')
+  const [canonicalTab, setCanonicalTab] = useState<'all' | 'chains' | '404' | 'redirect' | 'variations' | 'missing'>('all')
   const [showMoreBrokenLinks, setShowMoreBrokenLinks] = useState(5)
   const [showMoreMetaTags, setShowMoreMetaTags] = useState(5)
   const [showMoreImages, setShowMoreImages] = useState(5)
@@ -288,6 +309,7 @@ function App() {
   const [showMoreHeaders, setShowMoreHeaders] = useState(5)
   const [showMoreStandardFiles, setShowMoreStandardFiles] = useState(5)
   const [showMoreHreflang, setShowMoreHreflang] = useState(5)
+  const [showMoreCanonical, setShowMoreCanonical] = useState(5)
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
     try {
@@ -371,6 +393,34 @@ function App() {
       issue.issue_type === 'hreflang_invalid_code' ||
       issue.issue_type === 'hreflang_missing_return_link' ||
       issue.issue_type === 'hreflang_missing_canonical'
+    )
+
+    const canonicalIssues = results.issues.filter(issue =>
+      issue.issue_type === 'canonical_chain' ||
+      issue.issue_type === 'canonical_to_404' ||
+      issue.issue_type === 'canonical_to_redirect' ||
+      issue.issue_type === 'canonical_url_variation' ||
+      issue.issue_type === 'missing_canonical'
+    )
+
+    const canonicalChains = canonicalIssues.filter(issue =>
+      issue.issue_type === 'canonical_chain'
+    )
+
+    const canonical404 = canonicalIssues.filter(issue =>
+      issue.issue_type === 'canonical_to_404'
+    )
+
+    const canonicalRedirect = canonicalIssues.filter(issue =>
+      issue.issue_type === 'canonical_to_redirect'
+    )
+
+    const canonicalVariations = canonicalIssues.filter(issue =>
+      issue.issue_type === 'canonical_url_variation'
+    )
+
+    const missingCanonical = canonicalIssues.filter(issue =>
+      issue.issue_type === 'missing_canonical'
     )
 
     const missingAltTagIssues = results.issues.filter(issue =>
@@ -905,6 +955,147 @@ function App() {
                       </div>
                     )}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Canonical Tags Analysis Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Canonical Tags</CardTitle>
+                <CardDescription>
+                  {canonicalIssues.length} canonical issue{canonicalIssues.length !== 1 ? 's' : ''} found
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {canonicalIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faLink} className="text-primary-400" /></div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Canonical Issues Found!</h3>
+                    <p className="text-muted-foreground">All canonical tags are properly configured.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2 mb-4 border-b border-border flex-wrap">
+                      <button
+                        onClick={() => setCanonicalTab('all')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          canonicalTab === 'all'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        All ({canonicalIssues.length})
+                      </button>
+                      <button
+                        onClick={() => setCanonicalTab('chains')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          canonicalTab === 'chains'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Chains ({canonicalChains.length})
+                      </button>
+                      <button
+                        onClick={() => setCanonicalTab('404')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          canonicalTab === '404'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        404 ({canonical404.length})
+                      </button>
+                      <button
+                        onClick={() => setCanonicalTab('redirect')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          canonicalTab === 'redirect'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Redirects ({canonicalRedirect.length})
+                      </button>
+                      <button
+                        onClick={() => setCanonicalTab('variations')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          canonicalTab === 'variations'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Variations ({canonicalVariations.length})
+                      </button>
+                      <button
+                        onClick={() => setCanonicalTab('missing')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          canonicalTab === 'missing'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Missing ({missingCanonical.length})
+                      </button>
+                    </div>
+
+                    {renderLimitedItems(
+                      (canonicalTab === 'all' ? canonicalIssues :
+                       canonicalTab === 'chains' ? canonicalChains :
+                       canonicalTab === '404' ? canonical404 :
+                       canonicalTab === 'redirect' ? canonicalRedirect :
+                       canonicalTab === 'variations' ? canonicalVariations :
+                       missingCanonical),
+                      (issue: any) => (
+                        <div
+                          key={issue.id}
+                          className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                              <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                            </div>
+                            <Badge variant={getSeverityColor(issue.severity)}>
+                              {issue.severity.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm text-muted-foreground">URL:</span>
+                              <a
+                                href={issue.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                              >
+                                {issue.url}
+                              </a>
+                            </div>
+                            {issue.description && (
+                              <div className="text-sm text-muted-foreground">{issue.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ),
+                      showMoreCanonical,
+                      setShowMoreCanonical
+                    )}
+                    {(canonicalTab === 'all' ? canonicalIssues :
+                     canonicalTab === 'chains' ? canonicalChains :
+                     canonicalTab === '404' ? canonical404 :
+                     canonicalTab === 'redirect' ? canonicalRedirect :
+                     canonicalTab === 'variations' ? canonicalVariations :
+                     missingCanonical).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No {canonicalTab === 'all' ? 'canonical' :
+                             canonicalTab === 'chains' ? 'canonical chain' :
+                             canonicalTab === '404' ? 'canonical 404' :
+                             canonicalTab === 'redirect' ? 'canonical redirect' :
+                             canonicalTab === 'variations' ? 'canonical variation' : 'missing canonical'} issues found
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
