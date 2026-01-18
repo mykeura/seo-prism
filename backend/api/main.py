@@ -21,6 +21,7 @@ from modules.duplicate_content import DuplicateContentModule
 from modules.image_alt_text import ImageAltTextModule
 from modules.canonical_tags import CanonicalTagsModule
 from modules.orphan_pages import OrphanPagesModule
+from modules.structured_data import StructuredDataModule
 from modules.seo_grade import SEOGradeCalculator
 from modules.resource_analyzer import ResourceAnalyzer
 
@@ -138,6 +139,7 @@ async def start_scan(request: ScanRequest):
         image_alt_text_module = ImageAltTextModule(db)
         canonical_tags_module = CanonicalTagsModule(db)
         orphan_pages_module = OrphanPagesModule(db)
+        structured_data_module = StructuredDataModule(db)
         
         broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
         meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
@@ -148,9 +150,10 @@ async def start_scan(request: ScanRequest):
         image_alt_text_issues = image_alt_text_module.analyze(scan_id, crawled_pages)
         canonical_issues = canonical_tags_module.analyze(scan_id, crawled_pages)
         orphan_pages_issues = orphan_pages_module.analyze(scan_id, crawled_pages, request.url)
+        structured_data_issues = structured_data_module.analyze(scan_id, crawled_pages)
         
         # Update scan totals
-        total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(canonical_issues) + len(orphan_pages_issues)
+        total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(canonical_issues) + len(orphan_pages_issues) + len(structured_data_issues)
         
         # Analyze resources to get actual HTML page count
         resource_analyzer = ResourceAnalyzer()
@@ -160,7 +163,7 @@ async def start_scan(request: ScanRequest):
         db.update_scan_totals(scan_id, html_page_count, total_issues)
         
         # Calculate SEO grade
-        all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + canonical_issues + orphan_pages_issues
+        all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + canonical_issues + orphan_pages_issues + structured_data_issues
         grade_calculator = SEOGradeCalculator()
         seo_grade = grade_calculator.calculate_grade(html_page_count, all_issues)
         
