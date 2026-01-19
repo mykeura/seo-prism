@@ -7,7 +7,7 @@ from database import Database
 
 
 class StandardFilesModule:
-    """Module to detect standard web files: robots.txt, sitemap.xml, security.txt"""
+    """Module to detect standard web files: robots.txt, sitemap.xml, security.txt, llms.txt"""
     
     def __init__(self, db: Database):
         """
@@ -133,6 +133,45 @@ class StandardFilesModule:
                     url=base_url,
                     source_page=base_url,
                     description='security.txt file not found - optional but recommended for security',
+                    severity='info'
+                )
+            
+            # Check llms.txt (AI discovery file)
+            llms_url = f"{base_domain}/llms.txt"
+            llms_found = await self._check_file_with_fallback(session, llms_url)
+            if llms_found:
+                issue = {
+                    'issue_type': 'llms_txt_found',
+                    'url': llms_url,
+                    'source_page': base_url,
+                    'description': 'llms.txt file found - helps AI models understand your site',
+                    'severity': 'info'
+                }
+                issues.append(issue)
+                self.db.add_issue(
+                    scan_id=scan_id,
+                    issue_type='llms_txt_found',
+                    url=llms_url,
+                    source_page=base_url,
+                    description='llms.txt file found - helps AI models understand your site',
+                    severity='info'
+                )
+            else:
+                # Report missing llms.txt as info (relatively new standard)
+                issue = {
+                    'issue_type': 'missing_llms_txt',
+                    'url': base_url,
+                    'source_page': base_url,
+                    'description': 'llms.txt file not found - optional but recommended for AI discoverability',
+                    'severity': 'info'
+                }
+                issues.append(issue)
+                self.db.add_issue(
+                    scan_id=scan_id,
+                    issue_type='missing_llms_txt',
+                    url=base_url,
+                    source_page=base_url,
+                    description='llms.txt file not found - optional but recommended for AI discoverability',
                     severity='info'
                 )
             

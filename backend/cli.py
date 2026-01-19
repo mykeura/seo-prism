@@ -212,7 +212,7 @@ def display_results(results: dict):
         invalid_hierarchy = [i for i in issues if i['issue_type'] == 'invalid_header_hierarchy']
         meta_robots_issues = [i for i in issues if i['issue_type'].startswith('meta_robots')]
         hreflang_issues = [i for i in issues if i['issue_type'].startswith('hreflang')]
-        standard_files_issues = [i for i in issues if i['issue_type'] in ['missing_robots_txt', 'missing_security_txt', 'missing_sitemap']]
+        standard_files_issues = [i for i in issues if i['issue_type'] in ['missing_robots_txt', 'missing_security_txt', 'missing_sitemap', 'missing_llms_txt']]
         
         # Display broken links
         if broken_links:
@@ -283,6 +283,15 @@ def display_results(results: dict):
         if hreflang_issues:
             click.echo("🌍 Hreflang Issues:")
             click.echo(f"   • {len(hreflang_issues)} hreflang validation issues")
+            click.echo()
+        
+        # Display standard files found
+        found_standard_files = [i for i in issues if i['issue_type'] in ['robots_txt_found', 'security_txt_found', 'sitemap_found', 'llms_txt_found']]
+        if found_standard_files:
+            click.echo("📁 Standard Files Found:")
+            for issue in found_standard_files:
+                file_name = issue['issue_type'].replace('_found', '').replace('_', '.')
+                click.echo(f"   • {file_name}: {issue['url']}")
             click.echo()
         
         # Display canonical issues

@@ -15,7 +15,8 @@ import {
   faFolder,
   faExclamationTriangle,
   faGlobe,
-  faDatabase
+  faDatabase,
+  faBrain
 } from '@fortawesome/free-solid-svg-icons'
 
 interface Issue {
@@ -171,12 +172,16 @@ function App() {
         return 'Missing security.txt'
       case 'missing_sitemap':
         return 'Missing Sitemap'
+      case 'missing_llms_txt':
+        return 'Missing llms.txt'
       case 'robots_txt_found':
         return 'robots.txt'
       case 'security_txt_found':
         return 'security.txt'
       case 'sitemap_found':
         return 'Sitemap'
+      case 'llms_txt_found':
+        return 'llms.txt'
       case 'missing_h1':
         return 'Missing H1 Header'
       case 'multiple_h1_same_page':
@@ -264,12 +269,16 @@ function App() {
         return <FontAwesomeIcon icon={faShieldAlt} className="text-success" />;
       case 'sitemap_found':
         return <FontAwesomeIcon icon={faMap} className="text-success" />;
+      case 'llms_txt_found':
+        return <FontAwesomeIcon icon={faBrain} className="text-success" />;
       case 'missing_robots_txt':
         return <FontAwesomeIcon icon={faRobot} className="text-destructive" />;
       case 'missing_security_txt':
         return <FontAwesomeIcon icon={faShieldAlt} className="text-destructive" />;
       case 'missing_sitemap':
         return <FontAwesomeIcon icon={faMap} className="text-destructive" />;
+      case 'missing_llms_txt':
+        return <FontAwesomeIcon icon={faBrain} className="text-secondary" />;
       case 'missing_h1':
         return <FontAwesomeIcon icon={faTag} className="text-destructive" />;
       case 'multiple_h1_same_page':
@@ -415,9 +424,11 @@ function App() {
       issue.issue_type === 'robots_txt_found' ||
       issue.issue_type === 'security_txt_found' ||
       issue.issue_type === 'sitemap_found' ||
+      issue.issue_type === 'llms_txt_found' ||
       issue.issue_type === 'missing_robots_txt' ||
       issue.issue_type === 'missing_security_txt' ||
-      issue.issue_type === 'missing_sitemap'
+      issue.issue_type === 'missing_sitemap' ||
+      issue.issue_type === 'missing_llms_txt'
     )
 
     const hreflangIssues = results.issues.filter(issue =>
