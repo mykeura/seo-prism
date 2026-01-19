@@ -244,6 +244,8 @@ function App() {
         return 'Missing RDFa'
       case 'rdfa_unknown_type':
         return 'RDFa Unknown Type'
+      case 'thin_content':
+        return 'Thin Content'
       default:
         return type
     }
@@ -349,6 +351,8 @@ function App() {
         return <FontAwesomeIcon icon={faDatabase} className="text-secondary" />;
       case 'rdfa_unknown_type':
         return <FontAwesomeIcon icon={faDatabase} className="text-warning" />;
+      case 'thin_content':
+        return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
       default:
         return <FontAwesomeIcon icon={faExclamationTriangle} className="text-outline" />;
     }
@@ -370,6 +374,7 @@ function App() {
   const [showMoreOrphanPages, setShowMoreOrphanPages] = useState(5)
   const [showMoreStructuredData, setShowMoreStructuredData] = useState(5)
   const [showMoreMetaLength, setShowMoreMetaLength] = useState(5)
+  const [showMoreThinContent, setShowMoreThinContent] = useState(5)
   const [metaLengthTab, setMetaLengthTab] = useState<'titles' | 'descriptions'>('titles')
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
@@ -1396,6 +1401,70 @@ function App() {
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
                         >
                           Showing {showMoreStructuredData} of {structuredDataIssues.length} structured data issues.
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Thin Content Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Thin Content</CardTitle>
+                <CardDescription>
+                  {results.issues.filter(i => i.issue_type === 'thin_content').length} pages with thin content detected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {results.issues.filter(i => i.issue_type === 'thin_content').length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faFileAlt} className="text-primary-400" /></div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Thin Content Found!</h3>
+                    <p className="text-muted-foreground">All pages have sufficient content.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {results.issues.filter(i => i.issue_type === 'thin_content').slice(0, showMoreThinContent).map((issue) => (
+                      <div
+                        key={issue.id}
+                        className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                            <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                          </div>
+                          <Badge variant={getSeverityColor(issue.severity)}>
+                            {issue.severity.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm text-muted-foreground">URL:</span>
+                            <a
+                              href={issue.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                            >
+                              {issue.url}
+                            </a>
+                          </div>
+                          {issue.description && (
+                            <div className="text-sm text-muted-foreground">{issue.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {results.issues.filter(i => i.issue_type === 'thin_content').length > showMoreThinContent && (
+                      <div className="text-center mt-4">
+                        <button
+                          onClick={() => setShowMoreThinContent(prev => prev + 10)}
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
+                        >
+                          Showing {showMoreThinContent} of {results.issues.filter(i => i.issue_type === 'thin_content').length} pages with thin content.
                         </button>
                       </div>
                     )}
