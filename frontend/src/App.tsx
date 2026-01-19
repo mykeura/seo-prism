@@ -156,6 +156,14 @@ function App() {
         return 'Missing Title'
       case 'missing_description':
         return 'Missing Description'
+      case 'title_too_short':
+        return 'Title Too Short'
+      case 'title_too_long':
+        return 'Title Too Long'
+      case 'meta_description_too_short':
+        return 'Meta Description Too Short'
+      case 'meta_description_too_long':
+        return 'Meta Description Too Long'
       case 'duplicate_title':
         return 'Duplicate Title'
       case 'duplicate_description':
@@ -253,6 +261,14 @@ function App() {
         return <FontAwesomeIcon icon={faFileAlt} className="text-primary-400" />;
       case 'missing_description':
         return <FontAwesomeIcon icon={faFileAlt} className="text-primary-400" />;
+      case 'title_too_short':
+        return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
+      case 'title_too_long':
+        return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
+      case 'meta_description_too_short':
+        return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
+      case 'meta_description_too_long':
+        return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
       case 'duplicate_title':
         return <FontAwesomeIcon icon={faFileAlt} className="text-warning" />;
       case 'duplicate_description':
@@ -353,6 +369,8 @@ function App() {
   const [showMoreCanonical, setShowMoreCanonical] = useState(5)
   const [showMoreOrphanPages, setShowMoreOrphanPages] = useState(5)
   const [showMoreStructuredData, setShowMoreStructuredData] = useState(5)
+  const [showMoreMetaLength, setShowMoreMetaLength] = useState(5)
+  const [metaLengthTab, setMetaLengthTab] = useState<'titles' | 'descriptions'>('titles')
 
   const isInternalUrl = (url: string, baseUrl: string): boolean => {
     try {
@@ -364,7 +382,7 @@ function App() {
     }
   }
 
-  const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => React.ReactNode, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
+  const renderResultsContent = (results: ScanResults, activeTab: 'internal' | 'external', setActiveTab: React.Dispatch<React.SetStateAction<'internal' | 'external'>>, metaTab: 'titles' | 'descriptions', setMetaTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, metaLengthTab: 'titles' | 'descriptions', setMetaLengthTab: React.Dispatch<React.SetStateAction<'titles' | 'descriptions'>>, isInternalUrl: (url: string, baseUrl: string) => boolean, getIssueIcon: (type: string) => React.ReactNode, getIssueTypeLabel: (type: string) => string, getSeverityColor: (severity: string) => "destructive" | "warning" | "secondary" | "outline" | "default" | "success") => {
     
     // Helper function to render limited items with "Show More" option
     const renderLimitedItems = (items: any[], renderItem: (item: any) => React.ReactNode, showMoreState: number, setShowMoreState: React.Dispatch<React.SetStateAction<number>>) => {
@@ -418,6 +436,23 @@ function App() {
     const missingDescriptions = metaTagsIssues.filter(issue =>
       issue.issue_type === 'missing_description' ||
       issue.issue_type === 'duplicate_description'
+    )
+
+    const metaLengthIssues = results.issues.filter(issue =>
+      issue.issue_type === 'title_too_short' ||
+      issue.issue_type === 'title_too_long' ||
+      issue.issue_type === 'meta_description_too_short' ||
+      issue.issue_type === 'meta_description_too_long'
+    )
+
+    const titleLengthIssues = metaLengthIssues.filter(issue =>
+      issue.issue_type === 'title_too_short' ||
+      issue.issue_type === 'title_too_long'
+    )
+
+    const metaDescLengthIssues = metaLengthIssues.filter(issue =>
+      issue.issue_type === 'meta_description_too_short' ||
+      issue.issue_type === 'meta_description_too_long'
     )
 
     const standardFilesIssues = results.issues.filter(issue =>
@@ -693,6 +728,92 @@ function App() {
               </CardContent>
             </Card>
 
+            {/* Meta Length Analysis Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Meta Length Analysis</CardTitle>
+                <CardDescription>
+                  {metaLengthIssues.length} meta length issue{metaLengthIssues.length !== 1 ? 's' : ''} detected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {metaLengthIssues.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4"><FontAwesomeIcon icon={faFileAlt} className="text-primary-400" /></div>
+                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">All Meta Tags Have Optimal Length!</h3>
+                    <p className="text-muted-foreground">All titles and meta descriptions have the recommended length.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2 mb-4 border-b border-border">
+                      <button
+                        onClick={() => setMetaLengthTab('titles')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          metaLengthTab === 'titles'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Title Length ({titleLengthIssues.length})
+                      </button>
+                      <button
+                        onClick={() => setMetaLengthTab('descriptions')}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          metaLengthTab === 'descriptions'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Description Length ({metaDescLengthIssues.length})
+                      </button>
+                    </div>
+
+                    {renderLimitedItems(
+                      (metaLengthTab === 'titles' ? titleLengthIssues : metaDescLengthIssues),
+                      (issue: any) => (
+                        <div
+                          key={issue.id}
+                          className="p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
+                              <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+                            </div>
+                            <Badge variant={getSeverityColor(issue.severity)}>
+                              {issue.severity.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-sm text-muted-foreground">URL:</span>
+                              <a
+                                href={issue.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-sm text-primary-400 hover:underline break-all"
+                              >
+                                {issue.url}
+                              </a>
+                            </div>
+                            {issue.description && (
+                              <div className="text-sm text-muted-foreground">{issue.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ),
+                      showMoreMetaLength,
+                      setShowMoreMetaLength
+                    )}
+                    {(metaLengthTab === 'titles' ? titleLengthIssues : metaDescLengthIssues).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No {metaLengthTab === 'titles' ? 'title length' : 'description length'} issues found
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
@@ -1374,7 +1495,7 @@ function App() {
               </CardContent>
             </Card>
 
-            {renderResultsContent(results, activeTab, setActiveTab, metaTab, setMetaTab, isInternalUrl, getIssueIcon, getIssueTypeLabel, getSeverityColor)}
+            {renderResultsContent(results, activeTab, setActiveTab, metaTab, setMetaTab, metaLengthTab, setMetaLengthTab, isInternalUrl, getIssueIcon, getIssueTypeLabel, getSeverityColor)}
           </div>
         )}
         
