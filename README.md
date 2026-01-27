@@ -66,6 +66,35 @@ python cli.py --url http://localhost:3000
 python cli.py --url https://example.com --max-pages 50
 ```
 
+### Generate Professional SEO Report
+
+Generate a professional SEO report in PowerPoint format with the following options:
+
+```bash
+cd backend
+source venv/bin/activate
+python cli.py --url <URL> --generate-report --lang <es|en> --output <archivo>.pptx
+```
+
+**Available options:**
+- `--url` (required): Target URL to scan
+- `--max-pages` (optional, default 100): Maximum number of pages to crawl
+- `--generate-report` (flag): Enable report generation
+- `--lang` (optional, default 'en'): Report language - 'es' for Spanish, 'en' for English
+- `--output` (optional, default 'seo_report.pptx'): Output file path for the report
+
+**Examples:**
+```bash
+# Generate report in Spanish
+python cli.py --url https://example.com --generate-report --lang es --output reporte_seo.pptx
+
+# Generate report in English (default)
+python cli.py --url https://example.com --generate-report --output seo_report.pptx
+
+# With page limit and Spanish report
+python cli.py --url http://localhost:3000 --max-pages 50 --generate-report --lang es
+```
+
 ## API Endpoints
 
 - `POST /scan` - Start a new scan

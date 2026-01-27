@@ -19,12 +19,16 @@ from modules import h1_analysis
 from modules import header_hierarchy
 from modules.seo_grade import SEOGradeCalculator
 from modules.resource_analyzer import ResourceAnalyzer
+from modules.report_generator import SEOReportGenerator
 
 
 @click.command()
 @click.option('--url', required=True, help='Target URL to scan')
 @click.option('--max-pages', default=100, help='Maximum number of pages to crawl')
-def scan(url: str, max_pages: int):
+@click.option('--generate-report', is_flag=True, help='Generate professional SEO report in PowerPoint format')
+@click.option('--lang', default='en', type=click.Choice(['en', 'es']), help='Report language (en or es)')
+@click.option('--output', default='seo_report.pptx', help='Output file path for the report')
+def scan(url: str, max_pages: int, generate_report: bool, lang: str, output: str):
     """
     Scan a website for SEO issues.
     
@@ -54,6 +58,19 @@ def scan(url: str, max_pages: int):
         
         # Display results
         display_results(results)
+        
+        # Generate report if requested
+        if generate_report:
+            click.echo()
+            click.echo(f"📊 Generating {lang.upper()} professional report...")
+            
+            try:
+                report_generator = SEOReportGenerator()
+                report_path = report_generator.generate_report(results, output, lang)
+                click.echo(f"✅ Report generated: {report_path}")
+                click.echo(f"💡 You can now edit the report in PowerPoint and export to PDF when ready.")
+            except Exception as e:
+                click.echo(f"❌ Error generating report: {e}", err=True)
         
     except Exception as e:
         click.echo(f"❌ Error during scan: {e}", err=True)
