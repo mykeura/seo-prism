@@ -91,7 +91,7 @@ class Crawler:
             }
             
             # Use HEAD request for resources (faster, doesn't download content)
-            async with self.session.head(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as response:
+            async with self.session.head(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 status = response.status
                 
                 return {
