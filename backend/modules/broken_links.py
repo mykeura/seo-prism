@@ -36,6 +36,8 @@ class BrokenLinksModule:
         'mailto:', 'tel:', 'callto:',
         'javascript:', 'data:',
         'amzn.to',  # Amazon affiliate links
+        'app.box.com',  # Box file sharing
+        'chromewebstore.google.com',  # Chrome Web Store
     }
     
     def __init__(self, db: Database):

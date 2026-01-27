@@ -1486,7 +1486,7 @@ function App() {
             SEO Prism
           </h1>
           <p className="text-muted-foreground text-lg">
-            Detect broken links and missing meta-tags
+            Comprehensive SEO analysis: broken links, meta tags, duplicate content, header hierarchy, structured data and more
           </p>
         </header>
 
@@ -1572,7 +1572,7 @@ function App() {
           <Card>
             <CardFooter className="justify-center py-6 pt-4">
               <p className="text-sm text-muted-foreground">
-                Todos los derechos reservados © 2026 Intellectus Labs
+                All rights reserved © 2026 <a href="https://paracaidas.digital/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">Paracaídas Digital</a>
               </p>
             </CardFooter>
           </Card>
