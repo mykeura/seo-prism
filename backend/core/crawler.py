@@ -87,7 +87,7 @@ class Crawler:
         
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (compatible; SEO-Prism/1.0; +https://seo-prism.local)'
+                'User-Agent': 'Mozilla/5.0 (compatible; SEO-Prism/1.19.1; +https://seo-prism.local)'
             }
             
             # Use HEAD request for resources (faster, doesn't download content)
@@ -146,7 +146,7 @@ class Crawler:
         
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (compatible; SEO-Prism/1.0; +https://seo-prism.local)'
+                'User-Agent': 'Mozilla/5.0 (compatible; SEO-Prism/1.19.1; +https://seo-prism.local)'
             }
             
             async with self.session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:

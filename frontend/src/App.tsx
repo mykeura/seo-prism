@@ -1572,7 +1572,7 @@ function App() {
           <Card>
             <CardFooter className="justify-center py-6 pt-4">
               <p className="text-sm text-muted-foreground">
-                All rights reserved © 2026 <a href="https://paracaidas.digital/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">Paracaídas Digital</a>
+                All rights reserved © 2026 <a href="https://paracaidas.digital/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">Paracaídas Digital</a> · SEO Prism v1.19.1
               </p>
             </CardFooter>
           </Card>

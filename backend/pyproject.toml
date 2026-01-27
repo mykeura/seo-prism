@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "seo-prism"
-version = "0.1.0"
+version = "1.19.1"
 description = "SEO Analyzer Tool - Detect broken links and missing meta-tags"
 authors = ["Miguel <miguel@example.com>"]
 readme = "README.md"

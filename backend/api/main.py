@@ -28,7 +28,7 @@ from modules.seo_grade import SEOGradeCalculator
 from modules.resource_analyzer import ResourceAnalyzer
 
 
-app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API")
+app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API", version="1.19.1")
 
 # Enable CORS for frontend
 app.add_middleware(
@@ -79,7 +79,7 @@ async def root():
     """Root endpoint."""
     return {
         "message": "SEO Prism API",
-        "version": "0.1.0",
+        "version": "1.19.1",
         "endpoints": {
             "POST /scan": "Start a new scan",
             "GET /results": "Get latest scan results",
