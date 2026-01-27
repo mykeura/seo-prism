@@ -271,7 +271,7 @@ class Crawler:
         # Remove duplicates from internal_links
         return list(set(internal_links)), all_resources
     
-    async def crawl(self, max_pages: int = 100) -> List[Dict]:
+    async def crawl(self, max_pages: int = 1000) -> List[Dict]:
         """
         Crawl the website starting from base URL.
         
@@ -291,8 +291,8 @@ class Crawler:
         
         while urls_to_visit and len(results) < max_pages:
             # Get next batch of URLs
-            current_batch = urls_to_visit[:10]  # Process in batches of 10
-            urls_to_visit = urls_to_visit[10:]
+            current_batch = urls_to_visit[:20]  # Process in batches of 20
+            urls_to_visit = urls_to_visit[20:]
             
             # Fetch pages concurrently
             tasks = [self._fetch_page(url) for url in current_batch]
@@ -325,7 +325,7 @@ class Crawler:
         if resources_to_verify:
             # Process resources in batches
             resource_list = list(resources_to_verify)
-            batch_size = 20
+            batch_size = 30
             
             for i in range(0, len(resource_list), batch_size):
                 current_batch = resource_list[i:i + batch_size]
@@ -341,7 +341,7 @@ class Crawler:
         if external_links_to_verify:
             # Process external links in batches
             external_links_list = list(external_links_to_verify)
-            batch_size = 20
+            batch_size = 30
             
             for i in range(0, len(external_links_list), batch_size):
                 current_batch = external_links_list[i:i + batch_size]
