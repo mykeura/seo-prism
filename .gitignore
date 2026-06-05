@@ -104,3 +104,6 @@ Thumbs.db
 
 # json
 package-lock.json
+
+# Graphify (local-only knowledge graph)
+graphify-out/
