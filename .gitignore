@@ -107,3 +107,11 @@ package-lock.json
 
 # Graphify (local-only knowledge graph)
 graphify-out/
+
+# Claude / Agent tooling (local-only)
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# GitNexus (local-only knowledge graph)
+.gitnexus/
