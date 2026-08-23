@@ -3,33 +3,49 @@ SEO Grade Calculator Module
 
 Calculates SEO grade based on error density and severity.
 Uses US grading system: A (90-100%), B (80-89%), C (70-79%), D (60-69%), F (0-59%)
+
+The penalty scale is logarithmic: the score falls in proportion to
+log10(1 + density) instead of density itself. A linear scale saturates at
+just 1 weighted issue per page (every realistic site collapsed to F and
+tiny sites were crushed by a single trivial issue), while a log scale
+keeps discriminating across the whole range and treats equal error
+densities equally regardless of site size:
+
+    density = (3*high + 1*medium + 0.5*low) / pages
+    score   = 100 * (1 - log10(1 + density) / log10(1 + MAX_ERROR_DENSITY))
 """
 
+import math
 from typing import List, Dict
 
 
 class SEOGradeCalculator:
     """Calculates SEO grade based on error density."""
-    
+
     # Severity weights for penalty calculation
     SEVERITY_WEIGHTS = {
         'high': 3,
         'medium': 1,
         'low': 0.5
     }
-    
+
+    # Weighted issues per page considered pathological (score reaches 0).
+    # Grade bands with this value: A up to d≈0.25, B to ≈0.6, C to ≈1.05,
+    # D to ≈1.6, F beyond.
+    MAX_ERROR_DENSITY = 10.0
+
     def __init__(self):
         """Initialize the SEO grade calculator."""
         pass
-    
+
     def calculate_grade(self, total_pages: int, issues: List[Dict]) -> Dict:
         """
         Calculate SEO grade based on error density.
-        
+
         Args:
             total_pages: Total number of pages analyzed
             issues: List of issue dictionaries with 'severity' field
-        
+
         Returns:
             Dictionary with:
                 - score: int (0-100)
@@ -47,35 +63,43 @@ class SEOGradeCalculator:
                     'total': 0
                 }
             }
-        
+
         # Count errors by severity
         error_counts = {
             'high': 0,
             'medium': 0,
             'low': 0
         }
-        
+
         for issue in issues:
             severity = issue.get('severity', 'medium').lower()
             if severity in error_counts:
                 error_counts[severity] += 1
-        
+
         # Calculate weighted error density
         weighted_errors = (
             error_counts['high'] * self.SEVERITY_WEIGHTS['high'] +
             error_counts['medium'] * self.SEVERITY_WEIGHTS['medium'] +
             error_counts['low'] * self.SEVERITY_WEIGHTS['low']
         )
-        
-        # Calculate score (0-100)
+
+        # Logarithmic penalty: equal densities give equal scores at any
+        # site size, and the score keeps dropping smoothly past the point
+        # where a linear scale would already be clamped at 0.
         error_density = weighted_errors / total_pages
-        score = max(0, min(100, 100 - (error_density * 100)))
-        
-        # Determine grade
-        grade = self._get_grade_from_score(score)
-        
+        score = 100 * (
+            1 - math.log10(1 + error_density)
+            / math.log10(1 + self.MAX_ERROR_DENSITY)
+        )
+        score = max(0, min(100, score))
+
+        # Round half-up and derive the letter from the rounded score so
+        # the displayed score and the letter can never disagree.
+        rounded_score = int(math.floor(score + 0.5))
+        grade = self._get_grade_from_score(rounded_score)
+
         return {
-            'score': int(round(score)),
+            'score': rounded_score,
             'grade': grade,
             'breakdown': {
                 'high': error_counts['high'],
