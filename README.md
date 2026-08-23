@@ -5,17 +5,32 @@ SEO Analyzer Tool - Detect broken links and missing meta-tags
 ## Features
 
 - ✅ Accepts any URL (localhost, production, custom ports)
-- ✅ Detects broken links (HTTP status ≥ 400)
+- ✅ Detects broken links and resources (HTTP status ≥ 400)
 - ✅ Validates missing meta-tags (`<title>`, `<meta name="description">`)
-- ✅ Detects duplicate content (titles and descriptions)
+- ✅ Detects duplicate content (titles, descriptions and H1 headers)
 - ✅ Analyzes H1 headers (missing, multiple, duplicate)
 - ✅ Validates header hierarchy (proper H1-H6 structure)
 - ✅ Checks image alt text (missing, short alt tags)
-- ✅ Validates standard files (robots.txt, security.txt, sitemap.xml)
+- ✅ Validates standard files: robots.txt, security.txt (both locations), llms.txt and sitemaps (14 documented name scenarios including Astro `sitemap-index.xml`, WordPress `wp-sitemap.xml` and `.well-known/sitemap.xml`, plus the `Sitemap:` directive in robots.txt)
 - ✅ Analyzes meta robots directives (noindex, nofollow, nosnippet, etc.)
-- ✅ Simple web panel without authentication
-- ✅ CLI for quick testing
+- ✅ Validates canonical tags (missing, empty, chains, 404s, redirects, URL variations)
+- ✅ Validates hreflang tags (invalid/duplicate codes, missing return links, x-default)
+- ✅ Analyzes structured data (JSON-LD, Microdata, RDFa)
+- ✅ Detects orphan pages and thin content; validates title/meta description lengths
+- ✅ Fair SEO grading (A-F) with a logarithmic error-density scale: same error density gives the same score regardless of site size
+- ✅ Premium prism-themed web panel (dark crystal UI, Tailwind CSS v4)
+- ✅ CLI with full untruncated output and `--json` mode for AI agents
+- ✅ Executive SEO report in PDF (Spanish/English, zero truncation, print-ready)
 - ✅ Local mode (ignores robots.txt)
+
+## SEO Grading
+
+Each issue is weighted by severity (high ×3, medium ×1, low ×0.5) and divided by the number of
+crawled pages to get the error density `d`. The score uses a logarithmic penalty
+(`100 · (1 − log10(1+d) / log10(1+10))`), so a small site with many errors always scores worse
+than a large site with fewer, two sites with the same error density get exactly the same score,
+and the scale keeps discriminating beyond the point where a linear one would collapse to F.
+The letter (A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 60, F below) is derived from the rounded score.
 
 ## Installation
 
@@ -32,7 +47,7 @@ pip install -r requirements.txt
 
 ```bash
 cd frontend
-npm install
+pnpm install
 cp .env.example .env
 ```
 
@@ -77,7 +92,7 @@ python cli.py --url https://example.com --json 2>/dev/null | jq '.issues | lengt
 
 ### Generate Professional SEO Report
 
-Generate a professional executive SEO report. The default format is **PDF** (complete, print-ready, every issue listed with automatic pagination — no manual adjustments needed). The legacy PowerPoint format is still available as an editable option.
+Generate a professional executive SEO report. The default format is **PDF** (complete, print-ready, every issue listed with automatic pagination — no manual adjustments needed). Reports are fully bilingual (`--lang es|en`): category labels, issue descriptions and section texts are all translated. The legacy PowerPoint format is still available as an editable option.
 
 ```bash
 cd backend
@@ -116,6 +131,17 @@ python cli.py --url http://localhost:3000 --max-pages 50 --generate-report --lan
 - `GET /results` - Get latest scan results
 - `GET /results/{scan_id}` - Get specific scan results
 
+## Testing
+
+The backend test suite (270+ tests) covers every analysis module, the CLI, both report
+generators, the grading fairness guarantees and the standard-file discovery scenarios
+(integration tests with a real HTTP server).
+
+```bash
+cd backend
+venv/bin/pytest
+```
+
 ## Project Structure
 
 ```
@@ -126,16 +152,27 @@ seo-prism/
 │   │   └── crawler.py
 │   ├── modules/
 │   │   ├── broken_links.py
+│   │   ├── canonical_tags.py
 │   │   ├── duplicate_content.py
 │   │   ├── h1_analysis.py
 │   │   ├── header_hierarchy.py
+│   │   ├── hreflang.py
 │   │   ├── image_alt_text.py
+│   │   ├── meta_length.py
 │   │   ├── meta_robots.py
 │   │   ├── meta_tags.py
-│   │   ├── missing_alt_tags.py
-│   │   └── standard_files.py
+│   │   ├── orphan_pages.py
+│   │   ├── seo_grade.py
+│   │   ├── standard_files.py
+│   │   ├── structured_data.py
+│   │   ├── thin_content.py
+│   │   ├── pdf_report_generator.py   # Executive PDF report (ES/EN)
+│   │   ├── report_generator.py       # Legacy PPTX report
+│   │   ├── report_translations.py    # Shared labels/translations
+│   │   └── description_translations.py
 │   ├── api/
 │   │   └── main.py
+│   ├── tests/
 │   ├── cli.py
 │   ├── database.py
 │   ├── requirements.txt
@@ -143,14 +180,15 @@ seo-prism/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── ui/
-│   │   │       ├── badge.tsx
-│   │   │       ├── button.tsx
-│   │   │       ├── card.tsx
-│   │   │       └── input.tsx
+│   │   │   ├── sections/       # One component per result card
+│   │   │   └── ui/             # button, card, badge, input
+│   │   ├── hooks/
+│   │   │   └── usePagination.ts
 │   │   ├── App.tsx
-│   │   ├── index.css
-│   │   └── main.tsx
+│   │   ├── index.css           # Tailwind v4 theme (prism tokens)
+│   │   ├── issueMeta.tsx
+│   │   ├── filters.ts
+│   │   └── types.ts
 │   ├── .env.example
 │   ├── package.json
 │   ├── tsconfig.json
