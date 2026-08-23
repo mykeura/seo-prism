@@ -21,11 +21,33 @@ class CanonicalTagsModule:
     def __init__(self, db):
         """
         Initialize the canonical tags module.
-        
+
         Args:
             db: Database instance
         """
         self.db = db
+
+    def _report(self, issues: List[Dict], scan_id: int, issue: Dict) -> None:
+        """
+        Register an issue: append it to the result list and persist it to
+        the database, so canonical findings are counted AND visible in every
+        output (web, CLI, JSON, reports). Tolerates db=None for unit tests.
+
+        Args:
+            issues: Accumulated issue list
+            scan_id: Scan ID
+            issue: Issue dictionary
+        """
+        issues.append(issue)
+        if self.db:
+            self.db.add_issue(
+                scan_id=scan_id,
+                issue_type=issue['issue_type'],
+                url=issue['url'],
+                source_page=issue['source_page'],
+                description=issue['description'],
+                severity=issue['severity']
+            )
     
     def analyze(self, scan_id: int, crawled_pages: List[Dict]) -> List[Dict]:
         """
@@ -72,7 +94,7 @@ class CanonicalTagsModule:
                 # 1. Missing canonical on indexable pages
                 if not canonical_tag:
                     if self._should_have_canonical(page):
-                        issues.append({
+                        self._report(issues, scan_id, {
                             'issue_type': 'missing_canonical',
                             'url': page_url,
                             'source_page': page_url,
@@ -80,10 +102,10 @@ class CanonicalTagsModule:
                             'severity': 'low'
                         })
                     continue
-                
+
                 canonical_href = canonical_tag.get('href', '').strip()
                 if not canonical_href:
-                    issues.append({
+                    self._report(issues, scan_id, {
                         'issue_type': 'empty_canonical',
                         'url': page_url,
                         'source_page': page_url,
@@ -113,7 +135,7 @@ class CanonicalTagsModule:
                     
                     # Check for circular chain (points back to original page)
                     if target_canonical_normalized == normalized_page_url:
-                        issues.append({
+                        self._report(issues, scan_id, {
                             'issue_type': 'canonical_chain',
                             'url': page_url,
                             'source_page': page_url,
@@ -122,7 +144,7 @@ class CanonicalTagsModule:
                         })
                     # Check for excessive chain
                     elif len(self._trace_canonical_chain(canonical_map, page_url, visited=set())) > 2:
-                        issues.append({
+                        self._report(issues, scan_id, {
                             'issue_type': 'canonical_chain',
                             'url': page_url,
                             'source_page': page_url,
@@ -134,29 +156,29 @@ class CanonicalTagsModule:
                 target_status = page_status_map.get(normalized_canonical)
                 
                 if target_status is not None and target_status >= 400:
-                    issues.append({
+                    self._report(issues, scan_id, {
                         'issue_type': 'canonical_to_404',
                         'url': page_url,
                         'source_page': page_url,
                         'description': f'Canonical points to non-existent page ({target_status}): {canonical_url}',
                         'severity': 'high'
                     })
-                
+
                 # 5. Canonical to redirected page (301/302)
                 elif target_status is not None and target_status in [301, 302]:
-                    issues.append({
+                    self._report(issues, scan_id, {
                         'issue_type': 'canonical_to_redirect',
                         'url': page_url,
                         'source_page': page_url,
                         'description': f'Canonical points to redirected page ({target_status}): {canonical_url}',
                         'severity': 'medium'
                     })
-                
+
                 # 6. Canonical URL variations (only for production, not localhost)
                 elif not self._is_development_environment(page_url):
                     if self._has_url_variation(page_url, canonical_url):
                         variation_type = self._get_variation_type(page_url, canonical_url)
-                        issues.append({
+                        self._report(issues, scan_id, {
                             'issue_type': 'canonical_url_variation',
                             'url': page_url,
                             'source_page': page_url,

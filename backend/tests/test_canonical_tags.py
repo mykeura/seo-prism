@@ -254,3 +254,48 @@ class TestCanonicalTagsModule:
         canonical = module._extract_canonical(html, 'https://example.com/dir/base')
         
         assert canonical == 'https://example.com/page'
+
+class TestCanonicalTagsPersistence:
+    """Regression: canonical issues must be persisted, not just counted.
+
+    Historic bug: the module returned issues but never called db.add_issue,
+    so canonical findings were invisible in the web UI, CLI, JSON and
+    reports while still inflating total_issues and the SEO grade.
+    """
+
+    def test_issues_are_persisted_to_database(self, tmp_path):
+        from database import Database
+
+        db = Database(str(tmp_path / 'test_scans.db'))
+        scan_id = db.create_scan('https://example.com')
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com/page',
+                'status': 200,
+                'html': '<html><head><title>Page</title></head><body>Content</body></html>'
+            },
+            {
+                'url': 'https://example.com/other',
+                'status': 200,
+                'html': '<html><head><link rel="canonical" href=""></head><body>Other</body></html>'
+            },
+        ]
+
+        module = CanonicalTagsModule(db)
+        returned = module.analyze(scan_id, crawled_pages)
+        stored = db.get_scan_results(scan_id)['issues']
+
+        assert len(returned) == 2
+        assert len(stored) == 2, 'los issues canónicos deben persistirse en la BD'
+        assert {i['issue_type'] for i in stored} == {'missing_canonical', 'empty_canonical'}
+        db.close()
+
+    def test_db_none_still_returns_issues(self):
+        """Unit-test compatibility: analyze works without a database."""
+        module = CanonicalTagsModule(None)
+        pages = [{
+            'url': 'https://example.com/page', 'status': 200,
+            'html': '<html><head></head><body></body></html>'
+        }]
+        assert len(module.analyze(1, pages)) == 1
