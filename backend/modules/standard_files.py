@@ -256,13 +256,25 @@ class StandardFilesModule:
         """
         sitemaps = []
         
-        # Common sitemap filenames to check (prioritize Astro format)
+        # Common sitemap filenames to check (prioritize Astro format).
+        # Covers the documented/known generator conventions:
+        # - sitemap-index.xml: @astrojs/sitemap
+        # - sitemap_index.xml / sitemap_index.xml.gz: Yoast (WordPress)
+        # - wp-sitemap.xml: WordPress core (>= 5.5)
+        # - sitemapindex.xml: generators without separator
+        # - sitemap/sitemap.xml: some CMSs (Shopware and others)
+        # - .well-known/sitemap.xml: well-known URI location (RFC 9309 ecosystem)
         common_sitemap_names = [
             'sitemap-index.xml',  # Astro format (highest priority)
             'sitemap_index.xml',  # Alternative format
             'sitemap.xml',
+            'wp-sitemap.xml',  # WordPress core (>= 5.5)
+            'sitemapindex.xml',  # No-separator variant
+            'sitemap/sitemap.xml',  # Subdirectory location
+            '.well-known/sitemap.xml',  # Well-known URI location
             'sitemap_index.xml.gz',
             'sitemap.xml.gz',
+            'sitemap-index.xml.gz',
             'sitemap1.xml',
             'sitemap1.xml.gz',
             'posts-sitemap.xml',
