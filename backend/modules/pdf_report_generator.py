@@ -34,7 +34,8 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from .report_translations import get_translation, get_impact_template
+from .report_translations import get_translation, get_impact_template, get_issue_label
+from .description_translations import translate_description
 
 
 class SEOReportPDFGenerator:
@@ -471,10 +472,11 @@ class SEOReportPDFGenerator:
                                   self.styles['h2']))
             rows = []
             for issue in high_issues:
-                line = (f"<b>{self._pdf_text(issue.get('issue_type', 'unknown'))}</b> · "
+                label = get_issue_label(lang, issue.get('issue_type', 'unknown'))
+                line = (f"<b>{self._pdf_text(label)}</b> · "
                         f"{self._pdf_text(issue.get('url') or 'N/A')}")
                 if issue.get('description'):
-                    line += f"<br/>{self._pdf_text(issue['description'])}"
+                    line += f"<br/>{self._pdf_text(translate_description(lang, issue['description']))}"
                 rows.append([Paragraph(line, self.styles['critical'])])
             highlight = LongTable(rows, colWidths=[self.CONTENT_W])
             highlight.setStyle(TableStyle([
@@ -495,7 +497,8 @@ class SEOReportPDFGenerator:
                                   self.styles['h2']))
             data = [[get_translation(lang, 'category'), get_translation(lang, 'count')]]
             for issue_type, cat_issues in categories:
-                data.append([issue_type, str(len(cat_issues))])
+                data.append([self._pdf_text(get_issue_label(lang, issue_type)),
+                             str(len(cat_issues))])
             distribution = LongTable(data, colWidths=[self.CONTENT_W - 2.8 * cm, 2.8 * cm],
                                      repeatRows=1)
             distribution.setStyle(TableStyle([
@@ -537,7 +540,8 @@ class SEOReportPDFGenerator:
         issues_label = get_translation(lang, 'issues_label')
         for issue_type, cat_issues in categories:
             flow.append(Paragraph(
-                f"{self._pdf_text(issue_type)} ({len(cat_issues)} {issues_label})",
+                f"{self._pdf_text(get_issue_label(lang, issue_type))} "
+                f"({len(cat_issues)} {issues_label})",
                 self.styles['h2']))
 
             impact = get_impact_template(lang, issue_type).get('impact', '')
@@ -561,10 +565,11 @@ class SEOReportPDFGenerator:
         for issue in issues:
             severity = issue.get('severity', '')
             sev_hex = self._severity_color(severity).hexval()[2:]
+            description = issue.get('description') or '—'
             data.append([
                 Paragraph(self._pdf_text(issue.get('url') or 'N/A'), self.styles['cell_url']),
                 Paragraph(self._pdf_text(issue.get('source_page') or '—'), self.styles['cell_url']),
-                Paragraph(self._pdf_text(issue.get('description') or '—'), self.styles['cell']),
+                Paragraph(self._pdf_text(translate_description(lang, description)), self.styles['cell']),
                 Paragraph(
                     f"<font color='#{sev_hex}'>{self._pdf_text(self._severity_label(severity))}</font>",
                     self.styles['cell_sev']),
@@ -606,7 +611,8 @@ class SEOReportPDFGenerator:
             for issue_type, cat_issues in categories:
                 template = get_impact_template(lang, issue_type)
                 flow.append(Paragraph(
-                    f"{self._pdf_text(issue_type)} ({len(cat_issues)} {issues_label})",
+                    f"{self._pdf_text(get_issue_label(lang, issue_type))} "
+                    f"({len(cat_issues)} {issues_label})",
                     self.styles['h2']))
                 impact_label = self._pdf_text(get_translation(lang, 'impact_on_google'))
                 flow.append(Paragraph(
