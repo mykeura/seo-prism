@@ -89,11 +89,14 @@ def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_
             echo(f"📊 Generating {lang.upper()} professional report ({report_format.upper()})...")
 
             try:
+                # One single-typed generator variable per branch so the
+                # static call graph keeps the scan -> generate_report edge.
                 if report_format == 'pdf':
-                    report_generator = SEOReportPDFGenerator()
+                    pdf_generator = SEOReportPDFGenerator()
+                    report_path = pdf_generator.generate_report(results, output, lang)
                 else:
-                    report_generator = SEOReportGenerator()
-                report_path = report_generator.generate_report(results, output, lang)
+                    pptx_generator = SEOReportGenerator()
+                    report_path = pptx_generator.generate_report(results, output, lang)
                 echo(f"✅ Report generated: {report_path}")
                 if report_format == 'pptx':
                     echo(f"💡 You can now edit the report in PowerPoint and export to PDF when ready.")
