@@ -1,4 +1,5 @@
 import asyncio
+import json
 import click
 from core.crawler import Crawler
 from core.url_utils import is_local, validate_url
@@ -15,89 +16,116 @@ from modules.orphan_pages import OrphanPagesModule
 from modules.structured_data import StructuredDataModule
 from modules.meta_length import MetaLengthModule
 from modules.thin_content import ThinContentModule
-from modules import h1_analysis
-from modules import header_hierarchy
 from modules.seo_grade import SEOGradeCalculator
 from modules.resource_analyzer import ResourceAnalyzer
 from modules.report_generator import SEOReportGenerator
+from modules.pdf_report_generator import SEOReportPDFGenerator
 
 
 @click.command()
 @click.option('--url', required=True, help='Target URL to scan')
 @click.option('--max-pages', default=100, help='Maximum number of pages to crawl')
-@click.option('--generate-report', is_flag=True, help='Generate professional SEO report in PowerPoint format')
+@click.option('--json', 'as_json', is_flag=True, help='Print complete scan results as JSON to stdout (progress messages go to stderr)')
+@click.option('--generate-report', is_flag=True, help='Generate professional SEO report (PDF by default, PowerPoint optional)')
+@click.option('--report-format', 'report_format', default='pdf', type=click.Choice(['pdf', 'pptx']), help='Report format: pdf (default, complete and print-ready) or pptx (editable)')
 @click.option('--lang', default='en', type=click.Choice(['en', 'es']), help='Report language (en or es)')
-@click.option('--output', default='seo_report.pptx', help='Output file path for the report')
-def scan(url: str, max_pages: int, generate_report: bool, lang: str, output: str):
+@click.option('--output', default=None, help='Output file path for the report (default: seo_report.pdf or seo_report.pptx per format)')
+def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_format: str, lang: str, output: str):
     """
     Scan a website for SEO issues.
-    
+
     Example:
         poetry run scan --url http://localhost:3000
         poetry run scan --url https://example.com --max-pages 50
+        poetry run scan --url https://example.com --json > results.json
     """
+    # In --json mode every human-readable message goes to stderr so that
+    # stdout carries ONLY the machine-readable JSON payload.
+    if as_json:
+        def echo(message=None, err=False):
+            click.echo(message, err=True)
+    else:
+        def echo(message=None, err=False):
+            click.echo(message, err=err)
+
     # Validate URL
     if not validate_url(url):
-        click.echo(f"❌ Invalid URL: {url}", err=True)
+        echo(f"❌ Invalid URL: {url}", err=True)
         return
-    
+
     # Check if local
     is_local_url = is_local(url)
     ignore_robots = is_local_url
-    
+
     if is_local_url:
-        click.echo("✅ Scanning in fast mode (ignoring robots.txt)")
+        echo("✅ Scanning in fast mode (ignoring robots.txt)")
     else:
-        click.echo("⚠️  Scanning remote URL (respecting robots.txt)")
-    
-    click.echo(f"🔍 Starting scan of: {url}")
-    
+        echo("⚠️  Scanning remote URL (respecting robots.txt)")
+
+    echo(f"🔍 Starting scan of: {url}")
+
     # Run scan
     try:
         results = asyncio.run(run_scan(url, max_pages, ignore_robots))
-        
-        # Display results
-        display_results(results)
-        
+
+        if as_json:
+            payload = {
+                'scan': results.get('scan', {}),
+                'issues': results.get('issues', []),
+                'seo_grade': results.get('seo_grade', {}),
+                'resource_analysis': results.get('resource_analysis', {}),
+            }
+            click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            # Display results
+            display_results(results)
+
         # Generate report if requested
         if generate_report:
-            click.echo()
-            click.echo(f"📊 Generating {lang.upper()} professional report...")
-            
+            if output is None:
+                output = 'seo_report.pdf' if report_format == 'pdf' else 'seo_report.pptx'
+
+            echo()
+            echo(f"📊 Generating {lang.upper()} professional report ({report_format.upper()})...")
+
             try:
-                report_generator = SEOReportGenerator()
+                if report_format == 'pdf':
+                    report_generator = SEOReportPDFGenerator()
+                else:
+                    report_generator = SEOReportGenerator()
                 report_path = report_generator.generate_report(results, output, lang)
-                click.echo(f"✅ Report generated: {report_path}")
-                click.echo(f"💡 You can now edit the report in PowerPoint and export to PDF when ready.")
+                echo(f"✅ Report generated: {report_path}")
+                if report_format == 'pptx':
+                    echo(f"💡 You can now edit the report in PowerPoint and export to PDF when ready.")
             except Exception as e:
-                click.echo(f"❌ Error generating report: {e}", err=True)
-        
+                echo(f"❌ Error generating report: {e}", err=True)
+
     except Exception as e:
-        click.echo(f"❌ Error during scan: {e}", err=True)
+        echo(f"❌ Error during scan: {e}", err=True)
 
 
 async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     """
     Execute the scan asynchronously.
-    
+
     Args:
         url: Target URL
         max_pages: Maximum pages to crawl
         ignore_robots: Whether to ignore robots.txt
-    
+
     Returns:
         Scan results dictionary
     """
     # Initialize database
     db = Database()
-    
+
     # Create scan record
     scan_id = db.create_scan(url)
-    
+
     # Crawl website
     async with Crawler(url, ignore_robots=ignore_robots) as crawler:
         crawled_pages = await crawler.crawl(max_pages=max_pages)
-    
+
     # Store pages in database
     for page in crawled_pages:
         page_id = db.add_page(
@@ -106,11 +134,11 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
             status=page['status'],
             html=page.get('html')
         )
-        
+
         # Store links
         for link in page.get('links', []):
             db.add_link(page_id, link, page['url'])
-    
+
     # Run analysis modules
     broken_links_module = BrokenLinksModule(db)
     meta_tags_module = MetaTagsModule(db)
@@ -124,7 +152,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     structured_data_module = StructuredDataModule(db)
     meta_length_module = MetaLengthModule(db)
     thin_content_module = ThinContentModule(db)
-    
+
     broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
     meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
     meta_robots_issues = meta_robots_module.analyze(scan_id, crawled_pages)
@@ -137,53 +165,175 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     structured_data_issues = structured_data_module.analyze(scan_id, crawled_pages)
     meta_length_issues = meta_length_module.analyze(scan_id, crawled_pages)
     thin_content_issues = thin_content_module.analyze(scan_id, crawled_pages)
-    
-    # Analyze H1 headers and header hierarchy using functions
-    all_pages_data = {page['url']: page for page in crawled_pages}
-    h1_issues = []
-    header_hierarchy_issues = []
-    
-    for page in crawled_pages:
-        if page.get('html'):
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(page['html'], 'html.parser')
-            
-            # H1 analysis
-            page_h1_issues = h1_analysis.analyze_h1_headers(soup, page['url'], all_pages_data)
-            h1_issues.extend(page_h1_issues)
-            
-            # Header hierarchy analysis
-            page_hierarchy_issues = header_hierarchy.analyze_header_hierarchy(soup, page['url'])
-            header_hierarchy_issues.extend(page_hierarchy_issues)
-    
+
+    # NOTE: H1 issues (missing_h1, multiple_h1_same_page, duplicate_h1) and
+    # header hierarchy issues (invalid_header_hierarchy) are already detected
+    # and persisted to the database by MetaTagsModule, so no extra pass is
+    # performed here. This keeps scan.total_issues == len(results['issues']).
+
     # Update scan totals
-    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(h1_issues) + len(header_hierarchy_issues) + len(canonical_issues) + len(orphan_pages_issues) + len(structured_data_issues) + len(meta_length_issues) + len(thin_content_issues)
-    
+    total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(canonical_issues) + len(orphan_pages_issues) + len(structured_data_issues) + len(meta_length_issues) + len(thin_content_issues)
+
     # Analyze resources to get actual HTML page count
     resource_analyzer = ResourceAnalyzer()
     resource_analysis = resource_analyzer.analyze_resources(crawled_pages)
     html_page_count = resource_analysis['html_pages']
-    
+
     db.update_scan_totals(scan_id, html_page_count, total_issues)
-    
+
     # Calculate SEO grade
-    all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + h1_issues + header_hierarchy_issues + canonical_issues + orphan_pages_issues + structured_data_issues + meta_length_issues + thin_content_issues
+    all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + canonical_issues + orphan_pages_issues + structured_data_issues + meta_length_issues + thin_content_issues
     grade_calculator = SEOGradeCalculator()
     seo_grade = grade_calculator.calculate_grade(html_page_count, all_issues)
-    
+
     # Get complete results
     results = db.get_scan_results(scan_id)
     results['seo_grade'] = seo_grade
     results['resource_analysis'] = resource_analysis
     db.close()
-    
+
     return results
+
+
+# Ordered display categories: (section title, exact issue types, issue type prefixes).
+# Every issue_type that does not match any category is shown under "Other Issues",
+# so no failure is ever hidden.
+_ISSUE_CATEGORIES = [
+    ('🔗 Broken Links & Resources:',
+     ('broken_link', 'broken_image', 'broken_script', 'broken_stylesheet'),
+     ()),
+    ('📝 Missing Titles:',
+     ('missing_title',),
+     ()),
+    ('📄 Missing Descriptions:',
+     ('missing_description',),
+     ()),
+    ('📏 Meta Length Issues:',
+     ('title_too_long', 'title_too_short', 'meta_description_too_long', 'meta_description_too_short'),
+     ()),
+    ('📋 Duplicate Content:',
+     ('duplicate_title', 'duplicate_description'),
+     ()),
+    ('🖼️  Images Without Alt Text:',
+     ('missing_alt_tag', 'missing_alt_text', 'short_alt_text'),
+     ()),
+    ('🏷️  H1 Header Issues:',
+     ('missing_h1', 'multiple_h1_same_page', 'duplicate_h1'),
+     ()),
+    ('📐 Invalid Header Hierarchy:',
+     ('invalid_header_hierarchy',),
+     ()),
+    ('🤖 Meta Robots Issues:',
+     ('meta_robots_noindex', 'meta_robots_nofollow', 'meta_robots_noarchive',
+      'meta_robots_nosnippet', 'meta_robots_noimageindex', 'meta_robots_notranslate',
+      'meta_robots_unavailable_after'),
+     ('meta_robots_',)),
+    ('🌍 Hreflang Issues:',
+     ('hreflang_invalid_code', 'hreflang_duplicate_code', 'hreflang_missing_x_default',
+      'hreflang_missing_self_reference', 'hreflang_missing_return_link',
+      'hreflang_missing_canonical'),
+     ('hreflang_',)),
+    ('📁 Standard Files Missing:',
+     ('missing_robots_txt', 'missing_security_txt', 'missing_sitemap', 'missing_llms_txt'),
+     ()),
+    ('🔗 Canonical Tag Issues:',
+     ('canonical_chain', 'canonical_to_404', 'canonical_to_redirect',
+      'canonical_url_variation', 'missing_canonical', 'empty_canonical'),
+     ()),
+    ('📊 Structured Data Issues:',
+     ('missing_structured_data', 'json_ld_invalid_json', 'json_ld_missing_properties',
+      'json_ld_missing_type', 'json_ld_short_headline', 'json_ld_unknown_type',
+      'microdata_missing_type', 'microdata_unknown_type', 'rdfa_unknown_type'),
+     ('json_ld_', 'microdata_', 'rdfa_')),
+    ('📄 Thin Content Issues:',
+     ('thin_content',),
+     ()),
+    ('📁 Orphan Pages (no incoming links):',
+     ('orphan_page',),
+     ()),
+]
+
+_STANDARD_FILES_FOUND_TYPES = ('robots_txt_found', 'security_txt_found', 'sitemap_found', 'llms_txt_found')
+
+
+def _group_issues_by_type(issues: list) -> dict:
+    """
+    Group a flat issue list into {issue_type: [issues...]} preserving order.
+
+    Args:
+        issues: Flat list of issue dictionaries
+
+    Returns:
+        Dictionary of issue_type -> list of issues (in original order)
+    """
+    groups = {}
+    for issue in issues:
+        groups.setdefault(issue.get('issue_type', 'unknown'), []).append(issue)
+    return groups
+
+
+def _format_issue(issue: dict, show_source: bool = True, show_type: bool = False) -> str:
+    """
+    Format a single issue as '[issue_type] url (in source_page) - description'.
+
+    Args:
+        issue: Issue dictionary
+        show_source: Whether to include the source page
+        show_type: Whether to prefix the raw issue_type (used for unknown types)
+
+    Returns:
+        Formatted issue line
+    """
+    parts = []
+    if show_type:
+        parts.append(f"[{issue.get('issue_type', 'unknown')}]")
+    parts.append(issue.get('url') or 'N/A')
+    if show_source and issue.get('source_page'):
+        parts.append(f"(in {issue['source_page']})")
+    if issue.get('description'):
+        parts.append(f"- {issue['description']}")
+    return ' '.join(parts)
+
+
+def _print_issue_section(title: str, issues: list, show_source: bool = True,
+                         show_type: bool = False):
+    """
+    Print a full issue section: header plus EVERY issue, without truncation.
+
+    Args:
+        title: Section title (with emoji)
+        issues: Issues belonging to the section
+        show_source: Whether to include the source page in each line
+        show_type: Whether to prefix each line with the raw issue_type
+    """
+    click.echo(f"{title} ({len(issues)}):")
+    for issue in issues:
+        click.echo(f"   • {_format_issue(issue, show_source=show_source, show_type=show_type)}")
+    click.echo()
+
+
+def _print_standard_files_found(issues: list):
+    """
+    Print the "Standard Files Found" informational section.
+
+    Args:
+        issues: Issues whose type is one of *_found
+    """
+    click.echo(f"📁 Standard Files Found ({len(issues)}):")
+    for issue in issues:
+        file_name = issue['issue_type'].replace('_found', '').replace('_', '.')
+        click.echo(f"   • {file_name}: {issue.get('url', 'N/A')}")
+    click.echo()
 
 
 def display_results(results: dict):
     """
     Display scan results in terminal.
-    
+
+    Every issue found is printed in full (url + source_page + description),
+    with no truncation and no "... and N more" summaries. Any issue_type
+    without a dedicated section falls through to "Other Issues".
+
     Args:
         results: Scan results dictionary
     """
@@ -191,7 +341,7 @@ def display_results(results: dict):
     issues = results.get('issues', [])
     seo_grade = results.get('seo_grade', {})
     resource_analysis = results.get('resource_analysis', {})
-    
+
     click.echo()
     click.echo("=" * 60)
     click.echo("📊 SCAN RESULTS")
@@ -200,14 +350,14 @@ def display_results(results: dict):
     click.echo(f"📅 Scan Time: {scan.get('timestamp', 'N/A')}")
     click.echo(f"📄 Pages Analyzed: {scan.get('total_pages', 0)}")
     click.echo(f"⚠️  Total Issues: {scan.get('total_issues', 0)}")
-    
+
     # Display SEO grade
     if seo_grade:
         grade = seo_grade.get('grade', 'N/A')
         score = seo_grade.get('score', 0)
         grade_color = _get_grade_color_ansi(grade)
         click.echo(f"🎯 SEO Grade: {grade_color}{grade} ({score}%)\033[0m")
-    
+
     # Display resource analysis
     if resource_analysis:
         click.echo()
@@ -218,191 +368,46 @@ def display_results(results: dict):
         click.echo(f"   • Images: {resource_analysis['images']}")
         click.echo(f"   • Other Resources: {resource_analysis['other_resources']}")
         click.echo(f"   • Total Resources: {resource_analysis['total_resources']}")
-    
+
     click.echo()
-    
+
     if issues:
-        # Group issues by type
-        broken_links = [i for i in issues if i['issue_type'] == 'broken_link']
-        missing_titles = [i for i in issues if i['issue_type'] == 'missing_title']
-        missing_descriptions = [i for i in issues if i['issue_type'] == 'missing_description']
-        duplicate_titles = [i for i in issues if i['issue_type'] == 'duplicate_title']
-        duplicate_descriptions = [i for i in issues if i['issue_type'] == 'duplicate_description']
-        missing_alt_tags = [i for i in issues if i['issue_type'] in ['missing_alt_tag', 'missing_alt_text', 'short_alt_text']]
-        missing_h1 = [i for i in issues if i['issue_type'] == 'missing_h1']
-        multiple_h1 = [i for i in issues if i['issue_type'] == 'multiple_h1_same_page']
-        duplicate_h1 = [i for i in issues if i['issue_type'] == 'duplicate_h1']
-        invalid_hierarchy = [i for i in issues if i['issue_type'] == 'invalid_header_hierarchy']
-        meta_robots_issues = [i for i in issues if i['issue_type'].startswith('meta_robots')]
-        hreflang_issues = [i for i in issues if i['issue_type'].startswith('hreflang')]
-        standard_files_issues = [i for i in issues if i['issue_type'] in ['missing_robots_txt', 'missing_security_txt', 'missing_sitemap', 'missing_llms_txt']]
-        
-        # Display broken links
-        if broken_links:
-            click.echo("🔗 Broken Links:")
-            for issue in broken_links[:10]:
-                click.echo(f"   • {issue['url']} (in {issue['source_page']}) - {issue['description']}")
-            if len(broken_links) > 10:
-                click.echo(f"   ... and {len(broken_links) - 10} more")
-            click.echo()
-        
-        # Display missing titles
-        if missing_titles:
-            click.echo("📝 Missing Titles:")
-            for issue in missing_titles[:10]:
-                click.echo(f"   • {issue['url']}")
-            if len(missing_titles) > 10:
-                click.echo(f"   ... and {len(missing_titles) - 10} more")
-            click.echo()
-        
-        # Display missing descriptions
-        if missing_descriptions:
-            click.echo("📄 Missing Descriptions:")
-            for issue in missing_descriptions[:10]:
-                click.echo(f"   • {issue['url']}")
-            if len(missing_descriptions) > 10:
-                click.echo(f"   ... and {len(missing_descriptions) - 10} more")
-            click.echo()
-        
-        # Display duplicate content
-        if duplicate_titles or duplicate_descriptions:
-            click.echo("📋 Duplicate Content:")
-            if duplicate_titles:
-                click.echo(f"   • {len(duplicate_titles)} pages with duplicate titles")
-            if duplicate_descriptions:
-                click.echo(f"   • {len(duplicate_descriptions)} pages with duplicate descriptions")
-            click.echo()
-        
-        # Display image alt issues
-        if missing_alt_tags:
-            click.echo("🖼️  Images Without Alt Tags:")
-            click.echo(f"   • {len(missing_alt_tags)} images missing alt text")
-            click.echo()
-        
-        # Display H1 issues
-        if missing_h1 or multiple_h1 or duplicate_h1:
-            click.echo("🏷️  H1 Header Issues:")
-            if missing_h1:
-                click.echo(f"   • {len(missing_h1)} pages missing H1 header")
-            if multiple_h1:
-                click.echo(f"   • {len(multiple_h1)} pages with multiple H1 headers")
-            if duplicate_h1:
-                click.echo(f"   • {len(duplicate_h1)} pages with duplicate H1 headers")
-            click.echo()
-        
-        # Display header hierarchy issues
-        if invalid_hierarchy:
-            click.echo("📐 Invalid Header Hierarchy:")
-            click.echo(f"   • {len(invalid_hierarchy)} pages with invalid header structure")
-            click.echo()
-        
-        # Display meta robots issues
-        if meta_robots_issues:
-            click.echo("🤖 Meta Robots Issues:")
-            click.echo(f"   • {len(meta_robots_issues)} meta robots directive issues")
-            click.echo()
-        
-        # Display hreflang issues
-        if hreflang_issues:
-            click.echo("🌍 Hreflang Issues:")
-            click.echo(f"   • {len(hreflang_issues)} hreflang validation issues")
-            click.echo()
-        
-        # Display standard files found
-        found_standard_files = [i for i in issues if i['issue_type'] in ['robots_txt_found', 'security_txt_found', 'sitemap_found', 'llms_txt_found']]
+        groups = _group_issues_by_type(issues)
+        covered_types = set()
+
+        # Dedicated sections (fixed order), each showing every single issue
+        for title, exact_types, prefixes in _ISSUE_CATEGORIES:
+            section_issues = []
+            for issue_type, type_issues in groups.items():
+                if issue_type in exact_types or any(issue_type.startswith(prefix) for prefix in prefixes):
+                    section_issues.extend(type_issues)
+                    covered_types.add(issue_type)
+            if section_issues:
+                _print_issue_section(title, section_issues)
+
+        # Informational section: standard files that were found
+        found_standard_files = [
+            issue
+            for issue_type in _STANDARD_FILES_FOUND_TYPES
+            for issue in groups.get(issue_type, [])
+        ]
+        covered_types.update(_STANDARD_FILES_FOUND_TYPES)
         if found_standard_files:
-            click.echo("📁 Standard Files Found:")
-            for issue in found_standard_files:
-                file_name = issue['issue_type'].replace('_found', '').replace('_', '.')
-                click.echo(f"   • {file_name}: {issue['url']}")
-            click.echo()
-        
-        # Display canonical issues
-        canonical_chains = [i for i in issues if i['issue_type'] == 'canonical_chain']
-        canonical_404 = [i for i in issues if i['issue_type'] == 'canonical_to_404']
-        canonical_redirect = [i for i in issues if i['issue_type'] == 'canonical_to_redirect']
-        canonical_variations = [i for i in issues if i['issue_type'] == 'canonical_url_variation']
-        missing_canonical = [i for i in issues if i['issue_type'] == 'missing_canonical']
-        
-        if canonical_chains or canonical_404 or canonical_redirect or canonical_variations or missing_canonical:
-            click.echo("🔗 Canonical Tag Issues:")
-            if canonical_chains:
-                click.echo(f"   • {len(canonical_chains)} canonical chain(s) detected")
-            if canonical_404:
-                click.echo(f"   • {len(canonical_404)} canonical(s) pointing to 404 pages")
-            if canonical_redirect:
-                click.echo(f"   • {len(canonical_redirect)} canonical(s) pointing to redirects")
-            if canonical_variations:
-                click.echo(f"   • {len(canonical_variations)} canonical(s) with URL variations")
-            if missing_canonical:
-                click.echo(f"   • {len(missing_canonical)} pages missing canonical tags")
-            click.echo()
-        
-        # Display standard files issues
-        if standard_files_issues:
-            click.echo("📁 Standard Files Missing:")
-            for issue in standard_files_issues:
-                click.echo(f"   • {issue['issue_type']}")
-            click.echo()
-        
-        # Display structured data issues
-        missing_structured_data = [i for i in issues if i['issue_type'] == 'missing_structured_data']
-        json_ld_issues = [i for i in issues if i['issue_type'].startswith('json_ld')]
-        microdata_issues = [i for i in issues if i['issue_type'].startswith('microdata')]
-        rdfa_issues = [i for i in issues if i['issue_type'].startswith('rdfa')]
-        
-        if missing_structured_data or json_ld_issues or microdata_issues or rdfa_issues:
-            click.echo("📊 Structured Data Issues:")
-            if missing_structured_data:
-                click.echo(f"   • {len(missing_structured_data)} pages without structured data")
-                for issue in missing_structured_data[:10]:
-                    click.echo(f"      - {issue['url']}")
-                if len(missing_structured_data) > 10:
-                    click.echo(f"      ... and {len(missing_structured_data) - 10} more")
-            if json_ld_issues:
-                click.echo(f"   • {len(json_ld_issues)} JSON-LD issue(s)")
-                for issue in json_ld_issues[:5]:
-                    click.echo(f"      - {issue['description']}")
-                if len(json_ld_issues) > 5:
-                    click.echo(f"      ... and {len(json_ld_issues) - 5} more")
-            if microdata_issues:
-                click.echo(f"   • {len(microdata_issues)} Microdata issue(s)")
-                for issue in microdata_issues[:5]:
-                    click.echo(f"      - {issue['description']}")
-                if len(microdata_issues) > 5:
-                    click.echo(f"      ... and {len(microdata_issues) - 5} more")
-            if rdfa_issues:
-                click.echo(f"   • {len(rdfa_issues)} RDFa issue(s)")
-                for issue in rdfa_issues[:5]:
-                    click.echo(f"      - {issue['description']}")
-                if len(rdfa_issues) > 5:
-                    click.echo(f"      ... and {len(rdfa_issues) - 5} more")
-            click.echo()
-        
-        # Display thin content issues
-        thin_content = [i for i in issues if i['issue_type'] == 'thin_content']
-        if thin_content:
-            click.echo("📄 Thin Content Issues:")
-            click.echo(f"   • {len(thin_content)} pages with thin content")
-            for issue in thin_content[:10]:
-                click.echo(f"      - {issue['url']}")
-            if len(thin_content) > 10:
-                click.echo(f"      ... and {len(thin_content) - 10} more")
-            click.echo()
-        
-        # Display orphan pages
-        orphan_pages = [i for i in issues if i['issue_type'] == 'orphan_page']
-        if orphan_pages:
-            click.echo("📁 Orphan Pages (no incoming links):")
-            for issue in orphan_pages[:10]:
-                click.echo(f"   • {issue['url']}")
-            if len(orphan_pages) > 10:
-                click.echo(f"   ... and {len(orphan_pages) - 10} more")
-            click.echo()
+            _print_standard_files_found(found_standard_files)
+
+        # Safety net: any issue_type not covered above is listed here
+        other_issues = [
+            issue
+            for issue_type, type_issues in groups.items()
+            if issue_type not in covered_types
+            for issue in type_issues
+        ]
+        if other_issues:
+            _print_issue_section('🧩 Other Issues:', other_issues, show_type=True)
     else:
         click.echo("✅ No issues found!")
         click.echo()
-    
+
     click.echo("=" * 60)
 
 
@@ -414,10 +419,10 @@ def main():
 def _get_grade_color_ansi(grade: str) -> str:
     """
     Get ANSI color code for grade display in terminal.
-    
+
     Args:
         grade: Grade letter ('A', 'B', 'C', 'D', 'F')
-    
+
     Returns:
         ANSI color code
     """
