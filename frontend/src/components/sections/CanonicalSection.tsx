@@ -47,8 +47,8 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
       <CardContent>
         {canonicalIssues.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4"><FontAwesomeIcon icon={faLink} className="text-primary-400" /></div>
-            <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Canonical Issues Found!</h3>
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faLink} className="text-2xl text-success-400" /></div>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Canonical Issues Found!</h3>
             <p className="text-muted-foreground">All canonical tags are properly configured.</p>
           </div>
         ) : (
@@ -58,7 +58,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                 onClick={() => setCanonicalTab('all')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   canonicalTab === 'all'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -68,7 +68,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                 onClick={() => setCanonicalTab('chains')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   canonicalTab === 'chains'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -78,7 +78,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                 onClick={() => setCanonicalTab('404')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   canonicalTab === '404'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -88,7 +88,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                 onClick={() => setCanonicalTab('redirect')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   canonicalTab === 'redirect'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -98,7 +98,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                 onClick={() => setCanonicalTab('variations')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   canonicalTab === 'variations'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -108,7 +108,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                 onClick={() => setCanonicalTab('missing')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   canonicalTab === 'missing'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >

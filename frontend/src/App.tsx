@@ -72,13 +72,16 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background font-sans text-foreground">
+      {/* Aurora prism backdrop: fixed refracted-light blobs (pure CSS) */}
+      <div aria-hidden="true" className="prisma-aurora" />
+
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <header className="mb-12 text-center">
-          <h1 className="text-4xl font-bold mb-2 bg-linear-to-r from-primary-400 via-secondary-500 to-accent-500 bg-clip-text text-transparent">
+        <header className="mb-12 pt-6 text-center">
+          <h1 className="mb-3 bg-linear-to-r from-cyan-300 via-primary-300 via-secondary-400 to-accent-400 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent drop-shadow-[0_0_28px_rgba(99,102,241,0.3)]">
             SEO Prism
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="mx-auto max-w-2xl text-balance text-base leading-relaxed text-muted-foreground">
             Comprehensive SEO analysis: broken links, meta tags, duplicate content, header hierarchy, structured data and more
           </p>
         </header>
@@ -97,11 +100,11 @@ function App() {
             <ScanSummary results={results} seoGrade={seoGrade} />
 
             {results.issues.length === 0 ? (
-              <Card className="border-emerald-600/20 bg-emerald-600/5">
+              <Card className="border-success-400/20 bg-success-500/[0.04]">
                 <CardContent className="pt-6">
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">✅</div>
-                    <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Issues Found!</h3>
+                    <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/25 bg-success-500/10 text-3xl">✅</div>
+                    <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Issues Found!</h3>
                     <p className="text-muted-foreground">Your website looks great!</p>
                   </div>
                 </CardContent>
@@ -125,10 +128,10 @@ function App() {
         )}
 
         <footer className="mt-12 text-center">
-          <Card>
+          <Card className="opacity-90">
             <CardFooter className="justify-center py-6 pt-4">
               <p className="text-sm text-muted-foreground">
-                All rights reserved © 2026 <a href="https://paracaidas.digital/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">Paracaídas Digital</a> · SEO Prism v1.19.1
+                All rights reserved © 2026 <a href="https://paracaidas.digital/" target="_blank" rel="noopener noreferrer" className="text-primary-300 transition-colors hover:text-primary-200 hover:underline">Paracaídas Digital</a> · SEO Prism v1.19.1
               </p>
             </CardFooter>
           </Card>

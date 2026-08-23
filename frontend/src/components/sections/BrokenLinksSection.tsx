@@ -28,8 +28,8 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
       <CardContent>
         {brokenLinkIssues.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4"><FontAwesomeIcon icon={faLink} className="text-primary-400" /></div>
-            <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Broken Links Found!</h3>
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faLink} className="text-2xl text-success-400" /></div>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Broken Links Found!</h3>
             <p className="text-muted-foreground">All internal and external links are working correctly.</p>
           </div>
         ) : (
@@ -39,7 +39,7 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
                 onClick={() => setActiveTab('internal')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'internal'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -49,7 +49,7 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
                 onClick={() => setActiveTab('external')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'external'
-                    ? 'text-primary-400 border-b-2 border-primary-400'
+                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >

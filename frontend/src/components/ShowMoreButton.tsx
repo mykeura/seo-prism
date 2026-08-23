@@ -1,3 +1,6 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
+
 interface ShowMoreButtonProps {
   visible: number
   total: number
@@ -9,9 +12,10 @@ export function ShowMoreButton({ visible, total, label = 'items', onClick }: Sho
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 text-muted-foreground"
+      className="group inline-flex h-9 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:border-primary-400/30 hover:bg-primary-500/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50"
     >
       Showing {visible} of {total} {label}.
+      <FontAwesomeIcon icon={faChevronDown} className="text-xs transition-transform duration-200 group-hover:translate-y-0.5" />
     </button>
   )
 }

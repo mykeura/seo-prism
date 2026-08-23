@@ -29,15 +29,15 @@ export function getSeverityColor(severity: string): SeverityVariant {
 }
 
 const gradeColors: Record<string, string> = {
-  A: 'text-emerald-400',
-  B: 'text-blue-400',
-  C: 'text-yellow-400',
-  D: 'text-orange-400',
-  F: 'text-red-400',
+  A: 'text-success-300 border-success-400/25 bg-success-500/10',
+  B: 'text-primary-300 border-primary-400/25 bg-primary-500/10',
+  C: 'text-warning-300 border-warning-400/25 bg-warning-500/10',
+  D: 'text-warning-500 border-warning-500/25 bg-warning-500/10',
+  F: 'text-danger-300 border-danger-400/25 bg-danger-500/10',
 }
 
 export function getGradeColor(grade: string): string {
-  return gradeColors[grade] ?? 'text-muted-foreground'
+  return gradeColors[grade] ?? 'text-muted-foreground border-border bg-muted/30'
 }
 
 const issueTypeLabels: Record<string, string> = {

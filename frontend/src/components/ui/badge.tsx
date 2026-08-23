@@ -6,17 +6,17 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   const variantStyles = {
-    default: 'border-transparent bg-primary-600 text-primary-50 shadow hover:bg-primary-700',
-    secondary: 'border-transparent bg-secondary-600 text-secondary-50 hover:bg-secondary-700',
-    destructive: 'border-transparent bg-red-600 text-red-50 shadow hover:bg-red-700',
-    outline: 'text-foreground',
-    success: 'border-transparent bg-emerald-600 text-emerald-50 shadow hover:bg-emerald-700',
-    warning: 'border-transparent bg-accent-600 text-accent-50 shadow hover:bg-accent-700',
+    default: 'border-primary-400/25 bg-primary-500/10 text-primary-300',
+    secondary: 'border-secondary-400/25 bg-secondary-500/10 text-secondary-300',
+    destructive: 'border-danger-400/30 bg-danger-500/10 text-danger-300',
+    outline: 'border-border bg-white/[0.03] text-muted-foreground',
+    success: 'border-success-400/25 bg-success-500/10 text-success-300',
+    warning: 'border-warning-400/30 bg-warning-500/10 text-warning-300',
   }
-  
+
   return (
     <div
-      className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${variantStyles[variant]} ${className || ''}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider transition-colors focus:outline-none focus:ring-2 focus:ring-ring/60 focus:ring-offset-2 focus:ring-offset-background ${variantStyles[variant]} ${className || ''}`}
       {...props}
     />
   )

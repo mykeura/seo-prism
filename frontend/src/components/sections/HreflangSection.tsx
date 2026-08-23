@@ -23,8 +23,8 @@ export function HreflangSection({ issues }: { issues: Issue[] }) {
       <CardContent>
         {hreflangIssues.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4"><FontAwesomeIcon icon={faGlobe} className="text-primary-400" /></div>
-            <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Hreflang Issues Found!</h3>
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faGlobe} className="text-2xl text-success-400" /></div>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Hreflang Issues Found!</h3>
             <p className="text-muted-foreground">All hreflang tags are properly configured.</p>
           </div>
         ) : (

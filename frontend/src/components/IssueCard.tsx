@@ -2,7 +2,7 @@ import { Badge } from './ui/badge'
 import { getIssueIcon, getIssueTypeLabel, getSeverityColor } from '../issueMeta'
 import type { Issue } from '../types'
 
-type IssueCardTone = 'default' | 'emerald'
+type IssueCardTone = 'default' | 'success'
 type SourceMode = 'none' | 'text' | 'text-if-different' | 'link'
 
 interface IssueCardProps {
@@ -23,15 +23,15 @@ export function IssueCard({
   return (
     <div
       className={
-        tone === 'emerald'
-          ? 'p-4 rounded-lg border border-border bg-emerald-600/5 hover:bg-emerald-600/10 transition-colors'
-          : 'p-4 rounded-lg border border-border bg-secondary-600/5 hover:bg-secondary-600/10 transition-colors'
+        tone === 'success'
+          ? 'rounded-xl border border-success-400/15 bg-success-500/[0.05] p-4 transition-all duration-200 hover:border-success-400/25 hover:bg-success-500/[0.09]'
+          : 'rounded-xl border border-white/10 bg-white/[0.03] p-4 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.06]'
       }
     >
       <div className="flex items-start justify-between gap-4 mb-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
-          <span className="font-semibold">{getIssueTypeLabel(issue.issue_type)}</span>
+          <span className="font-semibold tracking-tight">{getIssueTypeLabel(issue.issue_type)}</span>
         </div>
         <Badge variant={getSeverityColor(issue.severity)}>
           {issue.severity.toUpperCase()}
@@ -44,7 +44,7 @@ export function IssueCard({
             href={issue.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-2 text-sm text-primary-400 hover:underline break-all"
+            className="ml-2 text-sm text-primary-300 transition-colors break-all hover:text-primary-200 hover:underline"
           >
             {issue.url}
           </a>
@@ -68,14 +68,14 @@ export function IssueCard({
               href={issue.source_page}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-2 text-sm text-primary-400 hover:underline break-all"
+              className="ml-2 text-sm text-primary-300 transition-colors break-all hover:text-primary-200 hover:underline"
             >
               {issue.source_page}
             </a>
           </div>
         )}
         {issue.description && (
-          <div className="text-sm text-muted-foreground">{issue.description}</div>
+          <div className="text-sm leading-relaxed text-muted-foreground">{issue.description}</div>
         )}
       </div>
     </div>

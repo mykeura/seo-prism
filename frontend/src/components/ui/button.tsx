@@ -7,15 +7,15 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'default', size = 'default', ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50'
-    
+    const baseStyles = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50'
+
     const variantStyles = {
-      default: 'bg-primary-600 text-primary-50 shadow hover:bg-primary-700',
-      destructive: 'bg-red-600 text-red-50 shadow-sm hover:bg-red-700',
-      outline: 'border border-border bg-background shadow-sm hover:bg-accent-600 hover:text-accent-50',
-      secondary: 'bg-secondary-600 text-secondary-50 shadow-sm hover:bg-secondary-700',
-      ghost: 'hover:bg-accent-600 hover:text-accent-50',
-      link: 'text-primary-600 underline-offset-4 hover:underline',
+      default: 'bg-linear-to-r from-primary-600 to-secondary-600 text-white shadow-lg shadow-secondary-600/25 hover:from-primary-500 hover:to-secondary-500 hover:shadow-lg hover:shadow-primary-500/30',
+      destructive: 'bg-danger-600 text-white shadow-sm hover:bg-danger-500',
+      outline: 'border border-white/15 bg-white/[0.04] text-foreground shadow-sm hover:border-white/25 hover:bg-white/[0.08]',
+      secondary: 'border border-secondary-400/25 bg-secondary-500/15 text-secondary-200 hover:bg-secondary-500/25',
+      ghost: 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
+      link: 'text-primary-300 underline-offset-4 hover:underline',
     }
     
     const sizeStyles = {

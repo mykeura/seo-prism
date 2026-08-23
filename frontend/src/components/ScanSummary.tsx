@@ -14,32 +14,32 @@ export function ScanSummary({ results, seoGrade }: ScanSummaryProps) {
         <CardTitle>Scan Summary</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20">
-            <div className="text-sm text-muted-foreground mb-1">URL</div>
-            <div className="font-semibold text-sm truncate">{results.scan.url}</div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition-colors duration-200 hover:border-white/20">
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">URL</div>
+            <div className="truncate text-sm font-semibold" title={results.scan.url}>{results.scan.url}</div>
           </div>
-          <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20 col-span-1">
-            <div className="text-sm text-muted-foreground mb-1">Pages Analyzed</div>
-            <div className="text-2xl font-bold text-primary-400">{results.scan.total_pages}</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition-colors duration-200 hover:border-white/20">
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Pages Analyzed</div>
+            <div className="text-3xl font-bold tracking-tight text-primary-300">{results.scan.total_pages}</div>
           </div>
-          <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20 col-span-1">
-            <div className="text-sm text-muted-foreground mb-1">Total Issues</div>
-            <div className={`text-2xl font-bold ${results.scan.total_issues === 0 ? "text-emerald-400" : "text-accent-400"}`}>{results.scan.total_issues}</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition-colors duration-200 hover:border-white/20">
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Total Issues</div>
+            <div className={`text-3xl font-bold tracking-tight ${results.scan.total_issues === 0 ? 'text-success-300' : 'text-accent-300'}`}>{results.scan.total_issues}</div>
           </div>
 
           {seoGrade && (
-            <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20 col-span-1">
-              <div className="text-sm text-muted-foreground mb-1">SEO Grade</div>
-              <div className={`text-2xl font-bold ${getGradeColor(seoGrade.grade)}`}>
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition-colors duration-200 hover:border-white/20">
+              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">SEO Grade</div>
+              <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border text-2xl font-extrabold tracking-tight ${getGradeColor(seoGrade.grade)}`}>
                 {seoGrade.grade}
               </div>
             </div>
           )}
 
-          <div className="p-4 rounded-lg bg-secondary-600/10 border border-secondary-600/20">
-            <div className="text-sm text-muted-foreground mb-1">Scan Time</div>
-            <div className="text-sm font-semibold">{new Date(results.scan.timestamp).toLocaleString()}</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition-colors duration-200 hover:border-white/20">
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Scan Time</div>
+            <div className="text-sm font-semibold leading-7">{new Date(results.scan.timestamp).toLocaleString()}</div>
           </div>
         </div>
       </CardContent>

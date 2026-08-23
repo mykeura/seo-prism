@@ -23,14 +23,14 @@ export function StandardFilesSection({ issues }: { issues: Issue[] }) {
       <CardContent>
         {standardFilesIssues.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4"><FontAwesomeIcon icon={faFolder} className="text-primary-400" /></div>
-            <h3 className="text-xl font-semibold text-muted-foreground mb-2">No Standard Files Found</h3>
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]"><FontAwesomeIcon icon={faFolder} className="text-2xl text-primary-300" /></div>
+            <h3 className="text-xl font-semibold tracking-tight text-muted-foreground mb-2">No Standard Files Found</h3>
             <p className="text-muted-foreground">No robots.txt, security.txt or sitemap files were detected.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {standardFilesIssues.slice(0, pagination.visible).map((issue) => (
-              <IssueCard key={issue.id} issue={issue} tone="emerald" />
+              <IssueCard key={issue.id} issue={issue} tone="success" />
             ))}
             {pagination.hasMore(standardFilesIssues.length) && (
               <div className="text-center mt-4">

@@ -1,78 +1,145 @@
 @import "tailwindcss";
 
 @theme {
-  /* Prism Crystal Color Palette - Translucent, Reflective, Prismatic */
-  
+  /* ============================================
+     Prism Crystal Color Palette
+     Translucent, Reflective, Prismatic — dark glass
+     ============================================ */
+
   /* Primary - Crystal Blue (reflejo del prisma) */
   --color-primary-50: hsl(220, 70%, 95%);
-  --color-primary-100: hsl(220, 70%, 88%);
-  --color-primary-200: hsl(220, 70%, 80%);
-  --color-primary-300: hsl(220, 70%, 72%);
-  --color-primary-400: hsl(220, 70%, 64%);
-  --color-primary-500: hsl(220, 70%, 56%);
-  --color-primary-600: hsl(220, 70%, 48%);
-  --color-primary-700: hsl(220, 70%, 40%);
-  --color-primary-800: hsl(220, 70%, 32%);
-  --color-primary-900: hsl(220, 70%, 24%);
-  --color-primary-950: hsl(220, 70%, 16%);
+  --color-primary-100: hsl(220, 72%, 88%);
+  --color-primary-200: hsl(220, 74%, 81%);
+  --color-primary-300: hsl(220, 76%, 74%);
+  --color-primary-400: hsl(220, 75%, 66%);
+  --color-primary-500: hsl(220, 75%, 58%);
+  --color-primary-600: hsl(221, 70%, 48%);
+  --color-primary-700: hsl(221, 65%, 40%);
+  --color-primary-800: hsl(221, 60%, 32%);
+  --color-primary-900: hsl(221, 55%, 24%);
+  --color-primary-950: hsl(221, 50%, 16%);
 
   /* Secondary - Deep Purple (transparencia del cristal) */
-  --color-secondary-50: hsl(270, 60%, 95%);
-  --color-secondary-100: hsl(270, 60%, 88%);
-  --color-secondary-200: hsl(270, 60%, 80%);
-  --color-secondary-300: hsl(270, 60%, 72%);
-  --color-secondary-400: hsl(270, 60%, 64%);
-  --color-secondary-500: hsl(270, 60%, 56%);
-  --color-secondary-600: hsl(270, 60%, 48%);
-  --color-secondary-700: hsl(270, 60%, 40%);
-  --color-secondary-800: hsl(270, 60%, 32%);
-  --color-secondary-900: hsl(270, 60%, 24%);
-  --color-secondary-950: hsl(270, 60%, 16%);
+  --color-secondary-50: hsl(268, 60%, 95%);
+  --color-secondary-100: hsl(268, 60%, 88%);
+  --color-secondary-200: hsl(268, 62%, 81%);
+  --color-secondary-300: hsl(268, 64%, 74%);
+  --color-secondary-400: hsl(268, 62%, 66%);
+  --color-secondary-500: hsl(268, 60%, 58%);
+  --color-secondary-600: hsl(268, 55%, 48%);
+  --color-secondary-700: hsl(268, 50%, 40%);
+  --color-secondary-800: hsl(268, 45%, 32%);
+  --color-secondary-900: hsl(268, 40%, 24%);
+  --color-secondary-950: hsl(268, 38%, 16%);
 
   /* Accent - Prism Pink (reflejo cálido) */
-  --color-accent-50: hsl(330, 80%, 95%);
-  --color-accent-100: hsl(330, 80%, 88%);
-  --color-accent-200: hsl(330, 80%, 80%);
-  --color-accent-300: hsl(330, 80%, 72%);
-  --color-accent-400: hsl(330, 80%, 64%);
-  --color-accent-500: hsl(330, 80%, 56%);
-  --color-accent-600: hsl(330, 80%, 48%);
-  --color-accent-700: hsl(330, 80%, 40%);
-  --color-accent-800: hsl(330, 80%, 32%);
-  --color-accent-900: hsl(330, 80%, 24%);
-  --color-accent-950: hsl(330, 80%, 16%);
+  --color-accent-50: hsl(328, 80%, 95%);
+  --color-accent-100: hsl(328, 80%, 88%);
+  --color-accent-200: hsl(328, 80%, 81%);
+  --color-accent-300: hsl(328, 80%, 74%);
+  --color-accent-400: hsl(328, 80%, 66%);
+  --color-accent-500: hsl(328, 78%, 58%);
+  --color-accent-600: hsl(328, 72%, 48%);
+  --color-accent-700: hsl(328, 66%, 40%);
+  --color-accent-800: hsl(328, 58%, 32%);
+  --color-accent-900: hsl(328, 50%, 24%);
+  --color-accent-950: hsl(328, 45%, 16%);
 
-  /* Additional Prism Colors - Cyan and Violet */
-  --color-cyan-50: hsl(180, 70%, 95%);
-  --color-cyan-500: hsl(180, 70%, 56%);
-  --color-cyan-600: hsl(180, 70%, 48%);
-  
-  --color-violet-50: hsl(260, 65%, 95%);
-  --color-violet-500: hsl(260, 65%, 56%);
-  --color-violet-600: hsl(260, 65%, 48%);
+  /* Cyan - Refracted light edge */
+  --color-cyan-50: hsl(188, 75%, 95%);
+  --color-cyan-100: hsl(188, 75%, 88%);
+  --color-cyan-200: hsl(188, 78%, 81%);
+  --color-cyan-300: hsl(188, 80%, 74%);
+  --color-cyan-400: hsl(188, 80%, 64%);
+  --color-cyan-500: hsl(188, 78%, 55%);
+  --color-cyan-600: hsl(190, 70%, 46%);
+  --color-cyan-700: hsl(192, 62%, 38%);
+  --color-cyan-800: hsl(194, 55%, 30%);
+  --color-cyan-900: hsl(196, 48%, 22%);
+
+  /* Violet - Inner dispersion */
+  --color-violet-50: hsl(262, 65%, 95%);
+  --color-violet-100: hsl(262, 65%, 88%);
+  --color-violet-200: hsl(262, 68%, 81%);
+  --color-violet-300: hsl(262, 70%, 74%);
+  --color-violet-400: hsl(262, 68%, 66%);
+  --color-violet-500: hsl(262, 65%, 58%);
+  --color-violet-600: hsl(262, 58%, 48%);
+  --color-violet-700: hsl(262, 52%, 40%);
+  --color-violet-800: hsl(262, 46%, 32%);
+  --color-violet-900: hsl(262, 40%, 24%);
+
+  /* Success - Crystal Green */
+  --color-success-50: hsl(152, 45%, 95%);
+  --color-success-100: hsl(152, 45%, 88%);
+  --color-success-200: hsl(152, 48%, 81%);
+  --color-success-300: hsl(152, 50%, 73%);
+  --color-success-400: hsl(152, 52%, 66%);
+  --color-success-500: hsl(152, 52%, 56%);
+  --color-success-600: hsl(152, 50%, 45%);
+  --color-success-700: hsl(152, 48%, 36%);
+  --color-success-800: hsl(152, 45%, 28%);
+  --color-success-900: hsl(152, 42%, 20%);
+  --color-success-950: hsl(152, 40%, 13%);
+
+  /* Warning - Amber to Orange ramp (yellow 300 -> orange 500) */
+  --color-warning-50: hsl(48, 90%, 95%);
+  --color-warning-100: hsl(48, 90%, 88%);
+  --color-warning-200: hsl(48, 90%, 81%);
+  --color-warning-300: hsl(48, 92%, 73%);
+  --color-warning-400: hsl(40, 92%, 66%);
+  --color-warning-500: hsl(30, 92%, 60%);
+  --color-warning-600: hsl(26, 85%, 50%);
+  --color-warning-700: hsl(24, 75%, 40%);
+  --color-warning-800: hsl(22, 65%, 30%);
+  --color-warning-900: hsl(20, 55%, 22%);
+  --color-warning-950: hsl(18, 50%, 14%);
+
+  /* Danger - Crystal Red */
+  --color-danger-50: hsl(352, 70%, 95%);
+  --color-danger-100: hsl(352, 70%, 88%);
+  --color-danger-200: hsl(352, 72%, 81%);
+  --color-danger-300: hsl(352, 75%, 73%);
+  --color-danger-400: hsl(352, 78%, 66%);
+  --color-danger-500: hsl(352, 80%, 60%);
+  --color-danger-600: hsl(352, 75%, 50%);
+  --color-danger-700: hsl(352, 68%, 40%);
+  --color-danger-800: hsl(352, 60%, 30%);
+  --color-danger-900: hsl(352, 50%, 22%);
+  --color-danger-950: hsl(352, 45%, 14%);
+
+  /* Single-token aliases so text-* / bg-* utilities resolve
+     (icon classes like text-success, text-warning, text-destructive,
+     text-secondary, text-outline in issueMeta) */
+  --color-success: hsl(152, 52%, 68%);
+  --color-warning: hsl(44, 90%, 70%);
+  --color-danger: hsl(352, 78%, 70%);
+  --color-destructive: hsl(352, 78%, 70%);
+  --color-secondary: hsl(268, 62%, 74%);
+  --color-outline: hsl(220, 15%, 68%);
 
   /* Background colors - Dark Crystal */
   --color-background: hsl(240, 30%, 8%);
-  --color-foreground: hsl(220, 20%, 95%);
+  --color-foreground: hsl(220, 25%, 95%);
 
   /* Card colors - Glass effect */
   --color-card: hsl(240, 30%, 12%);
-  --color-card-foreground: hsl(220, 20%, 95%);
+  --color-card-foreground: hsl(220, 25%, 95%);
 
   /* Popover colors - Glass effect */
   --color-popover: hsl(240, 30%, 14%);
-  --color-popover-foreground: hsl(220, 20%, 95%);
+  --color-popover-foreground: hsl(220, 25%, 95%);
 
   /* Muted colors - Subtle crystal */
   --color-muted: hsl(240, 25%, 20%);
-  --color-muted-foreground: hsl(220, 15%, 65%);
+  --color-muted-foreground: hsl(220, 15%, 67%);
 
   /* Border colors - Crystal edges */
-  --color-border: hsl(240, 30%, 22%);
-  --color-input: hsl(240, 30%, 22%);
+  --color-border: hsl(240, 28%, 22%);
+  --color-input: hsl(240, 28%, 22%);
 
   /* Ring colors - Light reflection */
-  --color-ring: hsl(220, 70%, 64%);
+  --color-ring: hsl(220, 75%, 70%);
 
   /* Radius */
   --radius-sm: 0.25rem;
@@ -83,4 +150,109 @@
 
   /* Font family */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ============================================
+   Base
+   ============================================ */
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: hsl(258, 60%, 55%, 0.35);
+    color: var(--color-foreground);
+  }
+
+  /* Subtle scrollbar that blends with the dark glass */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(240, 20%, 28%) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(240, 20%, 26%);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(240, 20%, 34%);
+  }
+}
+
+/* ============================================
+   Prism components - pure CSS, no extra deps
+   ============================================ */
+@layer components {
+  /* Aurora prism backdrop: fixed, low-opacity radial light blobs
+     (cyan / violet / pink) plus one faint diagonal refraction beam.
+     Rendered behind all content, zero JS, no animation. */
+  .prisma-aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 42rem at 8% -10%, hsl(188, 85%, 55%, 0.13), transparent 65%),
+      radial-gradient(56rem 40rem at 96% 2%, hsl(258, 70%, 60%, 0.13), transparent 65%),
+      radial-gradient(50rem 36rem at 60% 112%, hsl(322, 80%, 58%, 0.09), transparent 65%),
+      linear-gradient(115deg, transparent 40%, hsl(205, 80%, 70%, 0.04) 50%, transparent 60%);
+  }
+
+  /* Spectrum hairline on the top edge of glass cards */
+  .card-sheen {
+    position: relative;
+  }
+
+  .card-sheen::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      hsl(188, 80%, 65%, 0.45),
+      hsl(220, 75%, 70%, 0.55),
+      hsl(262, 70%, 70%, 0.45),
+      hsl(328, 80%, 65%, 0.45),
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  /* Gradient underline for active tabs (border-image overrides
+     the border-color of border-b-2) */
+  .spectrum-underline {
+    border-image: linear-gradient(
+      to right,
+      hsl(188, 80%, 62%),
+      hsl(220, 75%, 68%),
+      hsl(262, 70%, 68%),
+      hsl(328, 80%, 66%)
+    ) 1;
+  }
 }

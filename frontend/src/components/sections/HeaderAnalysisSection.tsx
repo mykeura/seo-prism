@@ -44,7 +44,7 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
             onClick={() => setHeaderAnalysisTab('all')}
             className={`px-4 py-2 font-medium transition-colors ${
               headerAnalysisTab === 'all'
-                ? 'text-primary-400 border-b-2 border-primary-400'
+                ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -54,7 +54,7 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
             onClick={() => setHeaderAnalysisTab('hierarchy')}
             className={`px-4 py-2 font-medium transition-colors ${
               headerAnalysisTab === 'hierarchy'
-                ? 'text-primary-400 border-b-2 border-primary-400'
+                ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -64,7 +64,7 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
             onClick={() => setHeaderAnalysisTab('h1')}
             className={`px-4 py-2 font-medium transition-colors ${
               headerAnalysisTab === 'h1'
-                ? 'text-primary-400 border-b-2 border-primary-400'
+                ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -74,8 +74,8 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
 
         {headerIssues.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4"><FontAwesomeIcon icon={faTag} className="text-primary-400" /></div>
-            <h3 className="text-xl font-semibold text-emerald-400 mb-2">No Header Issues Found!</h3>
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faTag} className="text-2xl text-success-400" /></div>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Header Issues Found!</h3>
             <p className="text-muted-foreground">All pages have proper header structure.</p>
           </div>
         ) : (
