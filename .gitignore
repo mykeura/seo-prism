@@ -85,7 +85,6 @@ coverage/
 .tox/
 .coverage
 htmlcov/
-backend/tests/
 
 # Misc
 *.pid
