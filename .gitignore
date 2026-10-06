@@ -115,3 +115,7 @@ AGENTS.md
 
 # GitNexus (local-only knowledge graph)
 .gitnexus/
+
+# CodeGraph (local-only knowledge graph)
+.codegraph/
+backend/tools/
