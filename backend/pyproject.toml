@@ -2,7 +2,7 @@
 name = "seo-prism"
 version = "1.19.1"
 description = "SEO Analyzer Tool - Detect broken links and missing meta-tags"
-authors = ["Miguel <miguel@example.com>"]
+authors = ["mykeura <mykeura@hotmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

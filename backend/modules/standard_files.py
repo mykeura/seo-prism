@@ -1,4 +1,3 @@
-import asyncio
 import aiohttp
 from typing import List, Dict
 from urllib.parse import urlparse, urljoin

@@ -8,6 +8,7 @@ import { MetaLengthSection } from './components/sections/MetaLengthSection'
 import { ImagesAltSection } from './components/sections/ImagesAltSection'
 import { HeaderAnalysisSection } from './components/sections/HeaderAnalysisSection'
 import { StandardFilesSection } from './components/sections/StandardFilesSection'
+import { MetaRobotsSection } from './components/sections/MetaRobotsSection'
 import { HreflangSection } from './components/sections/HreflangSection'
 import { CanonicalSection } from './components/sections/CanonicalSection'
 import { OrphanPagesSection } from './components/sections/OrphanPagesSection'
@@ -117,6 +118,7 @@ function App() {
                 <ImagesAltSection issues={results.issues} />
                 <HeaderAnalysisSection issues={results.issues} />
                 <StandardFilesSection issues={results.issues} />
+                <MetaRobotsSection issues={results.issues} />
                 <HreflangSection issues={results.issues} />
                 <CanonicalSection issues={results.issues} />
                 <OrphanPagesSection issues={results.issues} />
@@ -131,7 +133,7 @@ function App() {
           <Card className="opacity-90">
             <CardFooter className="justify-center py-6 pt-4">
               <p className="text-sm text-muted-foreground">
-                All rights reserved © 2026 <a href="https://paracaidas.digital/" target="_blank" rel="noopener noreferrer" className="text-primary-300 transition-colors hover:text-primary-200 hover:underline">Paracaídas Digital</a> · SEO Prism v1.19.1
+                SEO Prism v1.19.1
               </p>
             </CardFooter>
           </Card>

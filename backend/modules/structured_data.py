@@ -1,6 +1,7 @@
 from typing import List, Dict
 from bs4 import BeautifulSoup
 import json
+from core.soup import soup_for
 from database import Database
 
 
@@ -66,8 +67,7 @@ class StructuredDataModule:
             if not html:
                 continue
             
-            # Parse HTML
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = soup_for(page)
             
             # Analyze JSON-LD
             json_ld_issues = self._analyze_json_ld(soup, page_url)

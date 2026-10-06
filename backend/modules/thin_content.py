@@ -42,7 +42,8 @@ class ThinContentModule:
             if not html:
                 continue
             
-            # Parse HTML
+            # Parse its own copy: _extract_article_content decomposes nodes,
+            # which must not corrupt the cached soup shared with other modules
             soup = BeautifulSoup(html, 'html.parser')
             
             # Extract article content excluding title

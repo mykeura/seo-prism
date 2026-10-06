@@ -67,7 +67,7 @@ API will be available at `http://localhost:8000`
 
 ```bash
 cd frontend
-npm run dev
+pnpm dev
 ```
 
 Frontend will be available at `http://localhost:5173`
@@ -133,7 +133,7 @@ python cli.py --url http://localhost:3000 --max-pages 50 --generate-report --lan
 
 ## Testing
 
-The backend test suite (270+ tests) covers every analysis module, the CLI, both report
+The backend pytest suite covers every analysis module, the CLI, both report
 generators, the grading fairness guarantees and the standard-file discovery scenarios
 (integration tests with a real HTTP server).
 
@@ -148,13 +148,14 @@ venv/bin/pytest
 seo-prism/
 ├── backend/
 │   ├── core/
-│   │   ├── url_utils.py
-│   │   └── crawler.py
+│   │   ├── crawler.py
+│   │   ├── pipeline.py      # Shared scan orchestration (CLI + API)
+│   │   ├── soup.py          # Cached HTML parsing for analysis modules
+│   │   └── url_utils.py
 │   ├── modules/
 │   │   ├── broken_links.py
 │   │   ├── canonical_tags.py
 │   │   ├── duplicate_content.py
-│   │   ├── h1_analysis.py
 │   │   ├── header_hierarchy.py
 │   │   ├── hreflang.py
 │   │   ├── image_alt_text.py
@@ -162,6 +163,7 @@ seo-prism/
 │   │   ├── meta_robots.py
 │   │   ├── meta_tags.py
 │   │   ├── orphan_pages.py
+│   │   ├── resource_analyzer.py
 │   │   ├── seo_grade.py
 │   │   ├── standard_files.py
 │   │   ├── structured_data.py
@@ -171,7 +173,7 @@ seo-prism/
 │   │   ├── report_translations.py    # Shared labels/translations
 │   │   └── description_translations.py
 │   ├── api/
-│   │   └── main.py
+│   │   └── main.py          # CORS allowlist via CORS_ORIGINS env (default localhost:5173)
 │   ├── tests/
 │   ├── cli.py
 │   ├── database.py

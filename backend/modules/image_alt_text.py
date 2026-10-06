@@ -1,6 +1,5 @@
-import asyncio
 from typing import List, Dict
-from bs4 import BeautifulSoup
+from core.soup import soup_for
 from database import Database
 
 
@@ -34,10 +33,7 @@ class ImageAltTextModule:
                 continue
                 
             url = page['url']
-            html = page['html']
-            
-            # Parse HTML with BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = soup_for(page)
             
             # Find all img tags
             img_tags = soup.find_all('img')
