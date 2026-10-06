@@ -1,5 +1,5 @@
-from bs4 import BeautifulSoup
 from typing import List, Dict
+from core.soup import soup_for
 from database import Database
 
 
@@ -33,10 +33,7 @@ class MetaRobotsModule:
                 continue
                 
             url = page['url']
-            html = page['html']
-            
-            # Parse HTML with BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = soup_for(page)
             
             # Find all meta robots tags
             meta_robots = soup.find_all('meta', attrs={'name': lambda x: x and x.lower() == 'robots'})

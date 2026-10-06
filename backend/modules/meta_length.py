@@ -1,5 +1,5 @@
 from typing import List, Dict
-from bs4 import BeautifulSoup
+from core.soup import soup_for
 from database import Database
 
 
@@ -43,8 +43,7 @@ class MetaLengthModule:
             if not html:
                 continue
             
-            # Parse HTML
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = soup_for(page)
             
             # Analyze title tag length
             title_tag = soup.find('title')

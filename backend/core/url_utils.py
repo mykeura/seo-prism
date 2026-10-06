@@ -137,8 +137,9 @@ def normalize_url(url: str) -> str:
     # Remove fragment
     parsed = parsed._replace(fragment='')
     
-    # Remove trailing slash from path (except for root)
-    if parsed.path and parsed.path != '/' and parsed.path.endswith('/'):
+    # Remove trailing slash from path (the root '/' also collapses to '',
+    # so 'http://example.com' and 'http://example.com/' are the same page)
+    if parsed.path.endswith('/'):
         parsed = parsed._replace(path=parsed.path.rstrip('/'))
     
     return urlunparse(parsed)

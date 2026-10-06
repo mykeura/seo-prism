@@ -8,6 +8,7 @@ import { MetaLengthSection } from './components/sections/MetaLengthSection'
 import { ImagesAltSection } from './components/sections/ImagesAltSection'
 import { HeaderAnalysisSection } from './components/sections/HeaderAnalysisSection'
 import { StandardFilesSection } from './components/sections/StandardFilesSection'
+import { MetaRobotsSection } from './components/sections/MetaRobotsSection'
 import { HreflangSection } from './components/sections/HreflangSection'
 import { CanonicalSection } from './components/sections/CanonicalSection'
 import { OrphanPagesSection } from './components/sections/OrphanPagesSection'
@@ -117,6 +118,7 @@ function App() {
                 <ImagesAltSection issues={results.issues} />
                 <HeaderAnalysisSection issues={results.issues} />
                 <StandardFilesSection issues={results.issues} />
+                <MetaRobotsSection issues={results.issues} />
                 <HreflangSection issues={results.issues} />
                 <CanonicalSection issues={results.issues} />
                 <OrphanPagesSection issues={results.issues} />

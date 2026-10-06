@@ -1,6 +1,7 @@
-from bs4 import BeautifulSoup
 from typing import List, Dict
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+from core.soup import soup_for
 from database import Database
 
 
@@ -34,10 +35,7 @@ class HreflangModule:
                 continue
                 
             url = page['url']
-            html = page['html']
-            
-            # Parse HTML with BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = soup_for(page)
             
             # Find all link tags with hreflang
             hreflang_links = soup.find_all('link', attrs={'rel': 'alternate', 'hreflang': True})
@@ -227,7 +225,7 @@ class HreflangModule:
             if not page.get('html'):
                 continue
             
-            soup = BeautifulSoup(page['html'], 'html.parser')
+            soup = soup_for(page)
             hreflang_links = soup.find_all('link', attrs={'rel': 'alternate', 'hreflang': True})
             
             page_hreflangs = {}

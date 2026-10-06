@@ -144,9 +144,10 @@ class TestNormalizeUrl:
         """Test removing trailing slash."""
         assert normalize_url("http://example.com/page/") == "http://example.com/page"
     
-    def test_keep_root_slash(self):
-        """Test keeping root slash."""
-        assert normalize_url("http://example.com/") == "http://example.com/"
+    def test_root_slash_collapses(self):
+        """Root '/' normalizes to '' so 'x.com' and 'x.com/' are the same page."""
+        assert normalize_url("http://example.com/") == "http://example.com"
+        assert normalize_url("http://example.com") == "http://example.com"
     
     def test_remove_fragment(self):
         """Test removing fragment."""

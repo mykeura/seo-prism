@@ -91,6 +91,12 @@ export function getStandardFilesIssues(issues: Issue[]): Issue[] {
   )
 }
 
+export function getMetaRobotsIssues(issues: Issue[]): Issue[] {
+  return issues.filter(issue =>
+    issue.issue_type.startsWith('meta_robots_')
+  )
+}
+
 export function getHreflangIssues(issues: Issue[]): Issue[] {
   return issues.filter(issue =>
     issue.issue_type === 'hreflang_missing_self_reference' ||

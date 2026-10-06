@@ -1,8 +1,6 @@
 import sqlite3
-import json
 from datetime import datetime
 from typing import List, Dict, Optional
-from pathlib import Path
 
 
 class Database:
@@ -132,6 +130,29 @@ class Database:
             'INSERT INTO links (page_id, target_url, source_url) VALUES (?, ?, ?)',
             (page_id, target_url, source_url)
         )
+        self.conn.commit()
+    
+    def store_crawled_pages(self, scan_id: int, crawled_pages: List[Dict]):
+        """
+        Store all crawled pages and their outgoing links in one transaction.
+        
+        Args:
+            scan_id: Scan ID
+            crawled_pages: List of page dicts with 'url', 'status', 'html' and 'links'
+        """
+        cursor = self.conn.cursor()
+        for page in crawled_pages:
+            cursor.execute(
+                'INSERT INTO pages (scan_id, url, status, html) VALUES (?, ?, ?, ?)',
+                (scan_id, page['url'], page['status'], page.get('html'))
+            )
+            page_id = cursor.lastrowid
+            links = page.get('links', [])
+            if links:
+                cursor.executemany(
+                    'INSERT INTO links (page_id, target_url, source_url) VALUES (?, ?, ?)',
+                    [(page_id, link, page['url']) for link in links]
+                )
         self.conn.commit()
     
     def add_issue(self, scan_id: int, issue_type: str, url: str, 

@@ -11,6 +11,7 @@ Analyzes canonical tags for SEO issues including:
 """
 
 from bs4 import BeautifulSoup
+from core.soup import soup_for
 from urllib.parse import urlparse, urljoin
 from typing import List, Dict, Set
 
@@ -86,7 +87,7 @@ class CanonicalTagsModule:
         # Analyze each page
         for page in crawled_pages:
             if page.get('html'):
-                soup = BeautifulSoup(page['html'], 'html.parser')
+                soup = soup_for(page)
                 canonical_tag = soup.find('link', rel='canonical')
                 
                 page_url = page['url']

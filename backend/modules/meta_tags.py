@@ -1,10 +1,7 @@
 from typing import List, Dict
-from bs4 import BeautifulSoup
+from core.soup import soup_for
 from database import Database
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from header_hierarchy import analyze_header_hierarchy
+from modules.header_hierarchy import analyze_header_hierarchy
 
 
 class MetaTagsModule:
@@ -44,8 +41,7 @@ class MetaTagsModule:
             if not html:
                 continue
             
-            # Parse HTML
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = soup_for(page)
             
             # Check for title tag
             title_tag = soup.find('title')
@@ -149,7 +145,7 @@ class MetaTagsModule:
                         continue
                         
                     try:
-                        other_soup = BeautifulSoup(page_data['html'], 'html.parser')
+                        other_soup = soup_for(page_data)
                         other_h1_elements = other_soup.find_all('h1')
                         other_h1_texts = [h1.get_text(strip=True).lower() for h1 in other_h1_elements if h1.get_text(strip=True)]
                         

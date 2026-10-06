@@ -9,32 +9,23 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.crawler import Crawler
+from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
-from modules.broken_links import BrokenLinksModule
-from modules.meta_tags import MetaTagsModule
-from modules.meta_robots import MetaRobotsModule
-from modules.hreflang import HreflangModule
-from modules.standard_files import StandardFilesModule
-from modules.duplicate_content import DuplicateContentModule
-from modules.image_alt_text import ImageAltTextModule
-from modules.canonical_tags import CanonicalTagsModule
-from modules.orphan_pages import OrphanPagesModule
-from modules.structured_data import StructuredDataModule
-from modules.meta_length import MetaLengthModule
-from modules.thin_content import ThinContentModule
-from modules.seo_grade import SEOGradeCalculator
-from modules.resource_analyzer import ResourceAnalyzer
 
 
 app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API", version="1.19.1")
 
-# Enable CORS for frontend
+# Enable CORS for the frontend. Allowlist is configurable via
+# CORS_ORIGINS (comma-separated); defaults to the Vite dev origin.
+_allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -108,71 +99,10 @@ async def start_scan(request: ScanRequest):
     ignore_robots = is_local_url
     
     try:
-        # Initialize database
         db = Database()
-        
-        # Create scan record
-        scan_id = db.create_scan(request.url)
-        
-        # Crawl website
-        async with Crawler(request.url, ignore_robots=ignore_robots) as crawler:
-            crawled_pages = await crawler.crawl(max_pages=request.max_pages)
-        
-        # Store pages in database
-        for page in crawled_pages:
-            page_id = db.add_page(
-                scan_id=scan_id,
-                url=page['url'],
-                status=page['status'],
-                html=page.get('html')
-            )
-            
-            # Store links
-            for link in page.get('links', []):
-                db.add_link(page_id, link, page['url'])
-        
-        # Run analysis modules
-        broken_links_module = BrokenLinksModule(db)
-        meta_tags_module = MetaTagsModule(db)
-        meta_robots_module = MetaRobotsModule(db)
-        hreflang_module = HreflangModule(db)
-        standard_files_module = StandardFilesModule(db)
-        duplicate_content_module = DuplicateContentModule(db)
-        image_alt_text_module = ImageAltTextModule(db)
-        canonical_tags_module = CanonicalTagsModule(db)
-        orphan_pages_module = OrphanPagesModule(db)
-        structured_data_module = StructuredDataModule(db)
-        meta_length_module = MetaLengthModule(db)
-        thin_content_module = ThinContentModule(db)
-        
-        broken_link_issues = broken_links_module.analyze(scan_id, crawled_pages)
-        meta_tag_issues = meta_tags_module.analyze(scan_id, crawled_pages)
-        meta_robots_issues = meta_robots_module.analyze(scan_id, crawled_pages)
-        hreflang_issues = hreflang_module.analyze(scan_id, crawled_pages)
-        standard_files_issues = await standard_files_module.analyze(scan_id, request.url)
-        duplicate_content_issues = duplicate_content_module.analyze(scan_id, crawled_pages)
-        image_alt_text_issues = image_alt_text_module.analyze(scan_id, crawled_pages)
-        canonical_issues = canonical_tags_module.analyze(scan_id, crawled_pages)
-        orphan_pages_issues = orphan_pages_module.analyze(scan_id, crawled_pages, request.url)
-        structured_data_issues = structured_data_module.analyze(scan_id, crawled_pages)
-        meta_length_issues = meta_length_module.analyze(scan_id, crawled_pages)
-        thin_content_issues = thin_content_module.analyze(scan_id, crawled_pages)
-        
-        # Update scan totals
-        total_issues = len(broken_link_issues) + len(meta_tag_issues) + len(meta_robots_issues) + len(hreflang_issues) + len(standard_files_issues) + len(duplicate_content_issues) + len(image_alt_text_issues) + len(canonical_issues) + len(orphan_pages_issues) + len(structured_data_issues) + len(meta_length_issues) + len(thin_content_issues)
-        
-        # Analyze resources to get actual HTML page count
-        resource_analyzer = ResourceAnalyzer()
-        resource_analysis = resource_analyzer.analyze_resources(crawled_pages)
-        html_page_count = resource_analysis['html_pages']
-        
-        db.update_scan_totals(scan_id, html_page_count, total_issues)
-        
-        # Calculate SEO grade
-        all_issues = broken_link_issues + meta_tag_issues + meta_robots_issues + hreflang_issues + standard_files_issues + duplicate_content_issues + image_alt_text_issues + canonical_issues + orphan_pages_issues + structured_data_issues + meta_length_issues + thin_content_issues
-        grade_calculator = SEOGradeCalculator()
-        seo_grade = grade_calculator.calculate_grade(html_page_count, all_issues)
-        
+        pipeline_results = await run_scan_pipeline(
+            db, request.url, request.max_pages, ignore_robots
+        )
         db.close()
         
         # Determine message based on local/remote
@@ -182,13 +112,13 @@ async def start_scan(request: ScanRequest):
             message = "Scan completed"
         
         return ScanResponse(
-            scan_id=scan_id,
+            scan_id=pipeline_results['scan_id'],
             url=request.url,
-            total_pages=html_page_count,
-            total_issues=total_issues,
+            total_pages=pipeline_results['html_page_count'],
+            total_issues=len(pipeline_results['issues']),
             message=message,
-            seo_grade=seo_grade,
-            resource_analysis=resource_analysis
+            seo_grade=pipeline_results['seo_grade'],
+            resource_analysis=pipeline_results['resource_analysis']
         )
     
     except Exception as e:
