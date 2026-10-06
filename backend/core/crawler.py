@@ -3,7 +3,10 @@ import aiohttp
 from typing import List, Dict, Set, Optional
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
+from version import __version__
 from .url_utils import parse_target_url, is_local, resolve_relative_url, normalize_url
+
+_USER_AGENT = f'Mozilla/5.0 (compatible; SEO-Prism/{__version__}; +https://seo-prism.local)'
 
 
 class Crawler:
@@ -86,9 +89,7 @@ class Crawler:
         self.visited_urls.add(normalized_url)
         
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (compatible; SEO-Prism/1.19.1; +https://seo-prism.local)'
-            }
+            headers = {'User-Agent': _USER_AGENT}
             
             # Use HEAD request for resources (faster, doesn't download content)
             async with self.session.head(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
@@ -145,9 +146,7 @@ class Crawler:
         self.visited_urls.add(normalized_url)
         
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (compatible; SEO-Prism/1.19.1; +https://seo-prism.local)'
-            }
+            headers = {'User-Agent': _USER_AGENT}
             
             async with self.session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 status = response.status

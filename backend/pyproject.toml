@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "seo-prism"
-version = "1.19.1"
+version = "1.20.0"
 description = "SEO Analyzer Tool - Detect broken links and missing meta-tags"
 authors = ["mykeura <mykeura@hotmail.com>"]
 readme = "README.md"
@@ -14,6 +14,9 @@ beautifulsoup4 = "^4.12.0"
 click = "^8.1.0"
 python-pptx = ">=0.6.21"
 reportlab = ">=4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0"
 
 [tool.poetry.scripts]
 scan = "cli:main"

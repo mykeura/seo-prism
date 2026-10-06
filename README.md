@@ -63,6 +63,13 @@ python -m api.main
 
 API will be available at `http://localhost:8000`
 
+Set `CORS_ORIGINS` (comma-separated) to allow other frontend origins —
+defaults to `http://localhost:5173`:
+
+```bash
+CORS_ORIGINS=https://app.example.com python -m api.main
+```
+
 ### Start Frontend
 
 ```bash
@@ -127,6 +134,7 @@ python cli.py --url http://localhost:3000 --max-pages 50 --generate-report --lan
 
 ## API Endpoints
 
+- `GET /` - API info
 - `POST /scan` - Start a new scan
 - `GET /results` - Get latest scan results
 - `GET /results/{scan_id}` - Get specific scan results
@@ -177,6 +185,7 @@ seo-prism/
 │   ├── tests/
 │   ├── cli.py
 │   ├── database.py
+│   ├── version.py         # Single source of truth for the backend version
 │   ├── requirements.txt
 │   └── pyproject.toml
 ├── frontend/
@@ -186,6 +195,7 @@ seo-prism/
 │   │   │   └── ui/             # button, card, badge, input
 │   │   ├── hooks/
 │   │   │   └── usePagination.ts
+│   │   ├── lib/             # utils (cn)
 │   │   ├── App.tsx
 │   │   ├── index.css           # Tailwind v4 theme (prism tokens)
 │   │   ├── issueMeta.tsx

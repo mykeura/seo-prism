@@ -133,7 +133,7 @@ function App() {
           <Card className="opacity-90">
             <CardFooter className="justify-center py-6 pt-4">
               <p className="text-sm text-muted-foreground">
-                SEO Prism v1.19.1
+                SEO Prism v1.20.0
               </p>
             </CardFooter>
           </Card>

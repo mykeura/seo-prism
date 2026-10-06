@@ -12,9 +12,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
+from version import __version__
 
 
-app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API", version="1.19.1")
+app = FastAPI(title="SEO Prism API", description="SEO Analyzer Tool API", version=__version__)
 
 # Enable CORS for the frontend. Allowlist is configurable via
 # CORS_ORIGINS (comma-separated); defaults to the Vite dev origin.
@@ -70,7 +71,7 @@ async def root():
     """Root endpoint."""
     return {
         "message": "SEO Prism API",
-        "version": "1.19.1",
+        "version": __version__,
         "endpoints": {
             "POST /scan": "Start a new scan",
             "GET /results": "Get latest scan results",
