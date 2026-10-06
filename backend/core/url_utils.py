@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 from urllib.parse import urlparse, urlunparse
 from typing import Tuple, Optional
 

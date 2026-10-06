@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'

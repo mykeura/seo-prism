@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 import { useState } from 'react'
 
 export function usePagination(initial = 5, step = 10) {

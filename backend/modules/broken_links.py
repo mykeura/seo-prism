@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 from typing import List, Dict, Set
 from urllib.parse import urlparse
 from core.url_utils import normalize_url

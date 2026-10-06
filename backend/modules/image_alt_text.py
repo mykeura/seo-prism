@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 from typing import List, Dict
 from core.soup import soup_for
 from database import Database

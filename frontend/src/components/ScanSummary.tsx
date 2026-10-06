@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { getGradeColor } from '../issueMeta'
 import { useT } from '../i18n'

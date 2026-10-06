@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 import { useState } from 'react'
 import { Card, CardContent, CardFooter } from './components/ui/card'
 import { ScanForm } from './components/ScanForm'

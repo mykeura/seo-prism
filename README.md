@@ -151,6 +151,13 @@ cd backend
 venv/bin/pytest
 ```
 
+## License
+
+[AGPL-3.0-only](LICENSE). Every source file carries an `SPDX-License-Identifier`
+header. The network-use clause means anyone offering SEO Prism as a hosted
+service must publish their modified source — or contact the author for a
+commercial license.
+
 ## Project Structure
 
 ```
@@ -211,5 +218,6 @@ seo-prism/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── vite.config.ts
+├── LICENSE
 └── README.md
 ```

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { en, type Translations } from './en'
 import { es } from './es'

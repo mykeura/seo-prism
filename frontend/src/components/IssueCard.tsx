@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 import { Badge } from './ui/badge'
 import { getIssueIcon, getIssueTypeLabel, getSeverityColor } from '../issueMeta'
 import { useT } from '../i18n'

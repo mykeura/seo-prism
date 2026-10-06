@@ -1,8 +1,12 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-FileCopyrightText: 2026 mykeura <mykeura@hotmail.com>
+
 [tool.poetry]
 name = "seo-prism"
-version = "1.21.0"
+version = "1.21.1"
 description = "SEO Analyzer Tool - Detect broken links and missing meta-tags"
 authors = ["mykeura <mykeura@hotmail.com>"]
+license = "AGPL-3.0-only"
 readme = "README.md"
 
 [tool.poetry.dependencies]
