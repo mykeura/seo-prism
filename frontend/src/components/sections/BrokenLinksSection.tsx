@@ -6,9 +6,11 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getBrokenLinkIssues, getExternalLinks, getInternalLinks } from '../../filters'
+import { useT } from '../../i18n'
 import type { ScanResults } from '../../types'
 
 export function BrokenLinksSection({ results }: { results: ScanResults }) {
+  const t = useT()
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal')
   const pagination = usePagination()
 
@@ -20,17 +22,17 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Broken Links</CardTitle>
+        <CardTitle>{t.sections.brokenLinks.title}</CardTitle>
         <CardDescription>
-          {brokenLinkIssues.length} broken link{brokenLinkIssues.length !== 1 ? 's' : ''} detected
+          {t.sections.brokenLinks.description(brokenLinkIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {brokenLinkIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faLink} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Broken Links Found!</h3>
-            <p className="text-muted-foreground">All internal and external links are working correctly.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.brokenLinks.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.brokenLinks.emptyBody}</p>
           </div>
         ) : (
           <>
@@ -43,7 +45,7 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Internal Links ({internalLinks.length})
+                {t.sections.brokenLinks.tabs.internal} ({internalLinks.length})
               </button>
               <button
                 onClick={() => setActiveTab('external')}
@@ -53,7 +55,7 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                External Links ({externalLinks.length})
+                {t.sections.brokenLinks.tabs.external} ({externalLinks.length})
               </button>
             </div>
 
@@ -73,7 +75,7 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
             </div>
             {currentIssues.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No {activeTab === 'internal' ? 'internal' : 'external'} broken links found
+                {t.sections.brokenLinks.emptyTab[activeTab]}
               </div>
             )}
           </>

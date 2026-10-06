@@ -1,5 +1,6 @@
 import { Badge } from './ui/badge'
 import { getIssueIcon, getIssueTypeLabel, getSeverityColor } from '../issueMeta'
+import { useT } from '../i18n'
 import type { Issue } from '../types'
 
 type IssueCardTone = 'default' | 'success'
@@ -16,10 +17,13 @@ interface IssueCardProps {
 export function IssueCard({
   issue,
   tone = 'default',
-  urlLabel = 'URL:',
+  urlLabel,
   sourceMode = 'none',
-  sourceLabel = 'Source:',
+  sourceLabel,
 }: IssueCardProps) {
+  const t = useT()
+  const resolvedUrlLabel = urlLabel ?? t.common.url
+  const resolvedSourceLabel = sourceLabel ?? t.common.source
   return (
     <div
       className={
@@ -31,15 +35,15 @@ export function IssueCard({
       <div className="flex items-start justify-between gap-4 mb-2">
         <div className="flex items-center gap-2.5">
           <span className="text-xl">{getIssueIcon(issue.issue_type)}</span>
-          <span className="font-semibold tracking-tight">{getIssueTypeLabel(issue.issue_type)}</span>
+          <span className="font-semibold tracking-tight">{getIssueTypeLabel(issue.issue_type, t.issueTypes)}</span>
         </div>
         <Badge variant={getSeverityColor(issue.severity)}>
-          {issue.severity.toUpperCase()}
+          {t.severity[issue.severity] ?? issue.severity.toUpperCase()}
         </Badge>
       </div>
       <div className="space-y-2">
         <div>
-          <span className="text-sm text-muted-foreground">{urlLabel}</span>
+          <span className="text-sm text-muted-foreground">{resolvedUrlLabel}</span>
           <a
             href={issue.url}
             target="_blank"
@@ -51,19 +55,19 @@ export function IssueCard({
         </div>
         {(sourceMode === 'text' && issue.source_page) && (
           <div>
-            <span className="text-sm text-muted-foreground">{sourceLabel}</span>
+            <span className="text-sm text-muted-foreground">{resolvedSourceLabel}</span>
             <span className="ml-2 text-sm break-all">{issue.source_page}</span>
           </div>
         )}
         {(sourceMode === 'text-if-different' && issue.source_page && issue.source_page !== issue.url) && (
           <div>
-            <span className="text-sm text-muted-foreground">{sourceLabel}</span>
+            <span className="text-sm text-muted-foreground">{resolvedSourceLabel}</span>
             <span className="ml-2 text-sm break-all">{issue.source_page}</span>
           </div>
         )}
         {(sourceMode === 'link' && issue.source_page) && (
           <div>
-            <span className="text-sm text-muted-foreground">{sourceLabel}</span>
+            <span className="text-sm text-muted-foreground">{resolvedSourceLabel}</span>
             <a
               href={issue.source_page}
               target="_blank"

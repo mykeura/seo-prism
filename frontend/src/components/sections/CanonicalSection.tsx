@@ -13,11 +13,13 @@ import {
   getCanonicalVariations,
   getMissingCanonical,
 } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 type CanonicalTab = 'all' | 'chains' | '404' | 'redirect' | 'variations' | 'missing'
 
 export function CanonicalSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const [canonicalTab, setCanonicalTab] = useState<CanonicalTab>('all')
   const pagination = usePagination()
 
@@ -39,17 +41,17 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Canonical Tags</CardTitle>
+        <CardTitle>{t.sections.canonical.title}</CardTitle>
         <CardDescription>
-          {canonicalIssues.length} canonical issue{canonicalIssues.length !== 1 ? 's' : ''} found
+          {t.sections.canonical.description(canonicalIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {canonicalIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faLink} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Canonical Issues Found!</h3>
-            <p className="text-muted-foreground">All canonical tags are properly configured.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.canonical.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.canonical.emptyBody}</p>
           </div>
         ) : (
           <>
@@ -62,7 +64,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                All ({canonicalIssues.length})
+                {t.sections.canonical.tabs.all} ({canonicalIssues.length})
               </button>
               <button
                 onClick={() => setCanonicalTab('chains')}
@@ -72,7 +74,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Chains ({canonicalChains.length})
+                {t.sections.canonical.tabs.chains} ({canonicalChains.length})
               </button>
               <button
                 onClick={() => setCanonicalTab('404')}
@@ -92,7 +94,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Redirects ({canonicalRedirect.length})
+                {t.sections.canonical.tabs.redirect} ({canonicalRedirect.length})
               </button>
               <button
                 onClick={() => setCanonicalTab('variations')}
@@ -102,7 +104,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Variations ({canonicalVariations.length})
+                {t.sections.canonical.tabs.variations} ({canonicalVariations.length})
               </button>
               <button
                 onClick={() => setCanonicalTab('missing')}
@@ -112,7 +114,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Missing ({missingCanonical.length})
+                {t.sections.canonical.tabs.missing} ({missingCanonical.length})
               </button>
             </div>
 
@@ -132,11 +134,7 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
             </div>
             {currentIssues.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No {canonicalTab === 'all' ? 'canonical' :
-                    canonicalTab === 'chains' ? 'canonical chain' :
-                    canonicalTab === '404' ? 'canonical 404' :
-                    canonicalTab === 'redirect' ? 'canonical redirect' :
-                    canonicalTab === 'variations' ? 'canonical variation' : 'missing canonical'} issues found
+                {t.sections.canonical.emptyTab[canonicalTab]}
               </div>
             )}
           </>

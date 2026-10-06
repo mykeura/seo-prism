@@ -6,11 +6,13 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getH1Issues, getHeaderHierarchyIssues, getHeaderIssues } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 type HeaderAnalysisTab = 'all' | 'hierarchy' | 'h1'
 
 export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const [headerAnalysisTab, setHeaderAnalysisTab] = useState<HeaderAnalysisTab>('all')
   const headersPagination = usePagination()
   const hierarchyPagination = usePagination()
@@ -33,9 +35,9 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Header Analysis</CardTitle>
+        <CardTitle>{t.sections.headerAnalysis.title}</CardTitle>
         <CardDescription>
-          Comprehensive header analysis showing all header-related issues
+          {t.sections.headerAnalysis.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -48,7 +50,7 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            All Headers ({headerIssues.length})
+            {t.sections.headerAnalysis.tabs.all} ({headerIssues.length})
           </button>
           <button
             onClick={() => setHeaderAnalysisTab('hierarchy')}
@@ -58,7 +60,7 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            Hierarchy Issues ({headerHierarchyIssues.length})
+            {t.sections.headerAnalysis.tabs.hierarchy} ({headerHierarchyIssues.length})
           </button>
           <button
             onClick={() => setHeaderAnalysisTab('h1')}
@@ -68,15 +70,15 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            H1 Issues ({h1Issues.length})
+            {t.sections.headerAnalysis.tabs.h1} ({h1Issues.length})
           </button>
         </div>
 
         {headerIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faTag} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Header Issues Found!</h3>
-            <p className="text-muted-foreground">All pages have proper header structure.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.headerAnalysis.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.headerAnalysis.emptyBody}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -96,8 +98,7 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
             </div>
             {currentIssues.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No {headerAnalysisTab === 'all' ? 'header' :
-                    headerAnalysisTab === 'hierarchy' ? 'hierarchy' : 'H1'} issues found
+                {t.sections.headerAnalysis.emptyTab[headerAnalysisTab]}
               </div>
             )}
           </div>

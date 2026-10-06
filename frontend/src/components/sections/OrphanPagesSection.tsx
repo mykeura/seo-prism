@@ -5,9 +5,11 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getOrphanPagesIssues } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 export function OrphanPagesSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const pagination = usePagination()
 
   const orphanPagesIssues = getOrphanPagesIssues(issues)
@@ -15,17 +17,17 @@ export function OrphanPagesSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Orphan Pages</CardTitle>
+        <CardTitle>{t.sections.orphanPages.title}</CardTitle>
         <CardDescription>
-          {orphanPagesIssues.length} orphan page{orphanPagesIssues.length !== 1 ? 's' : ''} detected
+          {t.sections.orphanPages.description(orphanPagesIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {orphanPagesIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faFolder} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Orphan Pages Found!</h3>
-            <p className="text-muted-foreground">All pages have incoming internal links.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.orphanPages.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.orphanPages.emptyBody}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -37,7 +39,7 @@ export function OrphanPagesSection({ issues }: { issues: Issue[] }) {
                 <ShowMoreButton
                   visible={pagination.visible}
                   total={orphanPagesIssues.length}
-                  label="orphan pages"
+                  label={t.sections.orphanPages.showMoreLabel}
                   onClick={pagination.loadMore}
                 />
               </div>

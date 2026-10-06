@@ -6,9 +6,11 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getMetaTagsIssues, getMissingDescriptions, getMissingTitles } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 export function MetaTagsSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const [metaTab, setMetaTab] = useState<'titles' | 'descriptions'>('titles')
   const pagination = usePagination()
 
@@ -20,17 +22,17 @@ export function MetaTagsSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Meta Tags Issues</CardTitle>
+        <CardTitle>{t.sections.metaTags.title}</CardTitle>
         <CardDescription>
-          {metaTagsIssues.length} meta tag issue{metaTagsIssues.length !== 1 ? 's' : ''} detected
+          {t.sections.metaTags.description(metaTagsIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {metaTagsIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faFileAlt} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Meta Tag Issues Found!</h3>
-            <p className="text-muted-foreground">All pages have proper title tags and descriptions.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.metaTags.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.metaTags.emptyBody}</p>
           </div>
         ) : (
           <>
@@ -43,7 +45,7 @@ export function MetaTagsSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Missing Titles ({missingTitles.length})
+                {t.sections.metaTags.tabs.titles} ({missingTitles.length})
               </button>
               <button
                 onClick={() => setMetaTab('descriptions')}
@@ -53,7 +55,7 @@ export function MetaTagsSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Missing Descriptions ({missingDescriptions.length})
+                {t.sections.metaTags.tabs.descriptions} ({missingDescriptions.length})
               </button>
             </div>
 
@@ -73,7 +75,7 @@ export function MetaTagsSection({ issues }: { issues: Issue[] }) {
             </div>
             {currentIssues.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No {metaTab === 'titles' ? 'missing titles' : 'missing descriptions'} found
+                {t.sections.metaTags.emptyTab[metaTab]}
               </div>
             )}
           </>

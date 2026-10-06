@@ -5,9 +5,11 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getMetaRobotsIssues } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 export function MetaRobotsSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const pagination = usePagination()
 
   const metaRobotsIssues = getMetaRobotsIssues(issues)
@@ -15,17 +17,17 @@ export function MetaRobotsSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Meta Robots Directives</CardTitle>
+        <CardTitle>{t.sections.metaRobots.title}</CardTitle>
         <CardDescription>
-          {metaRobotsIssues.length} meta robots issue{metaRobotsIssues.length !== 1 ? 's' : ''} found
+          {t.sections.metaRobots.description(metaRobotsIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {metaRobotsIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faRobot} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Meta Robots Issues Found!</h3>
-            <p className="text-muted-foreground">No restrictive meta robots directives detected.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.metaRobots.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.metaRobots.emptyBody}</p>
           </div>
         ) : (
           <div className="space-y-4">

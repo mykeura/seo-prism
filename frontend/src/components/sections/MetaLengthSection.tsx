@@ -6,9 +6,11 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getMetaDescLengthIssues, getMetaLengthIssues, getTitleLengthIssues } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 export function MetaLengthSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const [metaLengthTab, setMetaLengthTab] = useState<'titles' | 'descriptions'>('titles')
   const pagination = usePagination()
 
@@ -20,17 +22,17 @@ export function MetaLengthSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Meta Length Analysis</CardTitle>
+        <CardTitle>{t.sections.metaLength.title}</CardTitle>
         <CardDescription>
-          {metaLengthIssues.length} meta length issue{metaLengthIssues.length !== 1 ? 's' : ''} detected
+          {t.sections.metaLength.description(metaLengthIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {metaLengthIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faFileAlt} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">All Meta Tags Have Optimal Length!</h3>
-            <p className="text-muted-foreground">All titles and meta descriptions have the recommended length.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.metaLength.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.metaLength.emptyBody}</p>
           </div>
         ) : (
           <>
@@ -43,7 +45,7 @@ export function MetaLengthSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Title Length ({titleLengthIssues.length})
+                {t.sections.metaLength.tabs.titles} ({titleLengthIssues.length})
               </button>
               <button
                 onClick={() => setMetaLengthTab('descriptions')}
@@ -53,7 +55,7 @@ export function MetaLengthSection({ issues }: { issues: Issue[] }) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Description Length ({metaDescLengthIssues.length})
+                {t.sections.metaLength.tabs.descriptions} ({metaDescLengthIssues.length})
               </button>
             </div>
 
@@ -73,7 +75,7 @@ export function MetaLengthSection({ issues }: { issues: Issue[] }) {
             </div>
             {currentIssues.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No {metaLengthTab === 'titles' ? 'title length' : 'description length'} issues found
+                {t.sections.metaLength.emptyTab[metaLengthTab]}
               </div>
             )}
           </>

@@ -5,9 +5,11 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getThinContentIssues } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 export function ThinContentSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const pagination = usePagination()
 
   const thinContentIssues = getThinContentIssues(issues)
@@ -15,17 +17,17 @@ export function ThinContentSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Thin Content</CardTitle>
+        <CardTitle>{t.sections.thinContent.title}</CardTitle>
         <CardDescription>
-          {thinContentIssues.length} pages with thin content detected
+          {t.sections.thinContent.description(thinContentIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {thinContentIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faFileAlt} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Thin Content Found!</h3>
-            <p className="text-muted-foreground">All pages have sufficient content.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.thinContent.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.thinContent.emptyBody}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -37,7 +39,7 @@ export function ThinContentSection({ issues }: { issues: Issue[] }) {
                 <ShowMoreButton
                   visible={pagination.visible}
                   total={thinContentIssues.length}
-                  label="pages with thin content"
+                  label={t.sections.thinContent.showMoreLabel}
                   onClick={pagination.loadMore}
                 />
               </div>

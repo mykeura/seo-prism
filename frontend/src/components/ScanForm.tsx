@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { useT } from '../i18n'
 
 interface ScanFormProps {
   url: string
@@ -13,13 +14,14 @@ interface ScanFormProps {
 }
 
 export function ScanForm({ url, onUrlChange, onSubmit, loading, message, error }: ScanFormProps) {
+  const t = useT()
   return (
     <>
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Start a New Scan</CardTitle>
+          <CardTitle>{t.form.title}</CardTitle>
           <CardDescription>
-            Enter a URL to analyze for SEO issues
+            {t.form.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -28,12 +30,12 @@ export function ScanForm({ url, onUrlChange, onSubmit, loading, message, error }
               type="text"
               value={url}
               onChange={(e) => onUrlChange(e.target.value)}
-              placeholder="Enter URL (e.g., http://localhost:3000)"
+              placeholder={t.form.placeholder}
               disabled={loading}
               className="flex-1"
             />
             <Button type="submit" disabled={loading || !url.trim()} className="h-10 px-6">
-              {loading ? 'Scanning...' : 'SCAN'}
+              {loading ? t.form.scanning : t.form.scan}
             </Button>
           </form>
         </CardContent>
@@ -47,7 +49,7 @@ export function ScanForm({ url, onUrlChange, onSubmit, loading, message, error }
 
       {error && (
         <div className="mb-6 rounded-lg border border-danger-400/25 bg-danger-500/10 px-4 py-3 text-sm text-danger-200">
-          Error: {error}
+          {t.form.errorPrefix}: {error}
         </div>
       )}
     </>

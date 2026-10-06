@@ -15,8 +15,11 @@ import { OrphanPagesSection } from './components/sections/OrphanPagesSection'
 import { StructuredDataSection } from './components/sections/StructuredDataSection'
 import { ThinContentSection } from './components/sections/ThinContentSection'
 import type { SEOGrade, ScanResults } from './types'
+import { useT } from './i18n'
+import { APP_VERSION } from './version'
 
 function App() {
+  const t = useT()
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
   const [results, setResults] = useState<ScanResults | null>(null)
@@ -45,7 +48,7 @@ function App() {
       })
 
       if (!scanResponse.ok) {
-        throw new Error('Failed to start scan')
+        throw new Error(t.app.startScanFailed)
       }
 
       const scanData = await scanResponse.json()
@@ -59,14 +62,14 @@ function App() {
       const resultsResponse = await fetch(`${API_BASE_URL}/results`)
 
       if (!resultsResponse.ok) {
-        throw new Error('Failed to get results')
+        throw new Error(t.app.resultsFailed)
       }
 
       const resultsData = await resultsResponse.json()
       setResults(resultsData)
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : t.app.genericError)
     } finally {
       setLoading(false)
     }
@@ -83,7 +86,7 @@ function App() {
             SEO Prism
           </h1>
           <p className="mx-auto max-w-2xl text-balance text-base leading-relaxed text-muted-foreground">
-            Comprehensive SEO analysis: broken links, meta tags, duplicate content, header hierarchy, structured data and more
+            {t.app.subtitle}
           </p>
         </header>
 
@@ -105,8 +108,8 @@ function App() {
                 <CardContent className="pt-6">
                   <div className="text-center py-8">
                     <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/25 bg-success-500/10 text-3xl">✅</div>
-                    <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Issues Found!</h3>
-                    <p className="text-muted-foreground">Your website looks great!</p>
+                    <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.app.noIssuesTitle}</h3>
+                    <p className="text-muted-foreground">{t.app.noIssuesBody}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -133,7 +136,7 @@ function App() {
           <Card className="opacity-90">
             <CardFooter className="justify-center py-6 pt-4">
               <p className="text-sm text-muted-foreground">
-                SEO Prism v1.20.0
+                {t.app.footer(APP_VERSION)}
               </p>
             </CardFooter>
           </Card>

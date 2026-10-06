@@ -40,70 +40,8 @@ export function getGradeColor(grade: string): string {
   return gradeColors[grade] ?? 'text-muted-foreground border-border bg-muted/30'
 }
 
-const issueTypeLabels: Record<string, string> = {
-  broken_link: 'Broken Link',
-  broken_image: 'Broken Image',
-  broken_script: 'Broken Script',
-  broken_stylesheet: 'Broken Stylesheet',
-  broken_resource: 'Broken Resource',
-  missing_title: 'Missing Title',
-  missing_description: 'Missing Description',
-  title_too_short: 'Title Too Short',
-  title_too_long: 'Title Too Long',
-  meta_description_too_short: 'Meta Description Too Short',
-  meta_description_too_long: 'Meta Description Too Long',
-  duplicate_title: 'Duplicate Title',
-  duplicate_description: 'Duplicate Description',
-  missing_alt_tag: 'Missing Alt Tag',
-  missing_alt_text: 'Missing Alt Text',
-  short_alt_text: 'Short Alt Text',
-  missing_robots_txt: 'Missing robots.txt',
-  missing_security_txt: 'Missing security.txt',
-  missing_sitemap: 'Missing Sitemap',
-  missing_llms_txt: 'Missing llms.txt',
-  robots_txt_found: 'robots.txt',
-  security_txt_found: 'security.txt',
-  sitemap_found: 'Sitemap',
-  llms_txt_found: 'llms.txt',
-  meta_robots_noindex: 'Noindex Directive',
-  meta_robots_nofollow: 'Nofollow Directive',
-  meta_robots_nosnippet: 'Nosnippet Directive',
-  meta_robots_noarchive: 'Noarchive Directive',
-  meta_robots_notranslate: 'Notranslate Directive',
-  meta_robots_noimageindex: 'Noimageindex Directive',
-  meta_robots_unavailable_after: 'Unavailable After Directive',
-  missing_h1: 'Missing H1 Header',
-  multiple_h1_same_page: 'Multiple H1 Headers on Same Page',
-  duplicate_h1: 'Duplicate H1 Header',
-  invalid_header_hierarchy: 'Invalid Header Hierarchy',
-  hreflang_missing_self_reference: 'Hreflang Missing Self Reference',
-  hreflang_missing_x_default: 'Hreflang Missing x-default',
-  hreflang_duplicate_code: 'Hreflang Duplicate Code',
-  hreflang_invalid_code: 'Hreflang Invalid Code',
-  hreflang_missing_return_link: 'Hreflang Missing Return Link',
-  hreflang_missing_canonical: 'Hreflang Missing Canonical',
-  canonical_chain: 'Canonical Chain',
-  canonical_to_404: 'Canonical to 404',
-  canonical_to_redirect: 'Canonical to Redirect',
-  canonical_url_variation: 'Canonical URL Variation',
-  missing_canonical: 'Missing Canonical',
-  orphan_page: 'Orphan Page',
-  missing_json_ld: 'Missing JSON-LD',
-  json_ld_missing_type: 'JSON-LD Missing Type',
-  json_ld_unknown_type: 'JSON-LD Unknown Type',
-  json_ld_missing_properties: 'JSON-LD Missing Properties',
-  json_ld_short_headline: 'JSON-LD Short Headline',
-  json_ld_invalid_json: 'JSON-LD Invalid JSON',
-  missing_microdata: 'Missing Microdata',
-  microdata_missing_type: 'Microdata Missing Type',
-  microdata_unknown_type: 'Microdata Unknown Type',
-  missing_rdfa: 'Missing RDFa',
-  rdfa_unknown_type: 'RDFa Unknown Type',
-  thin_content: 'Thin Content',
-}
-
-export function getIssueTypeLabel(type: string): string {
-  return issueTypeLabels[type] ?? type
+export function getIssueTypeLabel(type: string, labels: Record<string, string>): string {
+  return labels[type] ?? type
 }
 
 interface IssueIconMeta {

@@ -19,6 +19,7 @@ SEO Analyzer Tool - Detect broken links and missing meta-tags
 - ✅ Detects orphan pages and thin content; validates title/meta description lengths
 - ✅ Fair SEO grading (A-F) with a logarithmic error-density scale: same error density gives the same score regardless of site size
 - ✅ Premium prism-themed web panel (dark crystal UI, Tailwind CSS v4)
+- ✅ Bilingual UI (EN/ES): the web panel auto-detects the browser language (Spanish for `es-*`, English otherwise)
 - ✅ CLI with full untruncated output and `--json` mode for AI agents
 - ✅ Executive SEO report in PDF (Spanish/English, zero truncation, print-ready)
 - ✅ Local mode (ignores robots.txt)
@@ -157,8 +158,8 @@ seo-prism/
 ├── backend/
 │   ├── core/
 │   │   ├── crawler.py
-│   │   ├── pipeline.py      # Shared scan orchestration (CLI + API)
-│   │   ├── soup.py          # Cached HTML parsing for analysis modules
+│   │   ├── pipeline.py
+│   │   ├── soup.py
 │   │   └── url_utils.py
 │   ├── modules/
 │   │   ├── broken_links.py
@@ -176,31 +177,36 @@ seo-prism/
 │   │   ├── standard_files.py
 │   │   ├── structured_data.py
 │   │   ├── thin_content.py
-│   │   ├── pdf_report_generator.py   # Executive PDF report (ES/EN)
-│   │   ├── report_generator.py       # Legacy PPTX report
-│   │   ├── report_translations.py    # Shared labels/translations
+│   │   ├── pdf_report_generator.py
+│   │   ├── report_generator.py
+│   │   ├── report_translations.py
 │   │   └── description_translations.py
 │   ├── api/
-│   │   └── main.py          # CORS allowlist via CORS_ORIGINS env (default localhost:5173)
+│   │   └── main.py
 │   ├── tests/
 │   ├── cli.py
 │   ├── database.py
-│   ├── version.py         # Single source of truth for the backend version
+│   ├── version.py
 │   ├── requirements.txt
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── sections/       # One component per result card
-│   │   │   └── ui/             # button, card, badge, input
+│   │   │   ├── sections/
+│   │   │   └── ui/
 │   │   ├── hooks/
 │   │   │   └── usePagination.ts
-│   │   ├── lib/             # utils (cn)
+│   │   ├── i18n/
+│   │   │   ├── en.ts
+│   │   │   ├── es.ts
+│   │   │   └── index.tsx
+│   │   ├── lib/
 │   │   ├── App.tsx
-│   │   ├── index.css           # Tailwind v4 theme (prism tokens)
+│   │   ├── index.css
 │   │   ├── issueMeta.tsx
 │   │   ├── filters.ts
-│   │   └── types.ts
+│   │   ├── types.ts
+│   │   └── version.ts
 │   ├── .env.example
 │   ├── package.json
 │   ├── tsconfig.json

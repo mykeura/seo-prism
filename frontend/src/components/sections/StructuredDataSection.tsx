@@ -5,9 +5,11 @@ import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
 import { usePagination } from '../../hooks/usePagination'
 import { getStructuredDataIssues } from '../../filters'
+import { useT } from '../../i18n'
 import type { Issue } from '../../types'
 
 export function StructuredDataSection({ issues }: { issues: Issue[] }) {
+  const t = useT()
   const pagination = usePagination()
 
   const structuredDataIssues = getStructuredDataIssues(issues)
@@ -15,17 +17,17 @@ export function StructuredDataSection({ issues }: { issues: Issue[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Structured Data</CardTitle>
+        <CardTitle>{t.sections.structuredData.title}</CardTitle>
         <CardDescription>
-          {structuredDataIssues.length} structured data issue{structuredDataIssues.length !== 1 ? 's' : ''} detected
+          {t.sections.structuredData.description(structuredDataIssues.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {structuredDataIssues.length === 0 ? (
           <div className="text-center py-8">
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/20 bg-success-500/10"><FontAwesomeIcon icon={faDatabase} className="text-2xl text-success-400" /></div>
-            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">No Structured Data Issues Found!</h3>
-            <p className="text-muted-foreground">All structured data is properly configured.</p>
+            <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.sections.structuredData.emptyTitle}</h3>
+            <p className="text-muted-foreground">{t.sections.structuredData.emptyBody}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -37,7 +39,7 @@ export function StructuredDataSection({ issues }: { issues: Issue[] }) {
                 <ShowMoreButton
                   visible={pagination.visible}
                   total={structuredDataIssues.length}
-                  label="structured data issues"
+                  label={t.sections.structuredData.showMoreLabel}
                   onClick={pagination.loadMore}
                 />
               </div>
