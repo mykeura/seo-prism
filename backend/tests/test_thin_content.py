@@ -669,3 +669,33 @@ class TestThinContentModule:
         
         assert len(issues) == 1
         assert issues[0]['issue_type'] == 'thin_content'
+
+class TestSharedSoupSafety:
+    """Regression: thin-content extraction must not corrupt the shared page soup."""
+
+    def test_analyze_does_not_mutate_shared_soup(self, temp_db, sample_scan_id):
+        """Running thin-content first must not break later analyses on the same page dict."""
+        from core.soup import soup_for
+        from modules.meta_tags import MetaTagsModule
+        from modules.structured_data import StructuredDataModule
+
+        html = '''<html>
+            <head>
+                <title>Test Page</title>
+                <meta name="description" content="a description">
+                <script type="application/ld+json">{"@type": "Article", "headline": "h", "author": "a", "datePublished": "2026-01-01", "publisher": "p"}</script>
+            </head>
+            <body><h1>Title</h1><article><p>''' + ' '.join(['word'] * 50) + '''</p></article></body>
+        </html>'''
+        crawled_pages = [{'url': 'https://example.com/page', 'status': 200, 'html': html, 'links': []}]
+
+        # Populate the shared cache, then run thin-content (which decomposes
+        # nodes) — the cached tree must stay intact for the modules below.
+        soup_for(crawled_pages[0])
+        ThinContentModule(temp_db).analyze(sample_scan_id, crawled_pages)
+
+        meta_issues = MetaTagsModule(temp_db).analyze(sample_scan_id, crawled_pages)
+        assert not any(i['issue_type'] in ('missing_title', 'missing_h1') for i in meta_issues)
+
+        sd_issues = StructuredDataModule(temp_db).analyze(sample_scan_id, crawled_pages)
+        assert not any(i['issue_type'] == 'missing_structured_data' for i in sd_issues)

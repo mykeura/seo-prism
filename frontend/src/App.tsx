@@ -133,7 +133,7 @@ function App() {
           <Card className="opacity-90">
             <CardFooter className="justify-center py-6 pt-4">
               <p className="text-sm text-muted-foreground">
-                All rights reserved © 2026 <a href="https://paracaidas.digital/" target="_blank" rel="noopener noreferrer" className="text-primary-300 transition-colors hover:text-primary-200 hover:underline">Paracaídas Digital</a> · SEO Prism v1.19.1
+                SEO Prism v1.19.1
               </p>
             </CardFooter>
           </Card>

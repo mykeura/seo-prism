@@ -1,5 +1,6 @@
 from typing import List, Dict, Set
 from urllib.parse import urlparse
+from core.url_utils import normalize_url
 from database import Database
 
 
@@ -115,23 +116,26 @@ class BrokenLinksModule:
                     'source': page_url
                 })
         
-        # Check each resource
+        # Check each resource. Crawled page URLs are normalized but resource
+        # URLs are not, so normalize before the status-map lookup (and for
+        # dedup); the original URL is kept for reporting.
         checked_resources: Set[str] = set()
         for resource in all_resources:
             resource_url = resource['url']
+            normalized_url = normalize_url(resource_url)
             
             # Skip if already checked
-            if resource_url in checked_resources:
+            if normalized_url in checked_resources:
                 continue
-            checked_resources.add(resource_url)
+            checked_resources.add(normalized_url)
             
             # Skip if URL should be ignored
             if self._should_ignore_url(resource_url):
                 continue
             
             # Check if resource URL exists in our crawled pages
-            if resource_url in url_status_map:
-                resource_status = url_status_map[resource_url]
+            if normalized_url in url_status_map:
+                resource_status = url_status_map[normalized_url]
                 
                 # Mark as broken if status >= 400
                 if resource_status >= 400:

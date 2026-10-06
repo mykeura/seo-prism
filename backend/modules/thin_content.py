@@ -1,6 +1,5 @@
 from typing import List, Dict
 from bs4 import BeautifulSoup
-from core.soup import soup_for
 from database import Database
 import re
 
@@ -43,7 +42,9 @@ class ThinContentModule:
             if not html:
                 continue
             
-            soup = soup_for(page)
+            # Parse its own copy: _extract_article_content decomposes nodes,
+            # which must not corrupt the cached soup shared with other modules
+            soup = BeautifulSoup(html, 'html.parser')
             
             # Extract article content excluding title
             article_content = self._extract_article_content(soup)

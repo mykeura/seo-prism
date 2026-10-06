@@ -214,3 +214,63 @@ class TestBrokenLinksModule:
         # Should only report the broken link once
         assert len(issues) == 1
         assert issues[0]['url'] == 'https://example.com/broken'
+
+class TestNormalizedResourceLookup:
+    """Regression: homepage resources must match normalized page statuses."""
+
+    def test_broken_homepage_link_with_trailing_slash(self, temp_db, sample_scan_id):
+        """A '/' link resolves to 'https://example.com/' while the crawler
+        stored 'https://example.com' — the status lookup must still match."""
+        module = BrokenLinksModule(temp_db)
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com',  # normalized root, stored by crawler
+                'status': 404,
+                'html': None,
+                'links': [],
+                'resources': []
+            },
+            {
+                'url': 'https://example.com/child',
+                'status': 200,
+                'html': '<html><a href="/">home</a></html>',
+                'links': [],
+                'resources': [
+                    {'url': 'https://example.com/', 'type': 'anchor', 'source': 'https://example.com/child'}
+                ]
+            }
+        ]
+
+        issues = module.analyze(sample_scan_id, crawled_pages)
+
+        assert len(issues) == 1
+        assert issues[0]['issue_type'] == 'broken_link'
+        assert issues[0]['url'] == 'https://example.com/'
+
+    def test_working_homepage_link_with_trailing_slash(self, temp_db, sample_scan_id):
+        """Same shape but status 200 must not produce an issue."""
+        module = BrokenLinksModule(temp_db)
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com',
+                'status': 200,
+                'html': '<html><a href="/child">c</a></html>',
+                'links': [],
+                'resources': []
+            },
+            {
+                'url': 'https://example.com/child',
+                'status': 200,
+                'html': '<html><a href="/">home</a></html>',
+                'links': [],
+                'resources': [
+                    {'url': 'https://example.com/', 'type': 'anchor', 'source': 'https://example.com/child'}
+                ]
+            }
+        ]
+
+        issues = module.analyze(sample_scan_id, crawled_pages)
+
+        assert len(issues) == 0

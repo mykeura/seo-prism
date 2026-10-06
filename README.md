@@ -133,7 +133,7 @@ python cli.py --url http://localhost:3000 --max-pages 50 --generate-report --lan
 
 ## Testing
 
-The backend test suite (245+ tests) covers every analysis module, the CLI, both report
+The backend pytest suite covers every analysis module, the CLI, both report
 generators, the grading fairness guarantees and the standard-file discovery scenarios
 (integration tests with a real HTTP server).
 
