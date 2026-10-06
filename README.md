@@ -21,6 +21,7 @@ SEO Analyzer Tool - Detect broken links and missing meta-tags
 - ✅ Premium prism-themed web panel (dark crystal UI, Tailwind CSS v4)
 - ✅ Bilingual UI (EN/ES): the web panel auto-detects the browser language (Spanish for `es-*`, English otherwise)
 - ✅ CLI with full untruncated output and `--json` mode for AI agents
+- ✅ MCP server (`seo_scan` tool) + agent skill for AI agents (Hermes Agent, Claude Code, Codex, Devin, OpenClaw)
 - ✅ Executive SEO report in PDF (Spanish/English, zero truncation, print-ready)
 - ✅ Local mode (ignores robots.txt)
 
@@ -133,6 +134,64 @@ python cli.py --url https://example.com --generate-report --report-format pptx
 python cli.py --url http://localhost:3000 --max-pages 50 --generate-report --lang es
 ```
 
+## MCP Server (AI Agents)
+
+`backend/mcp_server.py` wraps the scan pipeline as a [Model Context Protocol](https://modelcontextprotocol.io) server. It exposes one tool, `seo_scan(url, max_pages)`, returning `{scan, issues, seo_grade, resource_analysis}` — the same payload as `cli.py --json`.
+
+```bash
+cd backend
+source venv/bin/activate      # or: pip install -r requirements.txt
+python mcp_server.py          # stdio transport (what agents launch)
+
+# Optional HTTP transport for remote clients:
+python mcp_server.py --transport streamable-http --port 8080
+```
+
+Register the server in your agent, replacing `/path/to/seo-prism/backend` with the real path (use the venv python so dependencies resolve):
+
+**Hermes Agent** — `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  seo-prism:
+    command: "/path/to/seo-prism/backend/venv/bin/python"
+    args: ["/path/to/seo-prism/backend/mcp_server.py"]
+    cwd: "/path/to/seo-prism/backend"
+```
+
+**Claude Code** — from the repo root:
+
+```bash
+claude mcp add seo-prism -- /path/to/seo-prism/backend/venv/bin/python /path/to/seo-prism/backend/mcp_server.py
+```
+
+**Codex** — `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.seo-prism]
+command = "/path/to/seo-prism/backend/venv/bin/python"
+args = ["/path/to/seo-prism/backend/mcp_server.py"]
+```
+
+**Devin** — Settings → MCP servers → custom server, STDIO transport, same command/args as above.
+
+**OpenClaw** — config (`mcp.servers`) or `openclaw mcp add`:
+
+```json5
+{
+  mcp: {
+    servers: {
+      seo-prism: {
+        command: "/path/to/seo-prism/backend/venv/bin/python",
+        args: ["/path/to/seo-prism/backend/mcp_server.py"],
+      },
+    },
+  },
+}
+```
+
+Agents that can run shells don't need MCP: `cli.py --json` works directly — see `skills/seo-prism/SKILL.md` for a ready-made agent skill.
+
 ## API Endpoints
 
 - `GET /` - API info
@@ -185,10 +244,14 @@ seo-prism/
 │   │   └── main.py
 │   ├── tests/
 │   ├── cli.py
+│   ├── mcp_server.py
 │   ├── database.py
 │   ├── version.py
 │   ├── requirements.txt
 │   └── pyproject.toml
+├── skills/
+│   └── seo-prism/
+│       └── SKILL.md
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
