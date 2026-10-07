@@ -277,16 +277,24 @@ seo-prism/
 ├── LICENSE
 └── README.md
 ```
+## Support the project
 
-## A small way to support the project
+m
 
-If you are considering the Nous Portal Personal plan, you can use [my Nous Portal referral link](https://portal.nousresearch.com/r/mykeura). It takes **$15 off your first month** and gives me a **$10 referral credit** that helps cover the API usage behind my ongoing work on SEO Prism and related projects. It is entirely optional, but it is a simple way for both of us to benefit.
+**Sponsor on GitHub**
+You can [sponsor me on GitHub](https://github.com/sponsors/mykeura). It helps cover development time and the API usage behind ongoing maintenance.
 
-The offer is for new customers starting a new Personal subscription. It applies to the first invoice, and each payment card can be used for only one referral; if the card has already backed another referral, the discount is reversed and no referral reward is paid.
+**Nous Portal referral (optional)**
+If you are considering the Nous Portal **Plus** plan, you can use [my referral link](https://portal.nousresearch.com/r/mykeura). Your first month costs **$5 instead of $20**, and I receive a $10 referral credit that helps cover the API usage behind my work on SEO Prism. It costs you nothing extra.
+
+*The offer is for new customers starting a new Plus subscription. It applies to the first invoice, and each payment card can be used for only one referral. If the card has already backed another referral, the discount is reversed and no referral reward is paid.*
+
+Using SEO Prism for your company and need a commercial license? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
 
 ## License
 
-[AGPL-3.0-only](LICENSE). Every source file carries an `SPDX-License-Identifier`
-header. The network-use clause means anyone offering SEO Prism as a hosted
-service must publish their modified source — or contact the author for a
-commercial license.
+SEO Prism is dual-licensed:
+
+- **AGPL-3.0-only** ([LICENSE](LICENSE)): Free and open source. Every source file carries an `SPDX-License-Identifier` header. The network-use clause means anyone offering SEO Prism as a hosted service must publish their modified source.
+
+- **LicenseRef-SEO-Prism-Commercial** ([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)): Commercial license for proprietary use, without the requirement to publish your modifications. Contact the author for details.

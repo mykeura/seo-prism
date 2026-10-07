@@ -5,23 +5,11 @@ __pycache__/
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-!frontend/src/lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
-scans.db
+*.db
 *.sqlite
 *.sqlite3
 
@@ -53,23 +41,9 @@ poetry.lock
 # Node / Frontend
 node_modules/
 dist/
-dist-ssr/
-*.local
+.local
 .cache/
-.parcel-cache/
-.next/
-.nuxt/
-.vuepress/dist/
-.serverless/
-.fusebox/
-.dynamodb/
-.tern-port
-.yarn/cache/
-.yarn/unplugged/
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
-.pnp.js
+.vite-temp/
 
 # Logs
 *.log
@@ -83,39 +57,30 @@ lerna-debug.log*
 coverage/
 .nyc_output/
 .pytest_cache/
-.tox/
-.coverage
-htmlcov/
+.ruff_cache/
 
 # Misc
 *.pid
 *.seed
 *.pid.lock
-.npm
-.eslintcache
-.turbo
-
-# OS
-.DS_Store
-Thumbs.db
-*.bak
-*.tmp
-*.swp
 
 # json
 package-lock.json
-
-# Graphify (local-only knowledge graph)
-graphify-out/
 
 # Claude / Agent tooling (local-only)
 .claude/
 CLAUDE.md
 AGENTS.md
 
-# GitNexus (local-only knowledge graph)
-.gitnexus/
-
 # CodeGraph (local-only knowledge graph)
 .codegraph/
-backend/tools/
+backend/.codegraph/
+
+# Devin (local-only)
+.devin/
+
+# Contract (local-only)
+contract/
+
+# Skills (local-only)
+skills/
