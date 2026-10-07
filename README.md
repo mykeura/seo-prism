@@ -6,6 +6,8 @@ Provides fair logarithmic SEO grading (A-F), bilingual executive PDF reports, a 
 
 ## Web Interface
 
+SEO Prism features a modern web interface that you can use from any browser. When running the project locally, you also have access to the command-line interface (CLI), which includes all the web interface functionality with faster, more direct performance. Additionally, AI agents can use SEO Prism through its MCP server, allowing you to delegate SEO analysis tasks to your favorite AI agent.
+
 ![SEO Prism](images/seo-prism.jpg)
 
 ## Features
