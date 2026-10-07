@@ -288,6 +288,10 @@ seo-prism/
 └── README.md
 ```
 
+## Promotional Video
+
+![SEO Prism Commercial](images/seo-prism-commercial.gif)
+
 ## Support the project
 
 **Sponsor on GitHub**
