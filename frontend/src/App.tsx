@@ -85,6 +85,7 @@ function App() {
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <header className="mb-12 pt-6 text-center">
+          <img src="/logo.png" alt="SEO Prism Logo" className="mx-auto mb-4 h-24 w-auto" />
           <h1 className="mb-3 bg-linear-to-r from-cyan-300 via-primary-300 via-secondary-400 to-accent-400 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent drop-shadow-[0_0_28px_rgba(99,102,241,0.3)]">
             SEO Prism
           </h1>

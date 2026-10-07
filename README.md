@@ -1,8 +1,12 @@
-![SEO Prism Logo](images/logo.png)
-
 # SEO Prism
 
-A comprehensive technical SEO analyzer that crawls websites to detect and report a wide range of SEO issues. Features advanced analysis of broken links, meta tags, header hierarchy, canonical and hreflang validation, structured data detection, orphan pages, thin content, and standard file compliance (robots.txt, sitemaps, security.txt, llms.txt). Provides fair logarithmic SEO grading (A-F), bilingual executive PDF reports, a premium dark crystal web panel, CLI with JSON output for AI agents, and a Model Context Protocol (MCP) server for seamless integration with AI development environments.
+A comprehensive technical SEO analyzer that crawls websites to detect and report a wide range of SEO issues. Features advanced analysis of broken links, meta tags, header hierarchy, canonical and hreflang validation, structured data detection, orphan pages, thin content, and standard file compliance (robots.txt, sitemaps, security.txt, llms.txt). 
+
+Provides fair logarithmic SEO grading (A-F), bilingual executive PDF reports, a premium dark crystal web panel, CLI with JSON output for AI agents, and a Model Context Protocol (MCP) server for seamless integration with AI development environments.
+
+## Web Interface
+
+![SEO Prism](images/seo-prism.jpg)
 
 ## Features
 
@@ -113,6 +117,7 @@ python cli.py --url <URL> --generate-report --report-format pptx  # editable Pow
 ```
 
 **Available options:**
+
 - `--url` (required): Target URL to scan
 - `--max-pages` (optional, default 100): Maximum number of pages to crawl
 - `--json` (flag): Print complete scan results as JSON to stdout (progress goes to stderr)
@@ -122,6 +127,7 @@ python cli.py --url <URL> --generate-report --report-format pptx  # editable Pow
 - `--output` (optional): Output file path (default: `seo_report.pdf` or `seo_report.pptx` per format)
 
 **Examples:**
+
 ```bash
 # Generate PDF report in Spanish
 python cli.py --url https://example.com --generate-report --lang es --output reporte_seo.pdf
@@ -279,6 +285,7 @@ seo-prism/
 ├── LICENSE
 └── README.md
 ```
+
 ## Support the project
 
 m
