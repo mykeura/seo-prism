@@ -1,3 +1,5 @@
+![SEO Prism Logo](images/logo.png)
+
 # SEO Prism
 
 A comprehensive technical SEO analyzer that crawls websites to detect and report a wide range of SEO issues. Features advanced analysis of broken links, meta tags, header hierarchy, canonical and hreflang validation, structured data detection, orphan pages, thin content, and standard file compliance (robots.txt, sitemaps, security.txt, llms.txt). Provides fair logarithmic SEO grading (A-F), bilingual executive PDF reports, a premium dark crystal web panel, CLI with JSON output for AI agents, and a Model Context Protocol (MCP) server for seamless integration with AI development environments.
