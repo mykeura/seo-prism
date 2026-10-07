@@ -290,8 +290,6 @@ seo-prism/
 
 ## Support the project
 
-m
-
 **Sponsor on GitHub**
 You can [sponsor me on GitHub](https://github.com/sponsors/mykeura). It helps cover development time and the API usage behind ongoing maintenance.
 
