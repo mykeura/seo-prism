@@ -21,6 +21,38 @@ from modules.structured_data import StructuredDataModule
 from modules.thin_content import ThinContentModule
 
 
+def is_error_response(page: Dict) -> bool:
+    """
+    True when a crawled entry is an error response rather than a real page.
+
+    Anything outside 2xx/3xx (404/410/5xx, timeouts reported as 408, and
+    connection failures reported as status 0) is not content the site owner
+    published as a page, even when the server answered with an HTML error
+    body.
+    """
+    return not (200 <= page.get('status', 0) < 400)
+
+
+def discard_error_page_content(crawled_pages: List[Dict]) -> None:
+    """
+    Strip the body, links and resources of error responses, in place.
+
+    Servers usually answer a missing URL with an HTML error document. Left
+    untouched, that document is analysed as if it were a real page: it gets
+    flagged for a short title, a missing description, thin content or a
+    duplicated H1, and it inflates the page count. A single broken link then
+    produced a whole cascade of bogus issues and dragged the grade down.
+
+    The entry itself (url + status) is kept: the broken-link and canonical
+    checks read the status of the pages they point to.
+    """
+    for page in crawled_pages:
+        if is_error_response(page):
+            page['html'] = None
+            page['links'] = []
+            page['resources'] = []
+
+
 def _page_modules(db: Database) -> List:
     """Analysis modules with the standard analyze(scan_id, crawled_pages) signature."""
     return [
@@ -57,6 +89,10 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
 
     async with Crawler(url, ignore_robots=ignore_robots) as crawler:
         crawled_pages = await crawler.crawl(max_pages=max_pages)
+
+    # A 404 page is not a page of the site: drop its content before it is
+    # stored, analysed or counted (see discard_error_page_content).
+    discard_error_page_content(crawled_pages)
 
     db.store_crawled_pages(scan_id, crawled_pages)
 
