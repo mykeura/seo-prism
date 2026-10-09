@@ -5,6 +5,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { LanguageProvider } from './i18n'
+import '@fontsource-variable/sora'
+import '@fontsource-variable/geist'
+import '@fontsource-variable/geist-mono'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

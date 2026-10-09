@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLink } from '@fortawesome/free-solid-svg-icons'
+import { Tabs } from '../ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
@@ -39,28 +40,15 @@ export function BrokenLinksSection({ results }: { results: ScanResults }) {
           </div>
         ) : (
           <>
-            <div className="flex gap-2 mb-4 border-b border-border">
-              <button
-                onClick={() => setActiveTab('internal')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  activeTab === 'internal'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.brokenLinks.tabs.internal} ({internalLinks.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('external')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  activeTab === 'external'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.brokenLinks.tabs.external} ({externalLinks.length})
-              </button>
-            </div>
+            <Tabs
+              ariaLabel={t.sections.brokenLinks.title}
+              tabs={[
+                { id: 'internal', label: t.sections.brokenLinks.tabs.internal, count: internalLinks.length },
+                { id: 'external', label: t.sections.brokenLinks.tabs.external, count: externalLinks.length },
+              ]}
+              active={activeTab}
+              onChange={setActiveTab}
+            />
 
             <div className="space-y-4">
               {currentIssues.slice(0, pagination.visible).map((issue) => (

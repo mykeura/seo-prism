@@ -13,13 +13,22 @@ export const es: Translations = {
     resultsFailed: 'No se pudieron obtener los resultados',
     genericError: 'Ocurrió un error',
     footer: (version: string) => `SEO Prism v${version}`,
+    backendUnreachable: (url: string) =>
+      `No se puede conectar con la API de SEO Prism en ${url}. Comprueba que el backend esté en ejecución.`,
+  },
+  hero: {
+    title: 'Descubre cómo leen tu sitio los buscadores',
+    checksLabel: 'Qué se comprueba',
   },
   form: {
     title: 'Iniciar un nuevo análisis',
     description: 'Introduce una URL para analizar problemas de SEO',
     placeholder: 'Introduce la URL (p. ej., http://localhost:3000)',
     scan: 'ANALIZAR',
+    scanAction: 'Analizar sitio',
     scanning: 'Analizando...',
+    inputLabel: 'URL del sitio web',
+    scanningHint: 'Rastreando páginas y ejecutando todas las comprobaciones. Los sitios grandes pueden tardar un minuto.',
     errorPrefix: 'Error',
   },
   summary: {
@@ -29,6 +38,25 @@ export const es: Translations = {
     totalIssues: 'Problemas totales',
     seoGrade: 'Nota SEO',
     scanTime: 'Hora del análisis',
+  },
+  overview: {
+    title: 'Resumen del análisis',
+    issues: 'Problemas',
+    scoreOutOf: (score: number) => `${score} / 100`,
+    gradeLabel: (grade: string, score: number) => `Nota SEO ${grade}, ${score} de 100`,
+    severityBarLabel: 'Problemas por gravedad',
+    openSite: 'Abrir sitio',
+    gradeDescriptions: {
+      A: 'Excelente',
+      B: 'Buena',
+      C: 'Aceptable',
+      D: 'Floja',
+      F: 'Crítica',
+    } as Record<string, string>,
+  },
+  nav: {
+    label: 'Secciones del informe',
+    clean: 'Sin problemas',
   },
   common: {
     showingOf: (visible: number, total: number, label: string) =>
@@ -40,10 +68,10 @@ export const es: Translations = {
     items: 'elementos',
   },
   severity: {
-    high: 'ALTA',
-    medium: 'MEDIA',
-    low: 'BAJA',
-    info: 'INFO',
+    high: 'Alta',
+    medium: 'Media',
+    low: 'Baja',
+    info: 'Info',
   } as Record<string, string>,
   sections: {
     brokenLinks: {
@@ -209,6 +237,7 @@ export const es: Translations = {
     missing_canonical: 'Canonical faltante',
     empty_canonical: 'Canonical vacío',
     orphan_page: 'Página huérfana',
+    missing_structured_data: 'Datos estructurados faltantes',
     missing_json_ld: 'JSON-LD faltante',
     json_ld_missing_type: 'JSON-LD sin type',
     json_ld_unknown_type: 'Tipo de JSON-LD desconocido',

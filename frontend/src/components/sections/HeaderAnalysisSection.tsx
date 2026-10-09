@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTag } from '@fortawesome/free-solid-svg-icons'
+import { Tabs } from '../ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
@@ -44,38 +45,16 @@ export function HeaderAnalysisSection({ issues }: { issues: Issue[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-2 mb-4 border-b border-border">
-          <button
-            onClick={() => setHeaderAnalysisTab('all')}
-            className={`px-4 py-2 font-medium transition-colors ${
-              headerAnalysisTab === 'all'
-                ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t.sections.headerAnalysis.tabs.all} ({headerIssues.length})
-          </button>
-          <button
-            onClick={() => setHeaderAnalysisTab('hierarchy')}
-            className={`px-4 py-2 font-medium transition-colors ${
-              headerAnalysisTab === 'hierarchy'
-                ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t.sections.headerAnalysis.tabs.hierarchy} ({headerHierarchyIssues.length})
-          </button>
-          <button
-            onClick={() => setHeaderAnalysisTab('h1')}
-            className={`px-4 py-2 font-medium transition-colors ${
-              headerAnalysisTab === 'h1'
-                ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t.sections.headerAnalysis.tabs.h1} ({h1Issues.length})
-          </button>
-        </div>
+        <Tabs
+          ariaLabel={t.sections.headerAnalysis.title}
+          tabs={[
+            { id: 'all', label: t.sections.headerAnalysis.tabs.all, count: headerIssues.length },
+            { id: 'hierarchy', label: t.sections.headerAnalysis.tabs.hierarchy, count: headerHierarchyIssues.length },
+            { id: 'h1', label: t.sections.headerAnalysis.tabs.h1, count: h1Issues.length },
+          ]}
+          active={headerAnalysisTab}
+          onChange={setHeaderAnalysisTab}
+        />
 
         {headerIssues.length === 0 ? (
           <div className="text-center py-8">

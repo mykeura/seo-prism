@@ -31,6 +31,30 @@ export function getSeverityColor(severity: string): SeverityVariant {
   return severityVariants[severity] ?? 'outline'
 }
 
+/** Severities ordered from most to least serious. */
+export const SEVERITY_ORDER = ['high', 'medium', 'low', 'info'] as const
+export type Severity = (typeof SEVERITY_ORDER)[number]
+
+/** Solid fill per severity (accent bars, dots, the spectrum bar). */
+export const severityFill: Record<Severity, string> = {
+  high: 'bg-danger-400',
+  medium: 'bg-warning-400',
+  low: 'bg-secondary-400',
+  info: 'bg-primary-400/70',
+}
+
+/** Icon tint per severity, for navigation items. */
+export const severityText: Record<Severity, string> = {
+  high: 'text-danger-300',
+  medium: 'text-warning-300',
+  low: 'text-secondary-300',
+  info: 'text-primary-300',
+}
+
+export function isSeverity(value: string): value is Severity {
+  return (SEVERITY_ORDER as readonly string[]).includes(value)
+}
+
 const gradeColors: Record<string, string> = {
   A: 'text-success-300 border-success-400/25 bg-success-500/10',
   B: 'text-primary-300 border-primary-400/25 bg-primary-500/10',
@@ -99,7 +123,9 @@ const issueIcons: Record<string, IssueIconMeta> = {
   canonical_to_redirect: { icon: faLink, className: 'text-warning' },
   canonical_url_variation: { icon: faLink, className: 'text-secondary' },
   missing_canonical: { icon: faLink, className: 'text-secondary' },
+  empty_canonical: { icon: faLink, className: 'text-warning' },
   orphan_page: { icon: faFolder, className: 'text-warning' },
+  missing_structured_data: { icon: faDatabase, className: 'text-secondary' },
   missing_json_ld: { icon: faDatabase, className: 'text-secondary' },
   json_ld_missing_type: { icon: faDatabase, className: 'text-destructive' },
   json_ld_unknown_type: { icon: faDatabase, className: 'text-warning' },
