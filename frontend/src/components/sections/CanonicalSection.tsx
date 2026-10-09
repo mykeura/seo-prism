@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLink } from '@fortawesome/free-solid-svg-icons'
+import { Tabs } from '../ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
@@ -58,68 +59,19 @@ export function CanonicalSection({ issues }: { issues: Issue[] }) {
           </div>
         ) : (
           <>
-            <div className="flex gap-2 mb-4 border-b border-border flex-wrap">
-              <button
-                onClick={() => setCanonicalTab('all')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  canonicalTab === 'all'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.canonical.tabs.all} ({canonicalIssues.length})
-              </button>
-              <button
-                onClick={() => setCanonicalTab('chains')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  canonicalTab === 'chains'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.canonical.tabs.chains} ({canonicalChains.length})
-              </button>
-              <button
-                onClick={() => setCanonicalTab('404')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  canonicalTab === '404'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                404 ({canonical404.length})
-              </button>
-              <button
-                onClick={() => setCanonicalTab('redirect')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  canonicalTab === 'redirect'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.canonical.tabs.redirect} ({canonicalRedirect.length})
-              </button>
-              <button
-                onClick={() => setCanonicalTab('variations')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  canonicalTab === 'variations'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.canonical.tabs.variations} ({canonicalVariations.length})
-              </button>
-              <button
-                onClick={() => setCanonicalTab('missing')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  canonicalTab === 'missing'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.canonical.tabs.missing} ({missingCanonical.length})
-              </button>
-            </div>
+            <Tabs
+              ariaLabel={t.sections.canonical.title}
+              tabs={[
+                { id: 'all', label: t.sections.canonical.tabs.all, count: canonicalIssues.length },
+                { id: 'chains', label: t.sections.canonical.tabs.chains, count: canonicalChains.length },
+                { id: '404', label: '404', count: canonical404.length },
+                { id: 'redirect', label: t.sections.canonical.tabs.redirect, count: canonicalRedirect.length },
+                { id: 'variations', label: t.sections.canonical.tabs.variations, count: canonicalVariations.length },
+                { id: 'missing', label: t.sections.canonical.tabs.missing, count: missingCanonical.length },
+              ]}
+              active={canonicalTab}
+              onChange={setCanonicalTab}
+            />
 
             <div className="space-y-4">
               {currentIssues.slice(0, pagination.visible).map((issue) => (

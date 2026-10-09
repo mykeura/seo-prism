@@ -220,6 +220,17 @@ cd backend
 venv/bin/pytest
 ```
 
+The frontend has its own suite (Vitest + Testing Library): the full scan flow
+against a mocked API, error states, both languages, every report section, and a
+guard that fails when the backend emits an issue type that no section displays.
+
+```bash
+cd frontend
+pnpm test      # unit + component tests
+pnpm check     # type check
+pnpm build     # type check + production build
+```
+
 ## Project Structure
 
 ```

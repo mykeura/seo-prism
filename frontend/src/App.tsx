@@ -1,29 +1,35 @@
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEO-Prism-Commercial
 // SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
-import { useState } from 'react'
-import { Card, CardContent, CardFooter } from './components/ui/card'
+import { useMemo, useState, type FormEvent } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCircleCheck } from '@fortawesome/free-solid-svg-icons'
+import { Card, CardContent } from './components/ui/card'
+import { AppHeader } from './components/AppHeader'
+import { Hero } from './components/Hero'
 import { ScanForm } from './components/ScanForm'
-import { ScanSummary } from './components/ScanSummary'
-import { BrokenLinksSection } from './components/sections/BrokenLinksSection'
-import { MetaTagsSection } from './components/sections/MetaTagsSection'
-import { MetaLengthSection } from './components/sections/MetaLengthSection'
-import { ImagesAltSection } from './components/sections/ImagesAltSection'
-import { HeaderAnalysisSection } from './components/sections/HeaderAnalysisSection'
-import { StandardFilesSection } from './components/sections/StandardFilesSection'
-import { MetaRobotsSection } from './components/sections/MetaRobotsSection'
-import { HreflangSection } from './components/sections/HreflangSection'
-import { CanonicalSection } from './components/sections/CanonicalSection'
-import { OrphanPagesSection } from './components/sections/OrphanPagesSection'
-import { StructuredDataSection } from './components/sections/StructuredDataSection'
-import { ThinContentSection } from './components/sections/ThinContentSection'
+import { ScanOverview } from './components/ScanOverview'
+import { SectionNav } from './components/SectionNav'
+import { SECTIONS, defaultSectionId, summarizeSections } from './sections'
+import { normalizeUrl } from './lib/url'
 import type { SEOGrade, ScanResults } from './types'
 import { useT } from './i18n'
 import { APP_VERSION } from './version'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+/** The API reports failures as {"detail": "..."}; surface it when present. */
+async function readErrorDetail(response: Response): Promise<string | null> {
+  try {
+    const body = await response.json()
+    return typeof body?.detail === 'string' ? body.detail : null
+  } catch {
+    return null
+  }
+}
+
 function App() {
   const t = useT()
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
   const [results, setResults] = useState<ScanResults | null>(null)
   const [loading, setLoading] = useState(false)
@@ -31,119 +37,143 @@ function App() {
   const [message, setMessage] = useState<string | null>(null)
   const [seoGrade, setSeoGrade] = useState<SEOGrade | null>(null)
   const [url, setUrl] = useState('')
+  const [selectedSection, setSelectedSection] = useState<string | null>(null)
 
-  const handleScan = async (e: React.FormEvent) => {
+  const summaries = useMemo(() => (results ? summarizeSections(results) : []), [results])
+  const activeSectionId =
+    selectedSection && summaries.some((s) => s.id === selectedSection)
+      ? selectedSection
+      : defaultSectionId(summaries)
+  const activeSection = SECTIONS.find((section) => section.id === activeSectionId)
+  const hasActionableIssues = summaries.some((summary) => summary.count > 0)
+
+  const handleScan = async (e: FormEvent) => {
     e.preventDefault()
-    if (!url.trim()) return
+    const target = normalizeUrl(url)
+    if (!target) return
 
+    setUrl(target)
     setLoading(true)
     setError(null)
     setMessage(null)
     setResults(null)
+    setSeoGrade(null)
+    setSelectedSection(null)
 
     try {
       const scanResponse = await fetch(`${API_BASE_URL}/scan`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: target }),
       })
 
       if (!scanResponse.ok) {
-        throw new Error(t.app.startScanFailed)
+        const detail = await readErrorDetail(scanResponse)
+        throw new Error(detail ? `${t.app.startScanFailed}: ${detail}` : t.app.startScanFailed)
       }
 
       const scanData = await scanResponse.json()
       setMessage(scanData.message)
-
-      // Store SEO grade from scan response
       if (scanData.seo_grade) {
         setSeoGrade(scanData.seo_grade)
       }
 
-      const resultsResponse = await fetch(`${API_BASE_URL}/results`)
+      // Ask for this scan by id: "latest" could be another scan if two
+      // were started close together.
+      const resultsPath = scanData.scan_id != null ? `/results/${scanData.scan_id}` : '/results'
+      const resultsResponse = await fetch(`${API_BASE_URL}${resultsPath}`)
 
       if (!resultsResponse.ok) {
         throw new Error(t.app.resultsFailed)
       }
 
-      const resultsData = await resultsResponse.json()
-      setResults(resultsData)
-
+      setResults(await resultsResponse.json())
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.app.genericError)
+      if (err instanceof TypeError) {
+        // fetch() rejects with TypeError when the server cannot be reached
+        setError(t.app.backendUnreachable(API_BASE_URL))
+      } else {
+        setError(err instanceof Error ? err.message : t.app.genericError)
+      }
     } finally {
       setLoading(false)
     }
   }
+
+  const scanForm = (variant: 'hero' | 'compact') => (
+    <ScanForm
+      url={url}
+      onUrlChange={setUrl}
+      onSubmit={handleScan}
+      loading={loading}
+      message={message}
+      error={error}
+      variant={variant}
+    />
+  )
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       {/* Aurora prism backdrop: fixed refracted-light blobs (pure CSS) */}
       <div aria-hidden="true" className="prisma-aurora" />
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <header className="mb-12 pt-6 text-center">
-          <img src="/logo.png" alt="SEO Prism Logo" className="mx-auto mb-4 h-24 w-auto" />
-          <h1 className="mb-3 bg-linear-to-r from-cyan-300 via-primary-300 via-secondary-400 to-accent-400 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent drop-shadow-[0_0_28px_rgba(99,102,241,0.3)]">
-            SEO Prism
-          </h1>
-          <p className="mx-auto max-w-2xl text-balance text-base leading-relaxed text-muted-foreground">
-            {t.app.subtitle}
-          </p>
-        </header>
+      <div className="container mx-auto max-w-6xl px-4 pb-10">
+        <AppHeader />
 
-        <ScanForm
-          url={url}
-          onUrlChange={setUrl}
-          onSubmit={handleScan}
-          loading={loading}
-          message={message}
-          error={error}
-        />
+        {results ? (
+          <main className="space-y-6 pt-2">
+            {scanForm('compact')}
 
-        {results && (
-          <div className="space-y-6">
-            <ScanSummary results={results} seoGrade={seoGrade} />
+            <ScanOverview results={results} seoGrade={seoGrade} />
 
-            {results.issues.length === 0 ? (
+            {!hasActionableIssues && (
               <Card className="border-success-400/20 bg-success-500/[0.04]">
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full border border-success-400/25 bg-success-500/10 text-3xl">✅</div>
-                    <h3 className="text-xl font-semibold tracking-tight text-success-300 mb-2">{t.app.noIssuesTitle}</h3>
-                    <p className="text-muted-foreground">{t.app.noIssuesBody}</p>
+                <CardContent className="flex items-center gap-4 p-5 sm:p-6">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-success-400/25 bg-success-500/10 text-xl text-success-300">
+                    <FontAwesomeIcon icon={faCircleCheck} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h2 className="font-display text-lg font-semibold tracking-tight text-success-300">
+                      {t.app.noIssuesTitle}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">{t.app.noIssuesBody}</p>
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <>
-                <BrokenLinksSection results={results} />
-                <MetaTagsSection issues={results.issues} />
-                <MetaLengthSection issues={results.issues} />
-                <ImagesAltSection issues={results.issues} />
-                <HeaderAnalysisSection issues={results.issues} />
-                <StandardFilesSection issues={results.issues} />
-                <MetaRobotsSection issues={results.issues} />
-                <HreflangSection issues={results.issues} />
-                <CanonicalSection issues={results.issues} />
-                <OrphanPagesSection issues={results.issues} />
-                <StructuredDataSection issues={results.issues} />
-                <ThinContentSection issues={results.issues} />
-              </>
             )}
-          </div>
+
+            <div className="grid gap-6 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start">
+              <SectionNav
+                summaries={summaries}
+                activeId={activeSectionId}
+                onSelect={setSelectedSection}
+              />
+              <div className="min-w-0">{activeSection?.render(results)}</div>
+            </div>
+          </main>
+        ) : (
+          <main className="pb-6 pt-2">
+            <Hero scanning={loading} />
+            {scanForm('hero')}
+            <ul
+              aria-label={t.hero.checksLabel}
+              className="mx-auto mt-10 flex max-w-3xl flex-wrap justify-center gap-2"
+            >
+              {SECTIONS.map((section) => (
+                <li
+                  key={section.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-muted-foreground"
+                >
+                  <FontAwesomeIcon icon={section.icon} className="text-xs text-primary-300" aria-hidden="true" />
+                  {section.title(t)}
+                </li>
+              ))}
+            </ul>
+          </main>
         )}
 
-        <footer className="mt-12 text-center">
-          <Card className="opacity-90">
-            <CardFooter className="justify-center py-6 pt-4">
-              <p className="text-sm text-muted-foreground">
-                {t.app.footer(APP_VERSION)}
-              </p>
-            </CardFooter>
-          </Card>
+        <footer className="mt-16 border-t border-white/5 pt-6 text-center text-sm text-muted-foreground">
+          {t.app.footer(APP_VERSION)}
         </footer>
       </div>
     </div>

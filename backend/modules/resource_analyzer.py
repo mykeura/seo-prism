@@ -133,6 +133,13 @@ class ResourceAnalyzer:
             else:
                 return 'other'
         
+        # An error response (404, 5xx, timeout, connection failure) is not an
+        # HTML page of the site, even if it has an .html extension or the
+        # server returned an HTML error body: it must not inflate the page
+        # count that the SEO grade divides by.
+        if not (200 <= page.get('status', 200) < 400):
+            return 'other'
+        
         # Check if it has HTML content (indicates it's an HTML page)
         if page.get('html'):
             return 'html'

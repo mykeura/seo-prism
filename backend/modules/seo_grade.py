@@ -75,7 +75,7 @@ class SEOGradeCalculator:
         }
 
         for issue in issues:
-            severity = issue.get('severity', 'medium').lower()
+            severity = str(issue.get('severity') or 'medium').lower()
             if severity in error_counts:
                 error_counts[severity] += 1
 

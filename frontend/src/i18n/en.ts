@@ -11,13 +11,22 @@ export const en = {
     resultsFailed: 'Failed to get results',
     genericError: 'An error occurred',
     footer: (version: string) => `SEO Prism v${version}`,
+    backendUnreachable: (url: string) =>
+      `Can't reach the SEO Prism API at ${url}. Check that the backend is running.`,
+  },
+  hero: {
+    title: 'See how search engines read your site',
+    checksLabel: 'What gets checked',
   },
   form: {
     title: 'Start a New Scan',
     description: 'Enter a URL to analyze for SEO issues',
     placeholder: 'Enter URL (e.g., http://localhost:3000)',
     scan: 'SCAN',
+    scanAction: 'Scan site',
     scanning: 'Scanning...',
+    inputLabel: 'Website URL',
+    scanningHint: 'Crawling pages and running every check. Large sites can take a minute.',
     errorPrefix: 'Error',
   },
   summary: {
@@ -27,6 +36,25 @@ export const en = {
     totalIssues: 'Total Issues',
     seoGrade: 'SEO Grade',
     scanTime: 'Scan Time',
+  },
+  overview: {
+    title: 'Scan overview',
+    issues: 'Issues',
+    scoreOutOf: (score: number) => `${score} / 100`,
+    gradeLabel: (grade: string, score: number) => `SEO grade ${grade}, ${score} out of 100`,
+    severityBarLabel: 'Issues by severity',
+    openSite: 'Open site',
+    gradeDescriptions: {
+      A: 'Excellent',
+      B: 'Good',
+      C: 'Fair',
+      D: 'Poor',
+      F: 'Critical',
+    } as Record<string, string>,
+  },
+  nav: {
+    label: 'Report sections',
+    clean: 'No issues',
   },
   common: {
     showingOf: (visible: number, total: number, label: string) =>
@@ -38,10 +66,10 @@ export const en = {
     items: 'items',
   },
   severity: {
-    high: 'HIGH',
-    medium: 'MEDIUM',
-    low: 'LOW',
-    info: 'INFO',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+    info: 'Info',
   } as Record<string, string>,
   sections: {
     brokenLinks: {
@@ -207,6 +235,7 @@ export const en = {
     missing_canonical: 'Missing Canonical',
     empty_canonical: 'Empty Canonical',
     orphan_page: 'Orphan Page',
+    missing_structured_data: 'Missing Structured Data',
     missing_json_ld: 'Missing JSON-LD',
     json_ld_missing_type: 'JSON-LD Missing Type',
     json_ld_unknown_type: 'JSON-LD Unknown Type',

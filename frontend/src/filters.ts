@@ -113,6 +113,7 @@ export function getHreflangIssues(issues: Issue[]): Issue[] {
 
 export function getCanonicalIssues(issues: Issue[]): Issue[] {
   return issues.filter(issue =>
+    issue.issue_type === 'empty_canonical' ||
     issue.issue_type === 'canonical_chain' ||
     issue.issue_type === 'canonical_to_404' ||
     issue.issue_type === 'canonical_to_redirect' ||
@@ -147,7 +148,8 @@ export function getCanonicalVariations(issues: Issue[]): Issue[] {
 
 export function getMissingCanonical(issues: Issue[]): Issue[] {
   return issues.filter(issue =>
-    issue.issue_type === 'missing_canonical'
+    issue.issue_type === 'missing_canonical' ||
+    issue.issue_type === 'empty_canonical'
   )
 }
 
@@ -159,6 +161,10 @@ export function getOrphanPagesIssues(issues: Issue[]): Issue[] {
 
 export function getStructuredDataIssues(issues: Issue[]): Issue[] {
   return issues.filter(issue =>
+    issue.issue_type === 'missing_structured_data' ||
+    issue.issue_type === 'missing_json_ld' ||
+    issue.issue_type === 'missing_microdata' ||
+    issue.issue_type === 'missing_rdfa' ||
     issue.issue_type.startsWith('json_ld') ||
     issue.issue_type.startsWith('microdata') ||
     issue.issue_type.startsWith('rdfa')

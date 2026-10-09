@@ -16,13 +16,15 @@ export function StandardFilesSection({ issues }: { issues: Issue[] }) {
   const pagination = usePagination()
 
   const standardFilesIssues = getStandardFilesIssues(issues)
+  const isFound = (type: string) => type.endsWith('_found')
+  const foundCount = standardFilesIssues.filter((issue) => isFound(issue.issue_type)).length
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t.sections.standardFiles.title}</CardTitle>
         <CardDescription>
-          {t.sections.standardFiles.description(standardFilesIssues.length)}
+          {t.sections.standardFiles.description(foundCount)}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -35,7 +37,11 @@ export function StandardFilesSection({ issues }: { issues: Issue[] }) {
         ) : (
           <div className="space-y-4">
             {standardFilesIssues.slice(0, pagination.visible).map((issue) => (
-              <IssueCard key={issue.id} issue={issue} tone="success" />
+              <IssueCard
+                key={issue.id}
+                issue={issue}
+                tone={isFound(issue.issue_type) ? 'success' : 'default'}
+              />
             ))}
             {pagination.hasMore(standardFilesIssues.length) && (
               <div className="text-center mt-4">

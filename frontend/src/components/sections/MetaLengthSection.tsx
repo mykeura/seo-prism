@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFileAlt } from '@fortawesome/free-solid-svg-icons'
+import { Tabs } from '../ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
@@ -39,28 +40,15 @@ export function MetaLengthSection({ issues }: { issues: Issue[] }) {
           </div>
         ) : (
           <>
-            <div className="flex gap-2 mb-4 border-b border-border">
-              <button
-                onClick={() => setMetaLengthTab('titles')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  metaLengthTab === 'titles'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.metaLength.tabs.titles} ({titleLengthIssues.length})
-              </button>
-              <button
-                onClick={() => setMetaLengthTab('descriptions')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  metaLengthTab === 'descriptions'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.metaLength.tabs.descriptions} ({metaDescLengthIssues.length})
-              </button>
-            </div>
+            <Tabs
+              ariaLabel={t.sections.metaLength.title}
+              tabs={[
+                { id: 'titles', label: t.sections.metaLength.tabs.titles, count: titleLengthIssues.length },
+                { id: 'descriptions', label: t.sections.metaLength.tabs.descriptions, count: metaDescLengthIssues.length },
+              ]}
+              active={metaLengthTab}
+              onChange={setMetaLengthTab}
+            />
 
             <div className="space-y-4">
               {currentIssues.slice(0, pagination.visible).map((issue) => (

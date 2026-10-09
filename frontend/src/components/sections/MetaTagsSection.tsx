@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFileAlt } from '@fortawesome/free-solid-svg-icons'
+import { Tabs } from '../ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { IssueCard } from '../IssueCard'
 import { ShowMoreButton } from '../ShowMoreButton'
@@ -39,28 +40,15 @@ export function MetaTagsSection({ issues }: { issues: Issue[] }) {
           </div>
         ) : (
           <>
-            <div className="flex gap-2 mb-4 border-b border-border">
-              <button
-                onClick={() => setMetaTab('titles')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  metaTab === 'titles'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.metaTags.tabs.titles} ({missingTitles.length})
-              </button>
-              <button
-                onClick={() => setMetaTab('descriptions')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  metaTab === 'descriptions'
-                    ? 'text-primary-300 -mb-px border-b-2 border-primary-400 spectrum-underline'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.sections.metaTags.tabs.descriptions} ({missingDescriptions.length})
-              </button>
-            </div>
+            <Tabs
+              ariaLabel={t.sections.metaTags.title}
+              tabs={[
+                { id: 'titles', label: t.sections.metaTags.tabs.titles, count: missingTitles.length },
+                { id: 'descriptions', label: t.sections.metaTags.tabs.descriptions, count: missingDescriptions.length },
+              ]}
+              active={metaTab}
+              onChange={setMetaTab}
+            />
 
             <div className="space-y-4">
               {currentIssues.slice(0, pagination.visible).map((issue) => (
