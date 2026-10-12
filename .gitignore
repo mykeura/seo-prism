@@ -38,6 +38,9 @@ poetry.lock
 *.sublime-project
 *.sublime-workspace
 
+# Local-only planning notes (not for the repo)
+IDEA.md
+
 # Node / Frontend
 node_modules/
 dist/
