@@ -34,6 +34,7 @@ class Crawler:
         
         # Track visited URLs to avoid duplicates
         self.visited_urls: Set[str] = set()
+        self.queued_urls: Set[str] = set()
         self.results: List[Dict] = []
         
         # Session for HTTP requests
@@ -41,7 +42,16 @@ class Crawler:
     
     async def __aenter__(self):
         """Async context manager entry."""
-        self.session = aiohttp.ClientSession()
+        # Limit concurrent connections (default is 100 total / unlimited per
+        # host). limit=25 covers the batches of 20 pages and 30 resources
+        # without artificial queuing; limit_per_host=8 is polite with real
+        # servers and avoids 429/ban bursts; ttl_dns_cache reuses DNS for 5 min.
+        connector = aiohttp.TCPConnector(
+            limit=25,
+            limit_per_host=8,
+            ttl_dns_cache=300,
+        )
+        self.session = aiohttp.ClientSession(connector=connector)
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -288,6 +298,7 @@ class Crawler:
         
         results = []
         urls_to_visit = [self.base_url]
+        self.queued_urls.add(normalize_url(self.base_url))
         resources_to_verify: Set[str] = set()
         external_links_to_verify: Set[str] = set()
         
@@ -307,7 +318,8 @@ class Crawler:
                     # Add new links to visit
                     if result['links']:
                         for link in result['links']:
-                            if link not in self.visited_urls and link not in urls_to_visit:
+                            if link not in self.visited_urls and link not in self.queued_urls:
+                                self.queued_urls.add(link)
                                 urls_to_visit.append(link)
                     
                     # Collect internal resources to verify and external links
