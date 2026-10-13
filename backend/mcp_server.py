@@ -17,9 +17,8 @@ from mcp.server.fastmcp import FastMCP
 from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
+from limits import MAX_PAGES_LIMIT
 from version import __version__
-
-MAX_PAGES_LIMIT = 100
 
 # FastMCP pins the HTTP host/port on the instance (run() only takes the
 # transport), so the CLI defaults live here.
