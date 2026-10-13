@@ -32,10 +32,22 @@ class MetaTagsModule:
         """
         issues = []
         
-        # Prepare data for H1 analysis between pages
-        all_pages_data = {}
+        # Precompute non-empty H1 texts (lowercased) per page once, so the
+        # duplicate-H1 check below does not re-parse every page per page.
+        h1_texts_by_url = {}
         for page in crawled_pages:
-            all_pages_data[page['url']] = {'html': page.get('html', '')}
+            page_h1_texts = []
+            try:
+                page_soup = soup_for(page)
+                if page_soup:
+                    page_h1_texts = [
+                        h1.get_text(strip=True).lower()
+                        for h1 in page_soup.find_all('h1')
+                        if h1.get_text(strip=True)
+                    ]
+            except Exception as e:
+                print(f"Error extracting H1 on {page['url']}: {str(e)}")
+            h1_texts_by_url[page['url']] = page_h1_texts
         
         for page in crawled_pages:
             page_url = page['url']
@@ -142,38 +154,29 @@ class MetaTagsModule:
                 # Only one H1 on the page, now check if it's duplicated on other pages
                 current_h1 = h1_texts[0].lower() if h1_texts else ''
                 
-                # Search for duplicate H1 on other pages
-                for other_url, page_data in all_pages_data.items():
-                    if other_url == page_url or not page_data.get('html'):
+                # Search for duplicate H1 on other pages (precomputed above)
+                for other_url, other_h1_texts in h1_texts_by_url.items():
+                    if other_url == page_url:
                         continue
-                        
-                    try:
-                        other_soup = soup_for(page_data)
-                        other_h1_elements = other_soup.find_all('h1')
-                        other_h1_texts = [h1.get_text(strip=True).lower() for h1 in other_h1_elements if h1.get_text(strip=True)]
-                        
-                        if current_h1 in other_h1_texts:
-                            issue = {
-                                'issue_type': 'duplicate_h1',
-                                'url': page_url,
-                                'source_page': page_url,
-                                'description': f'Duplicate H1 found on another page: {other_url}',
-                                'severity': 'high'
-                            }
-                            issues.append(issue)
-                            
-                            # Add to database
-                            self.db.add_issue(
-                                scan_id=scan_id,
-                                issue_type='duplicate_h1',
-                                url=page_url,
-                                source_page=page_url,
-                                description=f'Duplicate H1 found on another page: {other_url}',
-                                severity='high'
-                            )
-                    except Exception as e:
-                        print(f"Error analyzing H1 on {other_url}: {str(e)}")
-                        continue
+                    if current_h1 in other_h1_texts:
+                        issue = {
+                            'issue_type': 'duplicate_h1',
+                            'url': page_url,
+                            'source_page': page_url,
+                            'description': f'Duplicate H1 found on another page: {other_url}',
+                            'severity': 'high'
+                        }
+                        issues.append(issue)
+
+                        # Add to database
+                        self.db.add_issue(
+                            scan_id=scan_id,
+                            issue_type='duplicate_h1',
+                            url=page_url,
+                            source_page=page_url,
+                            description=f'Duplicate H1 found on another page: {other_url}',
+                            severity='high'
+                        )
             
             # Analyze header hierarchy
             header_hierarchy_issues = analyze_header_hierarchy(soup, page_url)

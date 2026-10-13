@@ -73,16 +73,17 @@ class CanonicalTagsModule:
         for page in crawled_pages:
             url = page.get('url', '')
             status = page.get('status', 0)
-            html = page.get('html')
-            
+
             # Always add to page_status_map (even if html is None)
             page_status_map[url] = status
-            
-            # Only extract canonical if page has HTML
-            if html:
-                canonical_url = self._extract_canonical(html, url)
-                if canonical_url:
-                    canonical_map[url] = canonical_url
+
+            # Only extract canonical if page has HTML (reuses the shared
+            # soup cache instead of re-parsing the HTML a second time)
+            soup = soup_for(page)
+            if soup:
+                canonical_tag = soup.find('link', rel='canonical')
+                if canonical_tag and canonical_tag.get('href'):
+                    canonical_map[url] = urljoin(url, canonical_tag.get('href', '').strip())
         
         # Track visited canonicals for chain detection
         visited_canonicals: Set[str] = set()
