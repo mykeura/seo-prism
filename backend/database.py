@@ -25,6 +25,11 @@ class Database:
         """Establish database connection."""
         self.conn = sqlite3.connect(self.db_path)
         self.conn.row_factory = sqlite3.Row
+        # WAL + synchronous=NORMAL: each add_issue commit stops costing a full
+        # fsync (~7.7ms -> ~0.07ms measured). Under WAL, synchronous=NORMAL only
+        # risks the last transactions on power loss, never on process crash.
+        self.conn.execute('PRAGMA journal_mode=WAL')
+        self.conn.execute('PRAGMA synchronous=NORMAL')
     
     def _create_tables(self):
         """Create database tables if they don't exist."""
@@ -204,7 +209,8 @@ class Database:
             scan_id: Scan ID
         
         Returns:
-            Dictionary with scan results
+            Dictionary with scan results. 'pages' holds id/scan_id/url/status
+            only; the stored HTML body is intentionally not returned.
         """
         cursor = self.conn.cursor()
         
@@ -219,8 +225,15 @@ class Database:
         cursor.execute('SELECT * FROM issues WHERE scan_id = ?', (scan_id,))
         issues = [dict(row) for row in cursor.fetchall()]
         
-        # Get pages
-        cursor.execute('SELECT * FROM pages WHERE scan_id = ?', (scan_id,))
+        # Get pages. The html column is deliberately NOT selected: nothing
+        # consumes it (the CLI --json payload and the MCP tool drop pages on
+        # purpose, the frontend never reads it), and serving it meant 4-8 MB
+        # of JSON per GET /results. The column stays in the table so a scan can
+        # be re-analysed; select it explicitly if the raw bodies are needed.
+        cursor.execute(
+            'SELECT id, scan_id, url, status FROM pages WHERE scan_id = ?',
+            (scan_id,)
+        )
         pages = [dict(row) for row in cursor.fetchall()]
         
         return {

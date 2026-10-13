@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
+from limits import MAX_PAGES_LIMIT
 from version import __version__
 
 
@@ -104,8 +105,12 @@ async def start_scan(request: ScanRequest):
     
     try:
         db = Database()
+        # Same clamp the MCP server enforces: a careless/remote client must
+        # not request an unbounded crawl. None -> 100; max(1,...) rejects 0/negatives.
+        max_pages = request.max_pages if request.max_pages is not None else 100
+        max_pages = max(1, min(max_pages, MAX_PAGES_LIMIT))
         pipeline_results = await run_scan_pipeline(
-            db, request.url, request.max_pages, ignore_robots
+            db, request.url, max_pages, ignore_robots
         )
         db.close()
         

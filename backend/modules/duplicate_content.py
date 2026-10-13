@@ -4,6 +4,7 @@
 import asyncio
 from typing import List, Dict
 from database import Database
+from core.soup import soup_for
 
 
 class DuplicateContentModule:
@@ -40,32 +41,16 @@ class DuplicateContentModule:
                 continue
                 
             url = page['url']
-            html = page['html']
-            
+
+            soup = soup_for(page)
+
             # Extract title
-            title_match = None
-            if '<title>' in html and '</title>' in html:
-                start = html.find('<title>') + len('<title>')
-                end = html.find('</title>', start)
-                if start != -1 and end != -1:
-                    title_match = html[start:end].strip()
-            
-            # Extract meta description
-            desc_match = None
-            if 'name="description"' in html or 'name=\'description\'' in html:
-                # Look for <meta name="description" content="...">
-                import re
-                desc_pattern = r'<meta[^>]+name[\s]*=[\s]*["\']description["\'][^>]+content[\s]*=[\s]*["\']([^"\']*)["\'][^>]*>'
-                match = re.search(desc_pattern, html, re.IGNORECASE)
-                if match:
-                    desc_match = match.group(1).strip()
-                
-                # Alternative pattern for description meta tag
-                if not desc_match:
-                    desc_pattern_alt = r'<meta[^>]+content[\s]*=[\s]*["\']([^"\']*)["\'][^>]+name[\s]*=[\s]*["\']description["\'][^>]*>'
-                    match = re.search(desc_pattern_alt, html, re.IGNORECASE)
-                    if match:
-                        desc_match = match.group(1).strip()
+            title_tag = soup.find('title')
+            title_match = title_tag.get_text().strip() if title_tag else None
+
+            # Extract meta description (any attribute order)
+            meta_desc = soup.find('meta', attrs={'name': 'description'})
+            desc_match = meta_desc.get('content', '').strip() if meta_desc and meta_desc.get('content') else None
             
             # Store titles and descriptions with their URLs
             if title_match:
