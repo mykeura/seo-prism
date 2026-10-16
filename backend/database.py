@@ -35,7 +35,6 @@ class Database:
         """Create database tables if they don't exist."""
         cursor = self.conn.cursor()
         
-        # Scans table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS scans (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +45,6 @@ class Database:
             )
         ''')
         
-        # Pages table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS pages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +56,6 @@ class Database:
             )
         ''')
         
-        # Links table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS links (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +66,6 @@ class Database:
             )
         ''')
         
-        # Issues table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS issues (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,14 +210,12 @@ class Database:
         """
         cursor = self.conn.cursor()
         
-        # Get scan info
         cursor.execute('SELECT * FROM scans WHERE id = ?', (scan_id,))
         scan = cursor.fetchone()
         
         if not scan:
             return {}
         
-        # Get issues
         cursor.execute('SELECT * FROM issues WHERE scan_id = ?', (scan_id,))
         issues = [dict(row) for row in cursor.fetchall()]
         

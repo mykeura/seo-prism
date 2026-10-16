@@ -37,12 +37,10 @@ def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_
         def echo(message=None, err=False):
             click.echo(message, err=err)
 
-    # Validate URL
     if not validate_url(url):
         echo(f"❌ Invalid URL: {url}", err=True)
         return
 
-    # Check if local
     is_local_url = is_local(url)
     ignore_robots = is_local_url
 
@@ -53,7 +51,6 @@ def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_
 
     echo(f"🔍 Starting scan of: {url}")
 
-    # Run scan
     try:
         results = asyncio.run(run_scan(url, max_pages, ignore_robots))
 
@@ -66,10 +63,8 @@ def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_
             }
             click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
-            # Display results
             display_results(results)
 
-        # Generate report if requested
         if generate_report:
             if output is None:
                 output = 'seo_report.pdf' if report_format == 'pdf' else 'seo_report.pptx'
@@ -111,7 +106,6 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     db = Database()
     pipeline_results = await run_scan_pipeline(db, url, max_pages, ignore_robots)
 
-    # Get complete results
     results = db.get_scan_results(pipeline_results['scan_id'])
     results['seo_grade'] = pipeline_results['seo_grade']
     results['resource_analysis'] = pipeline_results['resource_analysis']
@@ -276,14 +270,12 @@ def display_results(results: dict):
     click.echo(f"📄 Pages Analyzed: {scan.get('total_pages', 0)}")
     click.echo(f"⚠️  Total Issues: {scan.get('total_issues', 0)}")
 
-    # Display SEO grade
     if seo_grade:
         grade = seo_grade.get('grade', 'N/A')
         score = seo_grade.get('score', 0)
         grade_color = _get_grade_color_ansi(grade)
         click.echo(f"🎯 SEO Grade: {grade_color}{grade} ({score}%)\033[0m")
 
-    # Display resource analysis
     if resource_analysis:
         click.echo()
         click.echo("📦 Resources Found:")
@@ -300,7 +292,6 @@ def display_results(results: dict):
         groups = _group_issues_by_type(issues)
         covered_types = set()
 
-        # Dedicated sections (fixed order), each showing every single issue
         for title, exact_types, prefixes in _ISSUE_CATEGORIES:
             section_issues = []
             for issue_type, type_issues in groups.items():
@@ -310,7 +301,6 @@ def display_results(results: dict):
             if section_issues:
                 _print_issue_section(title, section_issues)
 
-        # Informational section: standard files that were found
         found_standard_files = [
             issue
             for issue_type in _STANDARD_FILES_FOUND_TYPES
@@ -320,7 +310,6 @@ def display_results(results: dict):
         if found_standard_files:
             _print_standard_files_found(found_standard_files)
 
-        # Safety net: any issue_type not covered above is listed here
         other_issues = [
             issue
             for issue_type, type_issues in groups.items()
