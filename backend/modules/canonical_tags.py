@@ -74,7 +74,6 @@ class CanonicalTagsModule:
             url = page.get('url', '')
             status = page.get('status', 0)
 
-            # Always add to page_status_map (even if html is None)
             page_status_map[url] = status
 
             # Only extract canonical if page has HTML (reuses the shared
@@ -85,10 +84,8 @@ class CanonicalTagsModule:
                 if canonical_tag and canonical_tag.get('href'):
                     canonical_map[url] = urljoin(url, canonical_tag.get('href', '').strip())
         
-        # Track visited canonicals for chain detection
         visited_canonicals: Set[str] = set()
         
-        # Analyze each page
         for page in crawled_pages:
             if page.get('html'):
                 soup = soup_for(page)
@@ -96,7 +93,6 @@ class CanonicalTagsModule:
                 
                 page_url = page['url']
                 
-                # 1. Missing canonical on indexable pages
                 if not canonical_tag:
                     if self._should_have_canonical(page):
                         self._report(issues, scan_id, {
@@ -119,26 +115,19 @@ class CanonicalTagsModule:
                     })
                     continue
                 
-                # Resolve relative URLs
                 canonical_url = urljoin(page_url, canonical_href)
                 
-                # Normalize for all checks
                 normalized_canonical = self._normalize_url(canonical_url)
                 normalized_page_url = self._normalize_url(page_url)
                 
-                # 2. Self-canonical (points to self) - normal, just informational
                 if normalized_canonical == normalized_page_url:
-                    # Self-canonical is correct, no issue
                     continue
                 
-                # 3. Canonical chains - check using normalized URLs
                 canonical_map_normalized = {self._normalize_url(k): self._normalize_url(v) for k, v in canonical_map.items()}
                 
                 if normalized_canonical in canonical_map_normalized:
-                    # Get the normalized target canonical
                     target_canonical_normalized = canonical_map_normalized[normalized_canonical]
                     
-                    # Check for circular chain (points back to original page)
                     if target_canonical_normalized == normalized_page_url:
                         self._report(issues, scan_id, {
                             'issue_type': 'canonical_chain',
@@ -147,7 +136,6 @@ class CanonicalTagsModule:
                             'description': f'Circular canonical chain detected: {page_url} → {canonical_url} → {page_url}',
                             'severity': 'high'
                         })
-                    # Check for excessive chain
                     elif len(self._trace_canonical_chain(canonical_map, page_url, visited=set())) > 2:
                         self._report(issues, scan_id, {
                             'issue_type': 'canonical_chain',
@@ -157,7 +145,6 @@ class CanonicalTagsModule:
                             'severity': 'high'
                         })
                 
-                # 4. Canonical to non-existent page (404)
                 target_status = page_status_map.get(normalized_canonical)
                 
                 if target_status is not None and target_status >= 400:
@@ -169,7 +156,6 @@ class CanonicalTagsModule:
                         'severity': 'high'
                     })
 
-                # 5. Canonical to redirected page (301/302)
                 elif target_status is not None and target_status in [301, 302]:
                     self._report(issues, scan_id, {
                         'issue_type': 'canonical_to_redirect',
@@ -179,7 +165,6 @@ class CanonicalTagsModule:
                         'severity': 'medium'
                     })
 
-                # 6. Canonical URL variations (only for production, not localhost)
                 elif not self._is_development_environment(page_url):
                     if self._has_url_variation(page_url, canonical_url):
                         variation_type = self._get_variation_type(page_url, canonical_url)
@@ -221,8 +206,6 @@ class CanonicalTagsModule:
         Returns:
             True if page should have canonical
         """
-        # For now, assume all HTML pages should have canonical
-        # Could be refined to check for noindex meta tag
         return True
     
     def _is_development_environment(self, url: str) -> bool:

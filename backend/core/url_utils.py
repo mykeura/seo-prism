@@ -22,13 +22,11 @@ def parse_target_url(user_input: str) -> Tuple[str, int, str]:
         parsed = urlparse(user_input)
         
         if not parsed.scheme:
-            # Default to http if no scheme provided
             parsed = urlparse(f"http://{user_input}")
         
         if not parsed.netloc:
             raise ValueError("Invalid URL: missing network location")
         
-        # Extract domain and port
         domain = parsed.hostname
         if not domain:
             raise ValueError("Invalid URL: missing hostname")
@@ -36,7 +34,6 @@ def parse_target_url(user_input: str) -> Tuple[str, int, str]:
         # Validate hostname format - must contain at least one dot or be localhost
         # or be a valid IP address
         if domain != 'localhost' and '.' not in domain:
-            # Check if it's a valid IP address
             import re
             ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
             if not re.match(ip_pattern, domain):
@@ -46,7 +43,6 @@ def parse_target_url(user_input: str) -> Tuple[str, int, str]:
         if port is None:
             port = 80 if parsed.scheme == 'http' else 443
         
-        # Construct domain:port string
         domain_with_port = f"{domain}:{port}" if port not in [80, 443] else domain
         
         return domain_with_port, port, parsed.scheme
@@ -69,15 +65,12 @@ def is_local(url: str) -> bool:
         parsed = urlparse(url)
         domain = parsed.hostname.lower() if parsed.hostname else ""
         
-        # Check for localhost variants
         if domain in ['localhost', '127.0.0.1', '::1']:
             return True
         
-        # Check for .test or .local TLDs
         if domain.endswith('.test') or domain.endswith('.local'):
             return True
         
-        # Check for IP addresses in private ranges
         if domain.startswith('192.168.') or domain.startswith('10.'):
             return True
         
@@ -137,7 +130,6 @@ def normalize_url(url: str) -> str:
     """
     parsed = urlparse(url)
     
-    # Remove fragment
     parsed = parsed._replace(fragment='')
     
     # Remove trailing slash from path (the root '/' also collapses to '',

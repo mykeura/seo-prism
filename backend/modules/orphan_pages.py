@@ -66,16 +66,14 @@ class OrphanPagesModule:
         """
         issues = []
         
-        # Get all crawled page URLs
         crawled_urls = set()
         for page in crawled_pages:
-            if not page.get('is_resource', False):  # Only HTML pages
+            if not page.get('is_resource', False):
                 crawled_urls.add(page['url'])
         
         if not crawled_urls:
             return issues
         
-        # Get all target URLs from links (pages that are linked to)
         cursor = self.db.conn.cursor()
         cursor.execute('''
             SELECT DISTINCT target_url 
@@ -86,17 +84,13 @@ class OrphanPagesModule:
         
         linked_urls = set(row['target_url'] for row in cursor.fetchall())
         
-        # Find orphan pages (crawled but not linked to)
         base_url_clean = self._get_base_url(base_url)
         
         for page_url in crawled_urls:
-            # Skip homepage (it's normal to not have internal links to it)
             if self._is_homepage(page_url, base_url_clean):
                 continue
             
-            # Check if page has any incoming links
             if page_url not in linked_urls:
-                # This is an orphan page
                 issue = {
                     'issue_type': 'orphan_page',
                     'url': page_url,
@@ -106,7 +100,6 @@ class OrphanPagesModule:
                 }
                 issues.append(issue)
                 
-                # Add to database
                 self.db.add_issue(
                     scan_id=scan_id,
                     issue_type='orphan_page',

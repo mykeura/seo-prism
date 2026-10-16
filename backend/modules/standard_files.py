@@ -33,7 +33,6 @@ class StandardFilesModule:
         """
         issues = []
         
-        # Parse base URL to get domain and scheme
         try:
             parsed = urlparse(base_url)
             scheme = parsed.scheme or 'https'
@@ -43,7 +42,6 @@ class StandardFilesModule:
             if not domain:
                 return issues
             
-            # Include port if it's not the default for the scheme
             if port and ((scheme == 'http' and port != 80) or (scheme == 'https' and port != 443)):
                 base_domain = f"{scheme}://{domain}:{port}"
             else:
@@ -52,9 +50,7 @@ class StandardFilesModule:
         except Exception:
             return issues
         
-        # Check for standard files
         async with aiohttp.ClientSession() as session:
-            # Check robots.txt
             robots_url = f"{base_domain}/robots.txt"
             robots_found = await self._check_file_with_fallback(session, robots_url)
             if robots_found:
@@ -75,7 +71,6 @@ class StandardFilesModule:
                     severity='info'
                 )
             else:
-                # Report missing robots.txt as a low severity issue
                 issue = {
                     'issue_type': 'missing_robots_txt',
                     'url': base_url,
@@ -93,7 +88,6 @@ class StandardFilesModule:
                     severity='low'
                 )
             
-            # Check security.txt
             security_url = f"{base_domain}/.well-known/security.txt"
             security_alt_url = f"{base_domain}/security.txt"  # Alternative location
             
@@ -120,7 +114,6 @@ class StandardFilesModule:
                     severity='info'
                 )
             else:
-                # Report missing security.txt as info (not required)
                 issue = {
                     'issue_type': 'missing_security_txt',
                     'url': base_url,
@@ -138,7 +131,6 @@ class StandardFilesModule:
                     severity='info'
                 )
             
-            # Check llms.txt (AI discovery file)
             llms_url = f"{base_domain}/llms.txt"
             llms_found = await self._check_file_with_fallback(session, llms_url)
             if llms_found:
@@ -159,7 +151,6 @@ class StandardFilesModule:
                     severity='info'
                 )
             else:
-                # Report missing llms.txt as info (relatively new standard)
                 issue = {
                     'issue_type': 'missing_llms_txt',
                     'url': base_url,
@@ -177,7 +168,6 @@ class StandardFilesModule:
                     severity='info'
                 )
             
-            # Check for sitemaps
             sitemaps = await self._find_sitemaps(session, base_url, base_domain)
             if sitemaps:
                 for sitemap_url in sitemaps:
@@ -198,7 +188,6 @@ class StandardFilesModule:
                         severity='info'
                     )
             else:
-                # Report missing sitemap as a medium severity issue
                 issue = {
                     'issue_type': 'missing_sitemap',
                     'url': base_url,
@@ -230,7 +219,6 @@ class StandardFilesModule:
             True if file exists, False otherwise
         """
         try:
-            # Try HEAD request first
             async with session.head(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     return True
@@ -238,7 +226,6 @@ class StandardFilesModule:
             pass
         
         try:
-            # Fallback to GET request and check status
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 return response.status == 200
         except Exception:
@@ -283,14 +270,12 @@ class StandardFilesModule:
             'page-sitemap.xml'
         ]
         
-        # Method 1: Check common sitemap locations
         for sitemap_name in common_sitemap_names:
             sitemap_url = f"{base_domain}/{sitemap_name}"
             if await self._check_file_with_fallback(session, sitemap_url):
                 if sitemap_url not in sitemaps:
                     sitemaps.append(sitemap_url)
         
-        # Method 2: Check robots.txt for sitemap references
         robots_url = f"{base_domain}/robots.txt"
         try:
             async with session.get(robots_url, timeout=aiohttp.ClientTimeout(total=10)) as response:
@@ -301,20 +286,17 @@ class StandardFilesModule:
                         if line.lower().startswith('sitemap:'):
                             sitemap_url = line.split(':', 1)[1].strip()
                             if sitemap_url:
-                                # Convert relative URLs to absolute if needed
                                 if sitemap_url.startswith('/'):
                                     sitemap_url = f"{base_domain}{sitemap_url}"
                                 elif not sitemap_url.startswith(('http://', 'https://')):
                                     sitemap_url = urljoin(base_domain, sitemap_url)
                                 
                                 if sitemap_url not in sitemaps:
-                                    # Verify the sitemap actually exists
                                     if await self._check_file_with_fallback(session, sitemap_url):
                                         sitemaps.append(sitemap_url)
         except Exception:
             pass
         
-        # Method 3: Check HTML for sitemap references
         try:
             async with session.get(base_url, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
@@ -323,13 +305,11 @@ class StandardFilesModule:
                         html = await response.text()
                         soup = BeautifulSoup(html, 'html.parser')
                         
-                        # Check for <link rel="sitemap">
                         for link in soup.find_all('link', rel=lambda x: x and 'sitemap' in x.lower()):
                             href = link.get('href', '').strip()
                             if href:
                                 absolute_url = urljoin(base_domain, href)
                                 if absolute_url not in sitemaps:
-                                    # Verify the sitemap actually exists
                                     if await self._check_file_with_fallback(session, absolute_url):
                                         sitemaps.append(absolute_url)
         except Exception:

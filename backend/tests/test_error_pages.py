@@ -112,10 +112,6 @@ class TestGradeRobustness:
                 == calc.calculate_grade(10, [{'severity': 'medium'}])['score'])
 
 
-# ---------------------------------------------------------------------------
-# End to end: a real scan against a local HTTP server
-# ---------------------------------------------------------------------------
-
 _BODY = ' '.join(['Lorem ipsum dolor sit amet consectetur adipiscing elit'] * 60)
 
 

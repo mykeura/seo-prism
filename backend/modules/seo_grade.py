@@ -25,14 +25,12 @@ from typing import List, Dict
 class SEOGradeCalculator:
     """Calculates SEO grade based on error density."""
 
-    # Severity weights for penalty calculation
     SEVERITY_WEIGHTS = {
         'high': 3,
         'medium': 1,
         'low': 0.5
     }
 
-    # Weighted issues per page considered pathological (score reaches 0).
     # Grade bands with this value: A up to d≈0.25, B to ≈0.6, C to ≈1.05,
     # D to ≈1.6, F beyond.
     MAX_ERROR_DENSITY = 10.0
@@ -67,7 +65,6 @@ class SEOGradeCalculator:
                 }
             }
 
-        # Count errors by severity
         error_counts = {
             'high': 0,
             'medium': 0,
@@ -79,7 +76,6 @@ class SEOGradeCalculator:
             if severity in error_counts:
                 error_counts[severity] += 1
 
-        # Calculate weighted error density
         weighted_errors = (
             error_counts['high'] * self.SEVERITY_WEIGHTS['high'] +
             error_counts['medium'] * self.SEVERITY_WEIGHTS['medium'] +

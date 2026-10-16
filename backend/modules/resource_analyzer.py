@@ -61,7 +61,6 @@ class ResourceAnalyzer:
                 }
             }
         
-        # Initialize counters and lists
         html_pages = []
         css_files = []
         js_files = []
@@ -118,9 +117,7 @@ class ResourceAnalyzer:
         Returns:
             Resource type: 'html', 'css', 'js', 'image', 'other'
         """
-        # Check if it's marked as a resource (not an HTML page)
         if page.get('is_resource'):
-            # Determine type by URL extension
             parsed = urlparse(url)
             path = parsed.path.lower()
             
@@ -140,11 +137,9 @@ class ResourceAnalyzer:
         if not (200 <= page.get('status', 200) < 400):
             return 'other'
         
-        # Check if it has HTML content (indicates it's an HTML page)
         if page.get('html'):
             return 'html'
         
-        # Determine type by URL extension
         parsed = urlparse(url)
         path = parsed.path.lower()
         

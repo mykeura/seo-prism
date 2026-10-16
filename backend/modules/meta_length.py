@@ -9,11 +9,9 @@ from database import Database
 class MetaLengthModule:
     """Module to analyze the length of title tags and meta descriptions."""
     
-    # Length thresholds for title tags
     TITLE_MIN_LENGTH = 30
     TITLE_MAX_LENGTH = 60
     
-    # Length thresholds for meta descriptions
     META_DESC_MIN_LENGTH = 70
     META_DESC_MAX_LENGTH = 150
     
@@ -48,14 +46,12 @@ class MetaLengthModule:
             
             soup = soup_for(page)
             
-            # Analyze title tag length
             title_tag = soup.find('title')
             title = title_tag.get_text().strip() if title_tag else ''
             
             if title:
                 title_length = len(title)
                 
-                # Check if title is too short
                 if title_length < self.TITLE_MIN_LENGTH:
                     issue = {
                         'issue_type': 'title_too_short',
@@ -66,7 +62,6 @@ class MetaLengthModule:
                     }
                     issues.append(issue)
                     
-                    # Add to database
                     self.db.add_issue(
                         scan_id=scan_id,
                         issue_type='title_too_short',
@@ -76,7 +71,6 @@ class MetaLengthModule:
                         severity='medium'
                     )
                 
-                # Check if title is too long
                 elif title_length > self.TITLE_MAX_LENGTH:
                     issue = {
                         'issue_type': 'title_too_long',
@@ -87,7 +81,6 @@ class MetaLengthModule:
                     }
                     issues.append(issue)
                     
-                    # Add to database
                     self.db.add_issue(
                         scan_id=scan_id,
                         issue_type='title_too_long',
@@ -97,14 +90,12 @@ class MetaLengthModule:
                         severity='medium'
                     )
             
-            # Analyze meta description length
             meta_description = soup.find('meta', attrs={'name': 'description'})
             description = meta_description.get('content', '').strip() if meta_description else ''
             
             if description:
                 desc_length = len(description)
                 
-                # Check if description is too short
                 if desc_length < self.META_DESC_MIN_LENGTH:
                     issue = {
                         'issue_type': 'meta_description_too_short',
@@ -115,7 +106,6 @@ class MetaLengthModule:
                     }
                     issues.append(issue)
                     
-                    # Add to database
                     self.db.add_issue(
                         scan_id=scan_id,
                         issue_type='meta_description_too_short',
@@ -125,7 +115,6 @@ class MetaLengthModule:
                         severity='medium'
                     )
                 
-                # Check if description is too long
                 elif desc_length > self.META_DESC_MAX_LENGTH:
                     issue = {
                         'issue_type': 'meta_description_too_long',
@@ -136,7 +125,6 @@ class MetaLengthModule:
                     }
                     issues.append(issue)
                     
-                    # Add to database
                     self.db.add_issue(
                         scan_id=scan_id,
                         issue_type='meta_description_too_long',

@@ -95,11 +95,9 @@ async def start_scan(request: ScanRequest):
     Returns:
         ScanResponse with scan_id and summary
     """
-    # Validate URL
     if not validate_url(request.url):
         raise HTTPException(status_code=400, detail="Invalid URL format")
     
-    # Check if local
     is_local_url = is_local(request.url)
     ignore_robots = is_local_url
     
@@ -114,7 +112,6 @@ async def start_scan(request: ScanRequest):
         )
         db.close()
         
-        # Determine message based on local/remote
         if is_local_url:
             message = "Scan completed in fast mode (ignoring robots.txt)"
         else:

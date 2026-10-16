@@ -217,7 +217,6 @@ class SEOReportPDFGenerator:
             'metric_label': ParagraphStyle(
                 'metric_label', fontName='Helvetica', fontSize=7.5, leading=10,
                 alignment=TA_CENTER, textColor=t['text_light']),
-            # Table cells: URLs wrap anywhere (CJK) so they never overflow.
             'cell_url': ParagraphStyle(
                 'cell_url', fontName='Helvetica', fontSize=7.5, leading=9.5,
                 wordWrap='CJK', textColor=t['secondary']),
@@ -400,7 +399,6 @@ class SEOReportPDFGenerator:
             Spacer(1, 1.6 * cm),
         ]
 
-        # SEO Grade highlight box: colored letter + score + severity totals.
         high_hex = self.theme['high'].hexval()[2:]
         medium_hex = self.theme['medium'].hexval()[2:]
         low_hex = self.theme['low'].hexval()[2:]
@@ -443,7 +441,6 @@ class SEOReportPDFGenerator:
             Spacer(1, 0.2 * cm),
         ]
 
-        # Key metric cards
         def card(value, label, color):
             value_style = ParagraphStyle(
                 f'mv_{label}', parent=self.styles['metric_value'], textColor=color)
@@ -468,7 +465,6 @@ class SEOReportPDFGenerator:
         ]))
         flow.append(metrics)
 
-        # Top high-priority issues as highlighted paragraphs
         high_issues = [i for i in issues if i.get('severity') == 'high'][:5]
         if high_issues:
             flow.append(Paragraph(get_translation(lang, 'top_priority_issues'),
@@ -493,7 +489,6 @@ class SEOReportPDFGenerator:
             ]))
             flow.append(highlight)
 
-        # Complete distribution by category (every category, no limit)
         categories = self._grouped_categories(issues)
         if categories:
             flow.append(Paragraph(get_translation(lang, 'distribution'),

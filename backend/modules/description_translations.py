@@ -18,7 +18,6 @@ Usage:
 
 import re
 
-# Exact English descriptions emitted by the analysis modules -> Spanish.
 STATIC_DESCRIPTIONS_ES = {
     'Missing or empty <title> tag':
         'Falta la etiqueta <title> o está vacía',
@@ -78,8 +77,6 @@ STATIC_DESCRIPTIONS_ES = {
         'Archivo llms.txt no encontrado - opcional pero recomendado para la descubribilidad por IA',
 }
 
-# Dynamic descriptions (f-strings in the analyzers): (pattern, template).
-# The template placeholders {0}, {1}... receive the regex capture groups.
 PATTERN_DESCRIPTIONS_ES = [
     (r'^Broken (?:anchor|link) \(HTTP (\d+)\)$', 'Enlace roto (HTTP {0})'),
     (r'^Broken image \(HTTP (\d+)\)$', 'Imagen rota (HTTP {0})'),

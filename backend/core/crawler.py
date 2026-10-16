@@ -26,18 +26,15 @@ class Crawler:
         self.base_url = base_url
         self.ignore_robots = ignore_robots
         
-        # Parse base URL to get domain
         try:
             self.domain, self.port, self.scheme = parse_target_url(base_url)
         except ValueError as e:
             raise ValueError(f"Invalid base URL: {e}")
         
-        # Track visited URLs to avoid duplicates
         self.visited_urls: Set[str] = set()
         self.queued_urls: Set[str] = set()
         self.results: List[Dict] = []
         
-        # Session for HTTP requests
         self.session: Optional[aiohttp.ClientSession] = None
     
     async def __aenter__(self):
@@ -74,7 +71,6 @@ class Crawler:
             if not parsed.hostname:
                 return False
             
-            # Compare hostname and port
             target_domain, target_port, _ = parse_target_url(url)
             return target_domain == self.domain
         except Exception:
@@ -95,7 +91,6 @@ class Crawler:
         
         normalized_url = normalize_url(url)
         
-        # Skip if already visited
         if normalized_url in self.visited_urls:
             return None
         
@@ -152,7 +147,6 @@ class Crawler:
         
         normalized_url = normalize_url(url)
         
-        # Skip if already visited
         if normalized_url in self.visited_urls:
             return None
         
@@ -164,7 +158,6 @@ class Crawler:
             async with self.session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 status = response.status
                 
-                # Only parse HTML content
                 content_type = response.headers.get('Content-Type', '')
                 if 'text/html' not in content_type:
                     return {
@@ -177,7 +170,6 @@ class Crawler:
                 
                 html = await response.text()
                 
-                # Parse HTML and extract links
                 soup = BeautifulSoup(html, 'html.parser')
                 internal_links, all_resources = self._extract_links(soup, url)
                 
@@ -223,7 +215,6 @@ class Crawler:
         internal_links = []
         all_resources = []
         
-        # Extract anchor links
         for link in soup.find_all('a', href=True):
             href = link['href'].strip()
             
@@ -231,10 +222,8 @@ class Crawler:
             if not href or href.startswith('#') or href.startswith('javascript:') or href.startswith('mailto:'):
                 continue
             
-            # Resolve relative URLs
             absolute_url = resolve_relative_url(base_url, href)
             
-            # Store all anchor links
             all_resources.append({
                 'url': absolute_url,
                 'type': 'anchor',
@@ -245,7 +234,6 @@ class Crawler:
             if self._is_same_domain(absolute_url):
                 internal_links.append(normalize_url(absolute_url))
         
-        # Extract images
         for img in soup.find_all('img', src=True):
             src = img['src'].strip()
             if src:
@@ -258,7 +246,6 @@ class Crawler:
                     'alt': alt
                 })
         
-        # Extract link tags (stylesheets, etc.)
         for link_tag in soup.find_all('link', href=True):
             href = link_tag['href'].strip()
             if href:
@@ -269,7 +256,6 @@ class Crawler:
                     'source': base_url
                 })
         
-        # Extract scripts
         for script in soup.find_all('script', src=True):
             src = script['src'].strip()
             if src:
@@ -280,7 +266,6 @@ class Crawler:
                     'source': base_url
                 })
         
-        # Remove duplicates from internal_links
         return list(set(internal_links)), all_resources
     
     async def crawl(self, max_pages: int = 1000) -> List[Dict]:
@@ -303,11 +288,9 @@ class Crawler:
         external_links_to_verify: Set[str] = set()
         
         while urls_to_visit and len(results) < max_pages:
-            # Get next batch of URLs
-            current_batch = urls_to_visit[:20]  # Process in batches of 20
+            current_batch = urls_to_visit[:20]
             urls_to_visit = urls_to_visit[20:]
             
-            # Fetch pages concurrently
             tasks = [self._fetch_page(url) for url in current_batch]
             page_results = await asyncio.gather(*tasks)
             
@@ -315,35 +298,28 @@ class Crawler:
                 if result:
                     results.append(result)
                     
-                    # Add new links to visit
                     if result['links']:
                         for link in result['links']:
                             if link not in self.visited_urls and link not in self.queued_urls:
                                 self.queued_urls.add(link)
                                 urls_to_visit.append(link)
                     
-                    # Collect internal resources to verify and external links
                     if result.get('resources'):
                         for resource in result['resources']:
                             resource_url = resource['url']
                             resource_type = resource.get('type', '')
                             
-                            # Verify internal resources (same domain)
                             if self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
                                 resources_to_verify.add(resource_url)
-                            # Collect external anchor links to verify
                             elif resource_type == 'anchor' and not self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
                                 external_links_to_verify.add(resource_url)
         
-        # Verify internal resources (images, scripts, stylesheets)
         if resources_to_verify:
-            # Process resources in batches
             resource_list = list(resources_to_verify)
             batch_size = 30
             
             for i in range(0, len(resource_list), batch_size):
                 current_batch = resource_list[i:i + batch_size]
-                # Fetch resources concurrently
                 tasks = [self._fetch_resource(url) for url in current_batch]
                 resource_results = await asyncio.gather(*tasks)
                 
@@ -351,15 +327,12 @@ class Crawler:
                     if resource_result:
                         results.append(resource_result)
         
-        # Verify external anchor links
         if external_links_to_verify:
-            # Process external links in batches
             external_links_list = list(external_links_to_verify)
             batch_size = 30
             
             for i in range(0, len(external_links_list), batch_size):
                 current_batch = external_links_list[i:i + batch_size]
-                # Fetch external links concurrently
                 tasks = [self._fetch_resource(url) for url in current_batch]
                 external_link_results = await asyncio.gather(*tasks)
                 

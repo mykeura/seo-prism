@@ -32,8 +32,6 @@ class MetaTagsModule:
         """
         issues = []
         
-        # Precompute non-empty H1 texts (lowercased) per page once, so the
-        # duplicate-H1 check below does not re-parse every page per page.
         h1_texts_by_url = {}
         for page in crawled_pages:
             page_h1_texts = []
@@ -58,7 +56,6 @@ class MetaTagsModule:
             
             soup = soup_for(page)
             
-            # Check for title tag
             title_tag = soup.find('title')
             title = title_tag.get_text().strip() if title_tag else ''
             
@@ -72,7 +69,6 @@ class MetaTagsModule:
                 }
                 issues.append(issue)
                 
-                # Add to database
                 self.db.add_issue(
                     scan_id=scan_id,
                     issue_type='missing_title',
@@ -82,7 +78,6 @@ class MetaTagsModule:
                     severity='high'
                 )
             
-            # Check for meta description
             meta_description = soup.find('meta', attrs={'name': 'description'})
             description = meta_description.get('content', '').strip() if meta_description else ''
             
@@ -96,7 +91,6 @@ class MetaTagsModule:
                 }
                 issues.append(issue)
                 
-                # Add to database
                 self.db.add_issue(
                     scan_id=scan_id,
                     issue_type='missing_description',
@@ -106,12 +100,10 @@ class MetaTagsModule:
                     severity='medium'
                 )
             
-            # Check for H1 tags
             h1_elements = soup.find_all('h1')
             h1_texts = [h1.get_text(strip=True) for h1 in h1_elements if h1.get_text(strip=True)]
             
             if len(h1_elements) == 0:
-                # No H1 on the page
                 issue = {
                     'issue_type': 'missing_h1',
                     'url': page_url,
@@ -121,7 +113,6 @@ class MetaTagsModule:
                 }
                 issues.append(issue)
                 
-                # Add to database
                 self.db.add_issue(
                     scan_id=scan_id,
                     issue_type='missing_h1',
@@ -131,7 +122,6 @@ class MetaTagsModule:
                     severity='high'
                 )
             elif len(h1_elements) > 1:
-                # Multiple H1 on the same page
                 issue = {
                     'issue_type': 'multiple_h1_same_page',
                     'url': page_url,
@@ -141,7 +131,6 @@ class MetaTagsModule:
                 }
                 issues.append(issue)
                 
-                # Add to database
                 self.db.add_issue(
                     scan_id=scan_id,
                     issue_type='multiple_h1_same_page',
@@ -151,10 +140,8 @@ class MetaTagsModule:
                     severity='high'
                 )
             else:
-                # Only one H1 on the page, now check if it's duplicated on other pages
                 current_h1 = h1_texts[0].lower() if h1_texts else ''
                 
-                # Search for duplicate H1 on other pages (precomputed above)
                 for other_url, other_h1_texts in h1_texts_by_url.items():
                     if other_url == page_url:
                         continue
@@ -168,7 +155,6 @@ class MetaTagsModule:
                         }
                         issues.append(issue)
 
-                        # Add to database
                         self.db.add_issue(
                             scan_id=scan_id,
                             issue_type='duplicate_h1',
@@ -178,12 +164,10 @@ class MetaTagsModule:
                             severity='high'
                         )
             
-            # Analyze header hierarchy
             header_hierarchy_issues = analyze_header_hierarchy(soup, page_url)
             for issue in header_hierarchy_issues:
                 issues.append(issue)
                 
-                # Add to database
                 self.db.add_issue(
                     scan_id=scan_id,
                     issue_type=issue['issue_type'],

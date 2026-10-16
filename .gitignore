@@ -40,6 +40,7 @@ poetry.lock
 
 # Local-only planning notes (not for the repo)
 IDEA.md
+docs/
 
 # Node / Frontend
 node_modules/

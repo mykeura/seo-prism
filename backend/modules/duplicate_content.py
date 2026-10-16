@@ -32,7 +32,6 @@ class DuplicateContentModule:
         """
         issues = []
         
-        # Extract titles and descriptions from all pages
         titles = {}
         descriptions = {}
         
@@ -44,15 +43,12 @@ class DuplicateContentModule:
 
             soup = soup_for(page)
 
-            # Extract title
             title_tag = soup.find('title')
             title_match = title_tag.get_text().strip() if title_tag else None
 
-            # Extract meta description (any attribute order)
             meta_desc = soup.find('meta', attrs={'name': 'description'})
             desc_match = meta_desc.get('content', '').strip() if meta_desc and meta_desc.get('content') else None
             
-            # Store titles and descriptions with their URLs
             if title_match:
                 if title_match not in titles:
                     titles[title_match] = []
@@ -63,9 +59,8 @@ class DuplicateContentModule:
                     descriptions[desc_match] = []
                 descriptions[desc_match].append(url)
         
-        # Find duplicates
         for title, urls in titles.items():
-            if len(urls) > 1:  # More than one page has the same title
+            if len(urls) > 1:
                 for url in urls:
                     issue = {
                         'issue_type': 'duplicate_title',
@@ -85,7 +80,7 @@ class DuplicateContentModule:
                     )
         
         for desc, urls in descriptions.items():
-            if len(urls) > 1:  # More than one page has the same description
+            if len(urls) > 1:
                 for url in urls:
                     issue = {
                         'issue_type': 'duplicate_description',

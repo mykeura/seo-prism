@@ -38,16 +38,12 @@ class ImageAltTextModule:
             url = page['url']
             soup = soup_for(page)
             
-            # Find all img tags
             img_tags = soup.find_all('img')
             
             for img in img_tags:
-                # Get the alt attribute
                 alt_attr = img.get('alt', '')
                 
-                # Check if alt attribute is missing or empty
                 if alt_attr is None or alt_attr.strip() == '':
-                    # Get the src attribute for context
                     img_src = img.get('src', 'Unknown')
                     
                     issue = {

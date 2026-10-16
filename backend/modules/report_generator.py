@@ -20,7 +20,6 @@ from .report_translations import get_translation, get_impact_template
 class SEOReportGenerator:
     """Generates professional SEO reports in PowerPoint format."""
     
-    # Corporate color theme (easily customizable)
     THEME_COLORS = {
         'primary': RGBColor(30, 58, 138),      # Dark blue
         'secondary': RGBColor(100, 116, 139),  # Slate gray
@@ -57,12 +56,10 @@ class SEOReportGenerator:
         Returns:
             Path to the generated PowerPoint file
         """
-        # Create presentation
         prs = Presentation()
         prs.slide_width = Inches(10)
         prs.slide_height = Inches(7.5)
         
-        # Generate slides
         self._add_cover_slide(prs, results, lang)
         self._add_executive_summary(prs, results, lang)
         self._add_impact_slide(prs, results, lang)
@@ -71,7 +68,6 @@ class SEOReportGenerator:
         self._add_recommendations_slide(prs, results, lang)
         self._add_notes_slide(prs, lang)
         
-        # Save presentation
         prs.save(output_path)
         return output_path
     
@@ -80,7 +76,6 @@ class SEOReportGenerator:
         slide_layout = prs.slide_layouts[6]  # Blank layout
         slide = prs.slides.add_slide(slide_layout)
         
-        # Add gradient background
         background = slide.background
         fill = background.fill
         fill.gradient()
@@ -88,7 +83,6 @@ class SEOReportGenerator:
         fill.gradient_stops[0].color.rgb = self.theme['primary']
         fill.gradient_stops[1].color.rgb = self.theme['accent']
         
-        # Add logo placeholder
         logo_shape = slide.shapes.add_shape(
             1,  # Rectangle
             Inches(1), Inches(0.5), Inches(2), Inches(1.5)
@@ -105,7 +99,6 @@ class SEOReportGenerator:
                 run.font.size = Pt(10)
                 run.font.color.rgb = self.theme['text_light']
         
-        # Add title
         title_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(2.5), Inches(9), Inches(1)
         )
@@ -116,7 +109,6 @@ class SEOReportGenerator:
         title_frame.paragraphs[0].font.bold = True
         title_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
         
-        # Add client name placeholder
         client_box = slide.shapes.add_textbox(
             Inches(2), Inches(3.5), Inches(6), Inches(0.5)
         )
@@ -126,7 +118,6 @@ class SEOReportGenerator:
         client_frame.paragraphs[0].font.size = Pt(18)
         client_frame.paragraphs[0].font.color.rgb = RGBColor(200, 200, 200)
         
-        # Add URL
         url_box = slide.shapes.add_textbox(
             Inches(2), Inches(4.1), Inches(6), Inches(0.4)
         )
@@ -136,7 +127,6 @@ class SEOReportGenerator:
         url_frame.paragraphs[0].font.size = Pt(14)
         url_frame.paragraphs[0].font.color.rgb = RGBColor(180, 180, 180)
         
-        # Add date
         date_box = slide.shapes.add_textbox(
             Inches(2), Inches(4.6), Inches(6), Inches(0.4)
         )
@@ -146,12 +136,10 @@ class SEOReportGenerator:
         date_frame.paragraphs[0].font.size = Pt(14)
         date_frame.paragraphs[0].font.color.rgb = RGBColor(180, 180, 180)
         
-        # Add SEO Grade box (large and prominent)
         grade_data = results.get('seo_grade', {})
         grade = grade_data.get('grade', 'N/A')
         score = grade_data.get('score', 0)
         
-        # Determine grade color
         grade_color = self.theme['success']
         if grade == 'B':
             grade_color = self.theme['accent']
@@ -174,7 +162,6 @@ class SEOReportGenerator:
         grade_text = grade_box.text_frame
         grade_text.word_wrap = True
         
-        # Add "GRADE" label
         p_grade_label = grade_text.paragraphs[0]
         p_grade_label.text = get_translation(lang, 'seo_grade').upper()
         p_grade_label.alignment = PP_ALIGN.CENTER
@@ -183,7 +170,6 @@ class SEOReportGenerator:
         p_grade_label.font.color.rgb = RGBColor(255, 255, 255)
         p_grade_label.space_after = Pt(5)
         
-        # Add grade letter (large)
         p_grade = grade_text.add_paragraph()
         p_grade.text = grade
         p_grade.alignment = PP_ALIGN.CENTER
@@ -192,7 +178,6 @@ class SEOReportGenerator:
         p_grade.font.color.rgb = RGBColor(255, 255, 255)
         p_grade.space_after = Pt(5)
         
-        # Add score
         p_score = grade_text.add_paragraph()
         p_score.text = f"{get_translation(lang, 'score').upper()}: {score}%"
         p_score.alignment = PP_ALIGN.CENTER
@@ -205,7 +190,6 @@ class SEOReportGenerator:
         slide_layout = prs.slide_layouts[6]  # Blank layout
         slide = prs.slides.add_slide(slide_layout)
         
-        # Add header bar
         header_shape = slide.shapes.add_shape(
             1,  # Rectangle
             Inches(0), Inches(0), Inches(10), Inches(1)
@@ -214,7 +198,6 @@ class SEOReportGenerator:
         header_shape.fill.fore_color.rgb = self.theme['primary']
         header_shape.line.fill.background()
         
-        # Add title
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.25), Inches(9), Inches(0.5))
         title_frame = title_box.text_frame
         title_frame.text = get_translation(lang, 'executive_summary')
@@ -222,7 +205,6 @@ class SEOReportGenerator:
         title_frame.paragraphs[0].font.bold = True
         title_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
         
-        # Add grade explanation
         grade_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(1.2), Inches(9), Inches(0.6)
         )
@@ -231,12 +213,10 @@ class SEOReportGenerator:
         grade_frame.paragraphs[0].font.size = Pt(12)
         grade_frame.paragraphs[0].font.color.rgb = self.theme['text_light']
         
-        # Get metrics
         scan = results.get('scan', {})
         grade_data = results.get('seo_grade', {})
         breakdown = grade_data.get('breakdown', {})
         
-        # Add metric cards
         metrics = [
             {
                 'label': get_translation(lang, 'total_pages'),
@@ -260,7 +240,6 @@ class SEOReportGenerator:
             },
         ]
         
-        # Position metric cards
         card_width = Inches(2.2)
         card_height = Inches(1.2)
         card_spacing = Inches(0.2)
@@ -270,14 +249,12 @@ class SEOReportGenerator:
         for i, metric in enumerate(metrics):
             x = start_x + i * (card_width + card_spacing)
             
-            # Add card background
             card = slide.shapes.add_shape(1, x, start_y, card_width, card_height)
             card.fill.solid()
             card.fill.fore_color.rgb = self.theme['background']
             card.line.color.rgb = metric['color']
             card.line.width = Pt(2)
             
-            # Add value
             value_box = slide.shapes.add_textbox(x, start_y + Inches(0.2), card_width, Inches(0.5))
             value_frame = value_box.text_frame
             value_frame.text = metric['value']
@@ -286,7 +263,6 @@ class SEOReportGenerator:
             value_frame.paragraphs[0].font.bold = True
             value_frame.paragraphs[0].font.color.rgb = metric['color']
             
-            # Add label
             label_box = slide.shapes.add_textbox(x, start_y + Inches(0.7), card_width, Inches(0.4))
             label_frame = label_box.text_frame
             label_frame.text = metric['label']
@@ -294,7 +270,6 @@ class SEOReportGenerator:
             label_frame.paragraphs[0].font.size = Pt(10)
             label_frame.paragraphs[0].font.color.rgb = self.theme['text_light']
         
-        # Add critical issues summary
         issues = results.get('issues', [])
         critical_issues = [i for i in issues if i.get('severity') == 'high'][:5]
         
@@ -321,13 +296,11 @@ class SEOReportGenerator:
         slide_layout = prs.slide_layouts[6]
         slide = prs.slides.add_slide(slide_layout)
         
-        # Add header bar
         header_shape = slide.shapes.add_shape(1, Inches(0), Inches(0), Inches(10), Inches(1))
         header_shape.fill.solid()
         header_shape.fill.fore_color.rgb = self.theme['primary']
         header_shape.line.fill.background()
         
-        # Add title
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.25), Inches(9), Inches(0.5))
         title_frame = title_box.text_frame
         title_frame.text = get_translation(lang, 'impact_on_google')
@@ -335,13 +308,11 @@ class SEOReportGenerator:
         title_frame.paragraphs[0].font.bold = True
         title_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
         
-        # Add content
         content_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(1.2), Inches(9), Inches(6)
         )
         content_frame = content_box.text_frame
         
-        # Introduction
         p_intro = content_frame.paragraphs[0]
         p_intro.text = get_translation(lang, 'issues_by_severity')
         p_intro.font.size = Pt(14)
@@ -349,7 +320,6 @@ class SEOReportGenerator:
         p_intro.font.color.rgb = self.theme['primary']
         p_intro.space_after = Pt(15)
         
-        # Severity explanations
         severity_info = [
             (get_translation(lang, 'high_priority'), self.theme['danger'], get_translation(lang, 'must_correct')),
             (get_translation(lang, 'medium_priority'), self.theme['warning'], get_translation(lang, 'should_correct')),
@@ -370,13 +340,11 @@ class SEOReportGenerator:
         slide_layout = prs.slide_layouts[6]
         slide = prs.slides.add_slide(slide_layout)
         
-        # Add header bar
         header_shape = slide.shapes.add_shape(1, Inches(0), Inches(0), Inches(10), Inches(1))
         header_shape.fill.solid()
         header_shape.fill.fore_color.rgb = self.theme['primary']
         header_shape.line.fill.background()
         
-        # Add title
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.25), Inches(9), Inches(0.5))
         title_frame = title_box.text_frame
         title_frame.text = get_translation(lang, 'distribution')
@@ -384,7 +352,6 @@ class SEOReportGenerator:
         title_frame.paragraphs[0].font.bold = True
         title_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
         
-        # Group issues by category
         issues = results.get('issues', [])
         categories = {}
         for issue in issues:
@@ -393,10 +360,8 @@ class SEOReportGenerator:
                 categories[issue_type] = []
             categories[issue_type].append(issue)
         
-        # Sort by count (descending)
         sorted_categories = sorted(categories.items(), key=lambda x: len(x[1]), reverse=True)
         
-        # Create table
         table = slide.shapes.add_table(
             rows=min(len(sorted_categories) + 1, 10),  # Max 10 rows
             cols=2,
@@ -406,21 +371,17 @@ class SEOReportGenerator:
             height=Inches(6)
         ).table
         
-        # Style table
         table.style = 'Medium Style 2 - Accent 1'
         
-        # Header row
         table.cell(0, 0).text = get_translation(lang, 'description')
         table.cell(0, 1).text = 'Count'
         
-        # Fill table
         for idx, (category, cat_issues) in enumerate(sorted_categories[:9]):  # Max 9 data rows
             if idx + 1 >= len(table.rows):
                 break
             table.cell(idx + 1, 0).text = category
             table.cell(idx + 1, 1).text = str(len(cat_issues))
         
-        # Style cells
         for row in table.rows:
             for cell in row.cells:
                 cell.text_frame.paragraphs[0].font.size = Pt(11)
@@ -430,7 +391,6 @@ class SEOReportGenerator:
         """Add detailed analysis slides for each issue category."""
         issues = results.get('issues', [])
         
-        # Group issues by category
         categories = {}
         for issue in issues:
             issue_type = issue.get('issue_type', 'unknown')
@@ -438,7 +398,6 @@ class SEOReportGenerator:
                 categories[issue_type] = []
             categories[issue_type].append(issue)
         
-        # Only add slides for categories with issues
         for category, cat_issues in sorted(categories.items()):
             if len(cat_issues) == 0:
                 continue
@@ -450,13 +409,11 @@ class SEOReportGenerator:
         slide_layout = prs.slide_layouts[6]
         slide = prs.slides.add_slide(slide_layout)
         
-        # Add header bar
         header_shape = slide.shapes.add_shape(1, Inches(0), Inches(0), Inches(10), Inches(1))
         header_shape.fill.solid()
         header_shape.fill.fore_color.rgb = self.theme['primary']
         header_shape.line.fill.background()
         
-        # Add title
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.25), Inches(9), Inches(0.5))
         title_frame = title_box.text_frame
         title_frame.text = f"{category.upper()} ({len(issues)} issues)"
@@ -464,10 +421,8 @@ class SEOReportGenerator:
         title_frame.paragraphs[0].font.bold = True
         title_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
         
-        # Get impact template
         impact_template = get_impact_template(lang, category)
         
-        # Add impact
         impact_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(1.2), Inches(9), Inches(1.2)
         )
@@ -479,7 +434,6 @@ class SEOReportGenerator:
         impact_frame.paragraphs[1].font.size = Pt(10)
         impact_frame.paragraphs[1].font.color.rgb = self.theme['text_light']
         
-        # Create table for issues
         num_rows = min(len(issues) + 1, 8)  # Max 8 rows total
         table = slide.shapes.add_table(
             rows=num_rows,
@@ -490,27 +444,21 @@ class SEOReportGenerator:
             height=Inches(4)
         ).table
         
-        # Header row
         table.cell(0, 0).text = get_translation(lang, 'description')
         table.cell(0, 1).text = get_translation(lang, 'examples')
         table.cell(0, 2).text = get_translation(lang, 'priority')
         
-        # Fill table
         for idx, issue in enumerate(issues[:7]):  # Max 7 data rows
             if idx + 1 >= len(table.rows):
                 break
             
-            # Description
             table.cell(idx + 1, 0).text = issue.get('description', 'N/A')
             
-            # Examples (URL)
             table.cell(idx + 1, 1).text = issue.get('url', 'N/A')
             
-            # Priority
             priority = issue.get('severity', 'medium').upper()
             table.cell(idx + 1, 2).text = priority
             
-            # Color based on priority
             if priority == 'HIGH':
                 table.cell(idx + 1, 2).fill.solid()
                 table.cell(idx + 1, 2).fill.fore_color.rgb = self.theme['danger']
@@ -524,14 +472,12 @@ class SEOReportGenerator:
                 table.cell(idx + 1, 2).fill.fore_color.rgb = self.theme['success']
                 table.cell(idx + 1, 2).text_frame.paragraphs[0].font.color.rgb = RGBColor(0, 0, 0)
         
-        # Style cells
         for row in table.rows:
             for cell in row.cells:
                 cell.text_frame.paragraphs[0].font.size = Pt(9)
                 cell.text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
                 cell.text_frame.word_wrap = True
         
-        # Add priority note
         priority_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(6.7), Inches(9), Inches(0.7)
         )
@@ -545,13 +491,11 @@ class SEOReportGenerator:
         slide_layout = prs.slide_layouts[6]
         slide = prs.slides.add_slide(slide_layout)
         
-        # Add header bar
         header_shape = slide.shapes.add_shape(1, Inches(0), Inches(0), Inches(10), Inches(1))
         header_shape.fill.solid()
         header_shape.fill.fore_color.rgb = self.theme['primary']
         header_shape.line.fill.background()
         
-        # Add title
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.25), Inches(9), Inches(0.5))
         title_frame = title_box.text_frame
         title_frame.text = get_translation(lang, 'next_steps')
@@ -559,13 +503,11 @@ class SEOReportGenerator:
         title_frame.paragraphs[0].font.bold = True
         title_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
         
-        # Add recommendations
         content_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(1.2), Inches(9), Inches(6)
         )
         content_frame = content_box.text_frame
         
-        # Priority order
         recommendations = [
             get_translation(lang, 'must_correct'),
             get_translation(lang, 'should_correct'),
@@ -581,7 +523,6 @@ class SEOReportGenerator:
             p.space_before = Pt(8)
             p.space_after = Pt(8)
         
-        # Add call to action
         cta_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(5.5), Inches(9), Inches(1.5)
         )
@@ -596,13 +537,11 @@ class SEOReportGenerator:
         slide_layout = prs.slide_layouts[6]
         slide = prs.slides.add_slide(slide_layout)
         
-        # Add header bar
         header_shape = slide.shapes.add_shape(1, Inches(0), Inches(0), Inches(10), Inches(1))
         header_shape.fill.solid()
         header_shape.fill.fore_color.rgb = self.theme['primary']
         header_shape.line.fill.background()
         
-        # Add title
         title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.25), Inches(9), Inches(0.5))
         title_frame = title_box.text_frame
         title_frame.text = get_translation(lang, 'notes')
@@ -610,7 +549,6 @@ class SEOReportGenerator:
         title_frame.paragraphs[0].font.bold = True
         title_frame.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
         
-        # Add placeholder for notes
         notes_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(1.2), Inches(9), Inches(6)
         )

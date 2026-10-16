@@ -11,7 +11,6 @@ from database import Database
 class StructuredDataModule:
     """Module to validate Schema/Structured Data (JSON-LD, Microdata, RDFa)."""
     
-    # Common Schema.org types
     SCHEMA_TYPES = {
         'WebPage', 'WebSite', 'Article', 'BlogPosting', 'NewsArticle', 'TechArticle',
         'Organization', 'Person', 'LocalBusiness', 'Restaurant', 'Hotel',
@@ -22,7 +21,6 @@ class StructuredDataModule:
         'SearchAction', 'EntryPoint', 'Action'
     }
     
-    # Required properties by schema type
     REQUIRED_PROPERTIES = {
         'Article': ['headline', 'author', 'datePublished', 'publisher'],
         'BlogPosting': ['headline', 'author', 'datePublished', 'publisher'],
@@ -72,19 +70,15 @@ class StructuredDataModule:
             
             soup = soup_for(page)
             
-            # Analyze JSON-LD
             json_ld_issues = self._analyze_json_ld(soup, page_url)
             json_ld_found = bool(soup.find('script', attrs={'type': 'application/ld+json'}))
             
-            # Analyze Microdata
             microdata_issues = self._analyze_microdata(soup, page_url)
             microdata_found = soup.find(attrs={'itemscope': True})
             
-            # Analyze RDFa
             rdfa_issues = self._analyze_rdfa(soup, page_url)
             rdfa_found = soup.find(attrs={'typeof': True})
             
-            # Only report missing schemas if no structured data was found at all
             if not json_ld_found and not microdata_found and not rdfa_found:
                 issues.append({
                     'issue_type': 'missing_structured_data',
@@ -94,12 +88,10 @@ class StructuredDataModule:
                     'severity': 'medium'
                 })
             
-            # Add validation issues (not missing schema issues)
             issues.extend(json_ld_issues)
             issues.extend(microdata_issues)
             issues.extend(rdfa_issues)
         
-        # Add all issues to database
         for issue in issues:
             self.db.add_issue(
                 scan_id=scan_id,
@@ -125,31 +117,22 @@ class StructuredDataModule:
         """
         issues = []
         
-        # Find all JSON-LD scripts
         json_ld_scripts = soup.find_all('script', attrs={'type': 'application/ld+json'})
         
         if not json_ld_scripts:
-            # No JSON-LD found - will be handled in analyze() method
             return issues
         
-        # Validate each JSON-LD script
         for script in json_ld_scripts:
             try:
-                # Parse JSON
                 data = json.loads(script.string)
                 
-                # Handle @graph structure or single object
                 if '@graph' in data:
-                    # Extract top-level schemas from @graph
                     schemas = data['@graph']
                 elif isinstance(data, list):
-                    # Array of schemas
                     schemas = data
                 else:
-                    # Single schema object
                     schemas = [data]
                 
-                # Validate each top-level schema
                 for schema in schemas:
                     self._validate_schema(schema, page_url, issues, is_top_level=True)
             
@@ -189,7 +172,6 @@ class StructuredDataModule:
                 })
             return
         
-        # Check if schema type is recognized
         if schema_type not in self.SCHEMA_TYPES:
             # Only report unknown type for top-level schemas
             # Nested schemas might have custom types
@@ -203,7 +185,6 @@ class StructuredDataModule:
                 })
             return
         
-        # Check for required properties (only for top-level schemas)
         if is_top_level:
             required = self.REQUIRED_PROPERTIES.get(schema_type, [])
             missing = [prop for prop in required if prop not in schema]
@@ -217,7 +198,6 @@ class StructuredDataModule:
                     'severity': 'high'
                 })
         
-        # Validate specific properties
         if schema_type == 'Article' and 'headline' in schema:
             headline = schema['headline']
             if len(headline) < 10:
@@ -242,14 +222,11 @@ class StructuredDataModule:
         """
         issues = []
         
-        # Find all elements with itemscope
         microdata_elements = soup.find_all(attrs={'itemscope': True})
         
         if not microdata_elements:
-            # No Microdata found - will be handled in analyze() method
             return issues
         
-        # Validate each microdata element
         for element in microdata_elements:
             itemtype = element.get('itemtype')
             
@@ -263,7 +240,6 @@ class StructuredDataModule:
                 })
                 continue
             
-            # Extract schema type from URL
             schema_type = itemtype.split('/')[-1]
             
             if schema_type not in self.SCHEMA_TYPES:
@@ -290,21 +266,17 @@ class StructuredDataModule:
         """
         issues = []
         
-        # Find all elements with typeof
         rdfa_elements = soup.find_all(attrs={'typeof': True})
         
         if not rdfa_elements:
-            # No RDFa found - will be handled in analyze() method
             return issues
         
-        # Validate each RDFa element
         for element in rdfa_elements:
             typeof_value = element.get('typeof')
             
             if not typeof_value:
                 continue
             
-            # Extract schema type
             schema_type = typeof_value.split(':')[-1]
             
             if schema_type not in self.SCHEMA_TYPES:

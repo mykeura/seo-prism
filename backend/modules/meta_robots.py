@@ -38,11 +38,9 @@ class MetaRobotsModule:
             url = page['url']
             soup = soup_for(page)
             
-            # Find all meta robots tags
             meta_robots = soup.find_all('meta', attrs={'name': lambda x: x and x.lower() == 'robots'})
             
             if not meta_robots:
-                # No meta robots tag found - this is usually OK but worth noting
                 continue
             
             for meta in meta_robots:
@@ -51,12 +49,9 @@ class MetaRobotsModule:
                 if not content:
                     continue
                 
-                # Parse the directives
                 directives = [d.strip() for d in content.split(',')]
                 
-                # Analyze each directive
                 for directive in directives:
-                    # Check for noindex
                     if directive == 'noindex':
                         issue = {
                             'issue_type': 'meta_robots_noindex',
@@ -75,7 +70,6 @@ class MetaRobotsModule:
                             severity='high'
                         )
                     
-                    # Check for nofollow
                     elif directive == 'nofollow':
                         issue = {
                             'issue_type': 'meta_robots_nofollow',
@@ -94,7 +88,6 @@ class MetaRobotsModule:
                             severity='medium'
                         )
                     
-                    # Check for nosnippet
                     elif directive == 'nosnippet':
                         issue = {
                             'issue_type': 'meta_robots_nosnippet',
@@ -113,7 +106,6 @@ class MetaRobotsModule:
                             severity='medium'
                         )
                     
-                    # Check for noarchive
                     elif directive == 'noarchive':
                         issue = {
                             'issue_type': 'meta_robots_noarchive',
@@ -132,7 +124,6 @@ class MetaRobotsModule:
                             severity='info'
                         )
                     
-                    # Check for notranslate
                     elif directive == 'notranslate':
                         issue = {
                             'issue_type': 'meta_robots_notranslate',
@@ -151,7 +142,6 @@ class MetaRobotsModule:
                             severity='info'
                         )
                     
-                    # Check for noimageindex
                     elif directive == 'noimageindex':
                         issue = {
                             'issue_type': 'meta_robots_noimageindex',
@@ -170,7 +160,6 @@ class MetaRobotsModule:
                             severity='medium'
                         )
                     
-                    # Check for unavailable_after (with date)
                     elif directive.startswith('unavailable_after'):
                         issue = {
                             'issue_type': 'meta_robots_unavailable_after',

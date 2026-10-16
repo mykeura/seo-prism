@@ -40,14 +40,11 @@ class HreflangModule:
             url = page['url']
             soup = soup_for(page)
             
-            # Find all link tags with hreflang
             hreflang_links = soup.find_all('link', attrs={'rel': 'alternate', 'hreflang': True})
             
             if not hreflang_links:
-                # No hreflang tags found - this is OK if it's not a multilingual site
                 continue
             
-            # Extract all hreflang tags for this page
             hreflang_data = []
             for link in hreflang_links:
                 hreflang_value = link.get('hreflang', '').strip()
@@ -59,7 +56,6 @@ class HreflangModule:
                         'href': href_value
                     })
             
-            # Check for issues
             issues.extend(self._check_self_referencing(url, hreflang_data))
             issues.extend(self._check_x_default(url, hreflang_data))
             issues.extend(self._check_duplicate_codes(url, hreflang_data))
@@ -67,7 +63,6 @@ class HreflangModule:
             issues.extend(self._check_return_links(url, hreflang_data, pages))
             issues.extend(self._check_missing_canonical(url, soup))
         
-        # Add issues to database
         for issue in issues:
             self.db.add_issue(
                 scan_id=scan_id,
@@ -93,17 +88,13 @@ class HreflangModule:
         """
         issues = []
         
-        # Get the URL without trailing slash for comparison
         normalized_url = url.rstrip('/')
         
-        # Check if there's a self-referencing hreflang
         for data in hreflang_data:
             href = data['href'].rstrip('/')
             if href == normalized_url:
-                # This is a self-reference - it's valid
                 return issues
         
-        # No self-reference found - this is an issue
         issues.append({
             'issue_type': 'hreflang_missing_self_reference',
             'url': url,
@@ -182,7 +173,6 @@ class HreflangModule:
         """
         issues = []
         
-        # Valid language codes (ISO 639-1)
         valid_codes = {
             'x-default', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko',
             'ar', 'hi', 'tr', 'pl', 'nl', 'sv', 'da', 'no', 'fi', 'el', 'cs', 'ro',
@@ -194,7 +184,6 @@ class HreflangModule:
         for data in hreflang_data:
             code = data['hreflang']
             
-            # Check if it's a valid code (including region codes like en-US)
             base_code = code.split('-')[0] if '-' in code else code
             
             if code != 'x-default' and base_code not in valid_codes:
@@ -222,7 +211,6 @@ class HreflangModule:
         """
         issues = []
         
-        # Build a map of URLs to their hreflang data
         url_to_hreflang = {}
         for page in pages:
             if not page.get('html'):
@@ -240,7 +228,6 @@ class HreflangModule:
             
             url_to_hreflang[page['url'].rstrip('/')] = page_hreflangs
         
-        # Check return links for each hreflang
         for data in hreflang_data:
             target_url = data['href'].rstrip('/')
             target_code = data['hreflang']
@@ -248,7 +235,6 @@ class HreflangModule:
             if target_url not in url_to_hreflang:
                 continue
             
-            # Get the current page's language code from its own hreflang
             current_code = None
             for h_data in hreflang_data:
                 if h_data['href'].rstrip('/') == url.rstrip('/'):
@@ -258,7 +244,6 @@ class HreflangModule:
             if not current_code:
                 continue
             
-            # Check if the target page references back to this page
             target_hreflangs = url_to_hreflang[target_url]
             if current_code not in target_hreflangs:
                 issues.append({
@@ -284,11 +269,9 @@ class HreflangModule:
         """
         issues = []
         
-        # Check if hreflang tags exist
         has_hreflang = soup.find('link', attrs={'rel': 'alternate', 'hreflang': True})
         
         if has_hreflang:
-            # Check if canonical tag exists
             canonical = soup.find('link', attrs={'rel': 'canonical'})
             
             if not canonical:
