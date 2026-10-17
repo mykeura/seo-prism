@@ -104,18 +104,25 @@ class Crawler:
         try:
             headers = {'User-Agent': _USER_AGENT}
             
-            # Use HEAD request for resources (faster, doesn't download content)
+            # Prefer HEAD for resources (faster, doesn't download content)
             async with self.session.head(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 status = response.status
-                
-                return {
-                    'url': normalized_url,
-                    'status': status,
-                    'links': [],
-                    'resources': [],
-                    'html': None,
-                    'is_resource': True
-                }
+            
+            # Some servers don't implement HEAD and answer 405/501 even though the
+            # resource is fine over GET; retry so healthy resources aren't reported
+            # as broken. Only the GET status is used, its body is discarded.
+            if status in (405, 501):
+                async with self.session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as get_response:
+                    status = get_response.status
+            
+            return {
+                'url': normalized_url,
+                'status': status,
+                'links': [],
+                'resources': [],
+                'html': None,
+                'is_resource': True
+            }
         
         except asyncio.TimeoutError:
             return {

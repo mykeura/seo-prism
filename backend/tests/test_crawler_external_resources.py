@@ -12,6 +12,8 @@ aiohttp session, so these tests use no network.
 """
 import asyncio
 
+import pytest
+
 from core.crawler import Crawler
 from modules.broken_links import BrokenLinksModule
 
@@ -104,3 +106,58 @@ class TestExternalResourceVerification:
         assert issue_types['https://cdn.other.test/broken.png'] == 'broken_image'
         assert issue_types['https://cdn.other.test/broken.js'] == 'broken_script'
         assert issue_types['https://cdn.other.test/broken.css'] == 'broken_stylesheet'
+
+
+class _HeadStatusSession:
+    """HEAD answers one fixed status, GET another; records every call."""
+
+    def __init__(self, head_status, get_status=200):
+        self.head_status = head_status
+        self.get_status = get_status
+        self.head_calls = []
+        self.get_calls = []
+
+    def head(self, url, **kwargs):
+        self.head_calls.append(url)
+        return _FakeResponseContext(_FakeResponse(self.head_status))
+
+    def get(self, url, **kwargs):
+        self.get_calls.append(url)
+        return _FakeResponseContext(_FakeResponse(self.get_status))
+
+    async def close(self):
+        pass
+
+
+def _fetch_resource_with(session, url):
+    crawler = Crawler(_BASE)
+    crawler.session = session
+    return asyncio.run(crawler._fetch_resource(url))
+
+
+class TestHeadUnsupportedFallback:
+    """HEAD 405/501 means HEAD is unsupported; the GET status must win."""
+
+    _URL = 'https://cdn.other.test/asset.png'
+
+    @pytest.mark.parametrize('head_status,get_status,expected', [
+        (405, 200, 200),  # HEAD unsupported, GET proves the resource is healthy
+        (501, 200, 200),  # same for Not Implemented
+        (405, 404, 404),  # the reported status comes from GET, not HEAD
+    ])
+    def test_unsupported_head_retries_with_get(self, head_status, get_status, expected):
+        session = _HeadStatusSession(head_status=head_status, get_status=get_status)
+
+        result = _fetch_resource_with(session, self._URL)
+
+        assert result['status'] == expected
+        assert session.head_calls == [self._URL]
+        assert session.get_calls == [self._URL]
+
+    def test_other_head_status_is_reported_without_retry(self):
+        session = _HeadStatusSession(head_status=404)
+
+        result = _fetch_resource_with(session, self._URL)
+
+        assert result['status'] == 404
+        assert session.get_calls == []
