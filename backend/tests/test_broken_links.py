@@ -131,7 +131,6 @@ class TestBrokenLinksModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages)
         
-        # Facebook and mailto links should be ignored, not reported
         assert len(issues) == 0
     
     def test_get_issue_type(self):
@@ -214,7 +213,6 @@ class TestBrokenLinksModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages)
         
-        # Should only report the broken link once
         assert len(issues) == 1
         assert issues[0]['url'] == 'https://example.com/broken'
 

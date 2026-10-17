@@ -50,7 +50,6 @@ class TestHreflangModule:
         pages = [{'url': 'https://example.com', 'html': html}]
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not have missing self-reference issue
         missing_self = [i for i in issues if i['issue_type'] == 'hreflang_missing_self_reference']
         assert len(missing_self) == 0
     
@@ -136,7 +135,6 @@ class TestHreflangModule:
         pages = [{'url': 'https://example.com', 'html': html}]
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not have invalid code issues
         invalid_codes = [i for i in issues if i['issue_type'] == 'hreflang_invalid_code']
         assert len(invalid_codes) == 0
     
@@ -182,7 +180,6 @@ class TestHreflangModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should find missing return link
         missing_return = [i for i in issues if i['issue_type'] == 'hreflang_missing_return_link']
         assert len(missing_return) >= 1
     
@@ -225,7 +222,6 @@ class TestHreflangModule:
         pages = [{'url': 'https://example.com', 'html': html}]
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not have missing canonical issue
         missing_canonical = [i for i in issues if i['issue_type'] == 'hreflang_missing_canonical']
         assert len(missing_canonical) == 0
     
@@ -246,7 +242,6 @@ class TestHreflangModule:
         pages = [{'url': 'https://example.com', 'html': html}]
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not flag region codes as invalid
         invalid_codes = [i for i in issues if i['issue_type'] == 'hreflang_invalid_code']
         assert len(invalid_codes) == 0
     
@@ -279,6 +274,5 @@ class TestHreflangModule:
         pages = [{'url': 'https://example.com', 'html': html}]
         issues = module.analyze(sample_scan_id, pages)
         
-        # Invalid codes should be high severity
         invalid_issues = [i for i in issues if i['issue_type'] == 'hreflang_invalid_code']
         assert all(issue['severity'] == 'high' for issue in invalid_issues)

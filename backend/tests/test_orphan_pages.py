@@ -45,7 +45,6 @@ class TestOrphanPagesModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
         
-        # Should find the orphan page
         assert len(issues) == 1
         assert issues[0]['issue_type'] == 'orphan_page'
         assert 'orphan' in issues[0]['url']
@@ -69,7 +68,6 @@ class TestOrphanPagesModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
         
-        # Should not find any orphan pages
         assert len(issues) == 0
     
     def test_analyze_homepage_not_orphan(self, temp_db, sample_scan_id):
@@ -82,7 +80,6 @@ class TestOrphanPagesModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
         
-        # Homepage should not be flagged as orphan
         assert len(issues) == 0
     
     def test_analyze_multiple_orphan_pages(self, temp_db, sample_scan_id):
@@ -100,7 +97,6 @@ class TestOrphanPagesModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
         
-        # Should find all orphan pages
         assert len(issues) == 3
         assert all(issue['issue_type'] == 'orphan_page' for issue in issues)
     
@@ -123,7 +119,6 @@ class TestOrphanPagesModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
         
-        # Should not find any orphan pages
         assert len(issues) == 0
     
     def test_analyze_empty_pages(self, temp_db, sample_scan_id):
@@ -160,7 +155,6 @@ class TestOrphanPagesModule:
         
         issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
         
-        # Should not flag resources as orphan pages
         assert len(issues) == 0
     
     def test_is_homepage_with_path(self):

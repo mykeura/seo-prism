@@ -92,7 +92,6 @@ def test_display_shows_all_issues_without_truncation(runner, monkeypatch):
 
     assert result.exit_code == 0
     assert '... and' not in result.output
-    # Every single one of the 25 broken links is listed
     for i in range(25):
         assert f'https://example.com/broken/{i}' in result.output
     assert result.output.count('https://example.com/broken/') == 25
@@ -181,7 +180,6 @@ def test_json_output_valid_complete_and_without_pages(runner, monkeypatch):
     assert payload['scan']['url'] == 'https://example.com'
     assert payload['seo_grade'] == results['seo_grade']
     assert payload['resource_analysis']['html_pages'] == 3
-    # Every issue made it into the JSON, untruncated
     assert {issue['url'] for issue in payload['issues']} == {
         issue['url'] for issue in issues
     }
@@ -201,7 +199,6 @@ def test_json_mode_sends_progress_to_stderr(runner, monkeypatch):
     assert result.exit_code == 0
     assert 'Starting scan of' in result.stderr
     assert 'Scanning remote URL' in result.stderr
-    # stdout contains nothing but the JSON payload
     assert result.stdout.lstrip().startswith('{')
     json.loads(result.stdout)  # must not raise
     assert 'Starting scan of' not in result.stdout

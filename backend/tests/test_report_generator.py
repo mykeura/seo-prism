@@ -308,7 +308,6 @@ class TestSEOReportGenerator:
         
         assert generator.theme['primary'] == (255, 0, 0)
         assert generator.theme['accent'] == (0, 255, 0)
-        # Default colors should still be present
         assert 'success' in generator.theme
         assert 'warning' in generator.theme
     

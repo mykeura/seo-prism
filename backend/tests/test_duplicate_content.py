@@ -32,7 +32,6 @@ class TestDuplicateContentModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should find duplicate titles on page1 and page2
         duplicate_title_issues = [i for i in issues if i['issue_type'] == 'duplicate_title']
         assert len(duplicate_title_issues) == 2
         assert any('page1' in issue['url'] for issue in duplicate_title_issues)
@@ -95,7 +94,6 @@ class TestDuplicateContentModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not report duplicate titles when both are missing
         duplicate_title_issues = [i for i in issues if i['issue_type'] == 'duplicate_title']
         assert len(duplicate_title_issues) == 0
     
@@ -116,7 +114,6 @@ class TestDuplicateContentModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not report duplicate descriptions when both are missing
         duplicate_desc_issues = [i for i in issues if i['issue_type'] == 'duplicate_description']
         assert len(duplicate_desc_issues) == 0
     
@@ -162,7 +159,6 @@ class TestDuplicateContentModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not detect as duplicate due to case sensitivity
         duplicate_title_issues = [i for i in issues if i['issue_type'] == 'duplicate_title']
         assert len(duplicate_title_issues) == 0
     
@@ -183,7 +179,6 @@ class TestDuplicateContentModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should detect as duplicate after trimming whitespace
         duplicate_title_issues = [i for i in issues if i['issue_type'] == 'duplicate_title']
         assert len(duplicate_title_issues) == 2
     

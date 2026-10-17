@@ -44,7 +44,6 @@ class TestThinContentModule:
     
     def test_thin_content_below_character_threshold(self, temp_db, sample_scan_id):
         """Test detecting content below minimum character count (1500 chars)."""
-        # Create content with less than 1500 characters but more than 300 words
         content = ' '.join(['word'] * 350)  # 350 words, ~1750 chars (over word threshold)
         short_content = ' '.join(['word'] * 100)  # 100 words, ~500 chars (under both thresholds)
         html = f'''
@@ -185,7 +184,6 @@ class TestThinContentModule:
     
     def test_title_excluded_from_content(self, temp_db, sample_scan_id):
         """Test that title tag is excluded from content analysis."""
-        # Long title but short article content
         long_title = 'A' * 1000  # 1000 characters in title
         short_content = ' '.join(['word'] * 100)  # 100 words in content
         html = f'''
@@ -216,7 +214,6 @@ class TestThinContentModule:
     
     def test_h1_excluded_from_content(self, temp_db, sample_scan_id):
         """Test that H1 tag is excluded from content analysis."""
-        # Long H1 but short article content
         long_h1 = 'A' * 1000  # 1000 characters in H1
         short_content = ' '.join(['word'] * 100)  # 100 words in content
         html = f'''
@@ -541,7 +538,7 @@ class TestThinContentModule:
     
     def test_whitespace_cleaning(self, temp_db, sample_scan_id):
         """Test that whitespace is properly cleaned from content."""
-        content = '  word1  word2  word3  '  # Extra whitespace
+        content = '  word1  word2  word3  '
         html = f'''
         <html>
             <head><title>Test Page</title></head>

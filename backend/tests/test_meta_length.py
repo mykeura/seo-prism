@@ -75,7 +75,7 @@ class TestMetaLengthModule:
     
     def test_title_exactly_30_chars(self, temp_db, sample_scan_id):
         """Test title with exactly 30 characters (minimum acceptable)."""
-        title = 'A' * 30  # Exactly 30 characters
+        title = 'A' * 30
         html = f'<html><head><title>{title}</title></head><body><h1>Test</h1></body></html>'
         
         crawled_pages = [
@@ -94,7 +94,7 @@ class TestMetaLengthModule:
     
     def test_title_exactly_60_chars(self, temp_db, sample_scan_id):
         """Test title with exactly 60 characters (maximum acceptable)."""
-        title = 'A' * 60  # Exactly 60 characters
+        title = 'A' * 60
         html = f'<html><head><title>{title}</title></head><body><h1>Test</h1></body></html>'
         
         crawled_pages = [
@@ -194,7 +194,7 @@ class TestMetaLengthModule:
     
     def test_meta_description_exactly_70_chars(self, temp_db, sample_scan_id):
         """Test meta description with exactly 70 characters (minimum acceptable)."""
-        desc = 'A' * 70  # Exactly 70 characters
+        desc = 'A' * 70
         html = f'''<html>
             <head>
                 <title>This is an optimal title length for SEO</title>
@@ -219,7 +219,7 @@ class TestMetaLengthModule:
     
     def test_meta_description_exactly_150_chars(self, temp_db, sample_scan_id):
         """Test meta description with exactly 150 characters (maximum acceptable)."""
-        desc = 'A' * 150  # Exactly 150 characters
+        desc = 'A' * 150
         html = f'''<html>
             <head>
                 <title>This is an optimal title length for SEO</title>

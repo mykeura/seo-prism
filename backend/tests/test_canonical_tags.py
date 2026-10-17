@@ -133,7 +133,6 @@ class TestCanonicalTagsModule:
         
         issues = module.analyze(1, crawled_pages)
         
-        # Should resolve relative URL and not flag as issue
         chain_issues = [i for i in issues if i['issue_type'] == 'canonical_chain']
         assert len(chain_issues) == 0
     
@@ -168,7 +167,6 @@ class TestCanonicalTagsModule:
         
         issues = module.analyze(1, crawled_pages)
         
-        # Should not flag http/https variation in development
         variation_issues = [i for i in issues if i['issue_type'] == 'canonical_url_variation']
         assert len(variation_issues) == 0
     
@@ -201,7 +199,6 @@ class TestCanonicalTagsModule:
         
         issues = module.analyze(1, crawled_pages)
         
-        # Should only find the 404 issue
         assert len(issues) == 1
         assert issues[0]['issue_type'] == 'canonical_to_404'
     

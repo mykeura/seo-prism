@@ -89,7 +89,7 @@ class StandardFilesModule:
                 )
             
             security_url = f"{base_domain}/.well-known/security.txt"
-            security_alt_url = f"{base_domain}/security.txt"  # Alternative location
+            security_alt_url = f"{base_domain}/security.txt"
             
             security_found = await self._check_file_with_fallback(session, security_url)
             if not security_found:

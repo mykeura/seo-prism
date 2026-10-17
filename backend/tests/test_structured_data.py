@@ -50,7 +50,6 @@ class TestStructuredDataModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not report missing structured data
         missing_issues = [i for i in issues if i['issue_type'] == 'missing_structured_data']
         assert len(missing_issues) == 0
     
@@ -288,7 +287,6 @@ class TestStructuredDataModule:
         
         issues = module.analyze(sample_scan_id, pages)
         
-        # Should not report missing structured data
         missing_issues = [i for i in issues if i['issue_type'] == 'missing_structured_data']
         assert len(missing_issues) == 0
     
@@ -327,10 +325,8 @@ class TestStructuredDataModule:
         pages = [{'url': 'https://example.com', 'html': html}]
         issues = module.analyze(sample_scan_id, pages)
         
-        # Missing properties should be high severity
         missing_props = [i for i in issues if i['issue_type'] == 'json_ld_missing_properties']
         assert all(issue['severity'] == 'high' for issue in missing_props)
         
-        # Short headline should be medium severity
         short_headline = [i for i in issues if i['issue_type'] == 'json_ld_short_headline']
         assert all(issue['severity'] == 'medium' for issue in short_headline)
