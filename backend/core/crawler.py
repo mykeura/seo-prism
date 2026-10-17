@@ -310,11 +310,12 @@ class Crawler:
                     if result.get('resources'):
                         for resource in result['resources']:
                             resource_url = resource['url']
-                            resource_type = resource.get('type', '')
                             
                             if self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
                                 resources_to_verify.add(resource_url)
-                            elif resource_type == 'anchor' and not self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
+                            # External resources — anchors as well as images,
+                            # scripts and stylesheets — are verified too.
+                            elif not self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
                                 external_links_to_verify.add(resource_url)
         
         if resources_to_verify:
