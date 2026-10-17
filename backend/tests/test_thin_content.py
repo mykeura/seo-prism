@@ -13,7 +13,6 @@ class TestThinContentModule:
     
     def test_thin_content_below_word_threshold(self, temp_db, sample_scan_id):
         """Test detecting content below minimum word count (300 words)."""
-        # Create content with less than 300 words
         content = ' '.join(['word'] * 250)  # 250 words
         html = f'''
         <html>
@@ -105,7 +104,6 @@ class TestThinContentModule:
     
     def test_sufficient_content_no_issues(self, temp_db, sample_scan_id):
         """Test that sufficient content produces no issues."""
-        # Create content with more than 300 words and 1500 characters
         content = ' '.join(['word'] * 400)  # 400 words, ~2000 chars
         html = f'''
         <html>
@@ -160,7 +158,6 @@ class TestThinContentModule:
     
     def test_content_exactly_1500_chars(self, temp_db, sample_scan_id):
         """Test content with exactly 1500 characters (minimum acceptable)."""
-        # Create content with more than 1500 characters AND more than 300 words
         content = ' '.join(['word'] * 350)  # ~1750 characters, 350 words
         html = f'''
         <html>
@@ -596,7 +593,6 @@ class TestThinContentModule:
         module = ThinContentModule(temp_db)
         issues = module.analyze(sample_scan_id, crawled_pages)
         
-        # Verify issues were saved to database
         results = temp_db.get_scan_results(sample_scan_id)
         db_issues = results['issues']
         

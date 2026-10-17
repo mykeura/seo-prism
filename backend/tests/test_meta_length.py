@@ -434,7 +434,6 @@ class TestMetaLengthModule:
         module = MetaLengthModule(temp_db)
         issues = module.analyze(sample_scan_id, crawled_pages)
         
-        # Verify issues were saved to database
         results = temp_db.get_scan_results(sample_scan_id)
         db_issues = results['issues']
         

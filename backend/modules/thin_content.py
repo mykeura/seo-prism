@@ -119,10 +119,8 @@ class ThinContentModule:
         Returns:
             Cleaned text
         """
-        # Replace multiple whitespace with single space
         text = re.sub(r'\s+', ' ', text)
         
-        # Remove leading/trailing whitespace
         text = text.strip()
         
         return text

@@ -223,7 +223,6 @@ class Crawler:
         for link in soup.find_all('a', href=True):
             href = link['href'].strip()
             
-            # Skip empty links, anchors, and javascript/mailto links
             if not href or href.startswith('#') or href.startswith('javascript:') or href.startswith('mailto:'):
                 continue
             
@@ -235,7 +234,6 @@ class Crawler:
                 'source': base_url
             })
             
-            # Only include links from same domain for crawling
             if self._is_same_domain(absolute_url):
                 internal_links.append(normalize_url(absolute_url))
         

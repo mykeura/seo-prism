@@ -32,11 +32,9 @@ class TestOrphanPagesModule:
         """Test detecting orphan pages."""
         module = OrphanPagesModule(temp_db)
         
-        # Add pages to database
         page_id_1 = temp_db.add_page(sample_scan_id, 'https://example.com/', 200, '<html></html>')
         page_id_2 = temp_db.add_page(sample_scan_id, 'https://example.com/page', 200, '<html></html>')
         
-        # Add link from homepage to page
         temp_db.add_link(page_id_1, 'https://example.com/page', 'https://example.com/')
         
         crawled_pages = [
@@ -56,12 +54,10 @@ class TestOrphanPagesModule:
         """Test that pages with incoming links are not orphans."""
         module = OrphanPagesModule(temp_db)
         
-        # Add pages to database
         page_id_1 = temp_db.add_page(sample_scan_id, 'https://example.com/', 200, '<html></html>')
         page_id_2 = temp_db.add_page(sample_scan_id, 'https://example.com/page1', 200, '<html></html>')
         page_id_3 = temp_db.add_page(sample_scan_id, 'https://example.com/page2', 200, '<html></html>')
         
-        # Add links
         temp_db.add_link(page_id_1, 'https://example.com/page1', 'https://example.com/')
         temp_db.add_link(page_id_1, 'https://example.com/page2', 'https://example.com/')
         
@@ -93,7 +89,6 @@ class TestOrphanPagesModule:
         """Test detecting multiple orphan pages."""
         module = OrphanPagesModule(temp_db)
         
-        # Add homepage to database
         page_id_1 = temp_db.add_page(sample_scan_id, 'https://example.com/', 200, '<html></html>')
         
         crawled_pages = [
@@ -113,12 +108,10 @@ class TestOrphanPagesModule:
         """Test that pages linked internally are not orphans."""
         module = OrphanPagesModule(temp_db)
         
-        # Add pages to database
         page_id_1 = temp_db.add_page(sample_scan_id, 'https://example.com/', 200, '<html></html>')
         page_id_2 = temp_db.add_page(sample_scan_id, 'https://example.com/page1', 200, '<html></html>')
         page_id_3 = temp_db.add_page(sample_scan_id, 'https://example.com/page2', 200, '<html></html>')
         
-        # Add internal links
         temp_db.add_link(page_id_1, 'https://example.com/page1', 'https://example.com/')
         temp_db.add_link(page_id_2, 'https://example.com/page2', 'https://example.com/page1')
         

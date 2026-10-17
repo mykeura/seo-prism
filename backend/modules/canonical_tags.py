@@ -66,7 +66,6 @@ class CanonicalTagsModule:
         """
         issues = []
         
-        # Build canonical mapping and page status map
         canonical_map = {}
         page_status_map = {}
         
@@ -241,10 +240,8 @@ class CanonicalTagsModule:
         """
         parsed = urlparse(url)
         
-        # Remove trailing slash
         path = parsed.path.rstrip('/')
         
-        # Reconstruct URL without fragment
         normalized = f"{parsed.scheme}://{parsed.netloc}{path}"
         if parsed.query:
             normalized += f"?{parsed.query}"
@@ -265,18 +262,15 @@ class CanonicalTagsModule:
         parsed1 = urlparse(url1)
         parsed2 = urlparse(url2)
         
-        # Check path and query match
         if parsed1.path != parsed2.path or parsed1.query != parsed2.query:
             return False
         
-        # Check for www variation
         hostname1 = parsed1.hostname or ''
         hostname2 = parsed2.hostname or ''
         
         if hostname1.replace('www.', '') == hostname2.replace('www.', ''):
             return True
         
-        # Check for http/https variation
         if parsed1.scheme != parsed2.scheme:
             return True
         
@@ -299,12 +293,10 @@ class CanonicalTagsModule:
         hostname1 = parsed1.hostname or ''
         hostname2 = parsed2.hostname or ''
         
-        # Check for www variation
         if 'www.' in hostname1 or 'www.' in hostname2:
             if hostname1.replace('www.', '') == hostname2.replace('www.', ''):
                 return 'www/non-www variation'
         
-        # Check for http/https variation
         if parsed1.scheme != parsed2.scheme:
             return 'http/https variation'
         

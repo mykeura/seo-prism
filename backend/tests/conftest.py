@@ -23,12 +23,10 @@ def temp_db():
     fd, path = tempfile.mkstemp(suffix='.db')
     os.close(fd)
     
-    # Initialize database with schema
     db = Database(db_path=path)
     
     yield db
     
-    # Cleanup
     db.close()
     os.unlink(path)
 
