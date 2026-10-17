@@ -146,10 +146,6 @@ class BrokenLinksModule:
                         description=f"Broken {resource['type']} (HTTP {resource_status})",
                         severity=issue['severity']
                     )
-            # Resources not in url_status_map were not verified by crawler
-            # This should not happen with the new crawler logic that verifies all links
-            # Keeping this as a safety net for any edge cases
-        
         return issues
     
     def _get_issue_type(self, resource_type: str) -> str:

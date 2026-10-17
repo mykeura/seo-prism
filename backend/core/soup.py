@@ -28,3 +28,17 @@ def soup_for(page: Dict) -> Optional[BeautifulSoup]:
         soup = BeautifulSoup(html, 'html.parser')
         page['_soup'] = soup
     return soup
+
+
+def fresh_soup_for(page: Dict) -> Optional[BeautifulSoup]:
+    """
+    Return a NEW BeautifulSoup parse of page['html'], never the shared cache.
+
+    Use this in consumers that mutate the tree (decompose or extract nodes):
+    soup_for() hands out one cached tree shared by every analysis module, so
+    mutating it would corrupt the other modules' view of the page.
+    """
+    html = page.get('html')
+    if not html:
+        return None
+    return BeautifulSoup(html, 'html.parser')

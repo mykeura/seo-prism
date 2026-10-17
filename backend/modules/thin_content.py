@@ -3,6 +3,7 @@
 
 from typing import List, Dict
 from bs4 import BeautifulSoup
+from core.soup import fresh_soup_for
 from database import Database
 import re
 
@@ -43,9 +44,7 @@ class ThinContentModule:
             if not html:
                 continue
             
-            # Parse its own copy: _extract_article_content decomposes nodes,
-            # which must not corrupt the cached soup shared with other modules
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = fresh_soup_for(page)
             
             article_content = self._extract_article_content(soup)
             

@@ -106,6 +106,18 @@ class ResourceAnalyzer:
             }
         }
     
+    def _is_error_response(self, page: Dict) -> bool:
+        """
+        True when a crawled entry is an error response rather than a real page.
+
+        Error bodies (404/410/5xx, timeouts reported as 408, connection
+        failures reported as status 0) are not pages the site owner published,
+        even when the server answers with HTML: counting them would inflate the
+        HTML page count the SEO grade divides by. A missing status is treated as
+        a normal page.
+        """
+        return not (200 <= page.get('status', 200) < 400)
+
     def _determine_resource_type(self, page: Dict, url: str) -> str:
         """
         Determine the type of resource based on URL and content.
@@ -130,11 +142,7 @@ class ResourceAnalyzer:
             else:
                 return 'other'
         
-        # An error response (404, 5xx, timeout, connection failure) is not an
-        # HTML page of the site, even if it has an .html extension or the
-        # server returned an HTML error body: it must not inflate the page
-        # count that the SEO grade divides by.
-        if not (200 <= page.get('status', 200) < 400):
+        if self._is_error_response(page):
             return 'other'
         
         if page.get('html'):

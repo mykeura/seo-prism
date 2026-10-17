@@ -12,6 +12,15 @@ from .url_utils import parse_target_url, is_local, resolve_relative_url, normali
 _USER_AGENT = f'Mozilla/5.0 (compatible; SEO-Prism/{__version__}; +https://seo-prism.local)'
 
 
+# Connection limits. aiohttp defaults to 100 total and unlimited per host.
+# 25 covers the crawler's batches of 20 pages and 30 resources without
+# artificial queuing; 8 per host stays polite with real servers and avoids
+# 429/ban bursts; the DNS cache is reused for 5 minutes.
+_MAX_CONNECTIONS = 25
+_MAX_CONNECTIONS_PER_HOST = 8
+_DNS_CACHE_TTL_SECONDS = 300
+
+
 class Crawler:
     """Async web crawler for SEO analysis."""
     
@@ -39,14 +48,10 @@ class Crawler:
     
     async def __aenter__(self):
         """Async context manager entry."""
-        # Limit concurrent connections (default is 100 total / unlimited per
-        # host). limit=25 covers the batches of 20 pages and 30 resources
-        # without artificial queuing; limit_per_host=8 is polite with real
-        # servers and avoids 429/ban bursts; ttl_dns_cache reuses DNS for 5 min.
         connector = aiohttp.TCPConnector(
-            limit=25,
-            limit_per_host=8,
-            ttl_dns_cache=300,
+            limit=_MAX_CONNECTIONS,
+            limit_per_host=_MAX_CONNECTIONS_PER_HOST,
+            ttl_dns_cache=_DNS_CACHE_TTL_SECONDS,
         )
         self.session = aiohttp.ClientSession(connector=connector)
         return self
