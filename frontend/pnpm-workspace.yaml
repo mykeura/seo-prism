@@ -1,2 +1,5 @@
 overrides:
   source-map-js@>=1.0.0 <1.2.2: ^1.2.2
+  # Hard block: TypeScript 7 is not allowed in this project (breaking/native-port toolchain).
+  # Keeps pnpm from resolving typescript@^7 as a direct or transitive dependency.
+  typescript@>=7.0.0-0: 6.0.3
