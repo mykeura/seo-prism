@@ -1,8 +1,8 @@
 # SEO Prism
 
-A comprehensive technical SEO analyzer that crawls websites to detect and report a wide range of SEO issues. Features advanced analysis of broken links, meta tags, header hierarchy, canonical and hreflang validation, structured data detection, orphan pages, thin content, and standard file compliance (robots.txt, sitemaps, security.txt, llms.txt). 
+A comprehensive technical SEO analyzer that crawls websites to detect and report a wide range of SEO issues. Features advanced analysis of broken links, meta tags, header hierarchy, canonical and hreflang validation, structured data detection, orphan pages, thin content, and standard file compliance (robots.txt, sitemaps, security.txt, llms.txt). Crawls politely: remote targets respect robots.txt (including Crawl-delay) and a notice is emitted when a site looks JavaScript-rendered (SPA).
 
-Provides fair logarithmic SEO grading (A-F), bilingual executive PDF reports, a premium dark crystal web panel, CLI with JSON output for AI agents, and a Model Context Protocol (MCP) server for seamless integration with AI development environments.
+Provides fair logarithmic SEO grading (A-F), bilingual executive PDF reports with white-label branding, a premium dark crystal web panel with scan history and CSV export, CLI with JSON output for AI agents, a Model Context Protocol (MCP) server for seamless integration with AI development environments, and a single-container Docker deployment.
 
 ## Web Interface
 
@@ -31,7 +31,15 @@ SEO Prism features a modern web interface that you can use from any browser. Whe
 - ✅ CLI with full untruncated output and `--json` mode for AI agents
 - ✅ MCP server (`seo_scan` tool) + agent skill for AI agents (Hermes Agent, Claude Code, Codex, Devin, OpenClaw)
 - ✅ Executive SEO report in PDF (Spanish/English, zero truncation, print-ready)
-- ✅ Local mode (ignores robots.txt)
+- ✅ White-label reports: `--brand-name`, `--brand-color` and `--brand-logo` put your own brand on the PDF/PowerPoint cover, headers and footers
+- ✅ robots.txt respected by default for remote targets (per-host rules, Crawl-delay/Request-rate pacing, skipped-URL counter); local URLs skip it for speed and `--ignore-robots` overrides it
+- ✅ SPA notice: a single low-severity warning when the site looks JavaScript-rendered, instead of a cascade of misleading "missing title" issues
+- ✅ Scan history (`GET /scans`) in the web panel — reopen any previous report — and CSV export of every issue section
+- ✅ Full potential, no artificial limits: every feature above ships in the open-source edition and `--max-pages` has no hard cap
+
+## Open source, full potential
+
+Everything in this README is part of the open-source edition: no page caps, no pro tiers, no feature gating. Operators who host the tool for other people can optionally add their own guards through environment variables (see [backend/README.md](backend/README.md)), but out of the box nothing is restricted. The only paid thing in this project is the annual commercial license — an AGPL exemption for organizations that need to keep their modifications private, paid by international bank transfer. See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for plans and purchase flow.
 
 ## SEO Grading
 
@@ -63,6 +71,16 @@ cp .env.example .env
 
 ## Usage
 
+### Quickstart with Docker
+
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+A single container serves the API and the compiled web panel at `http://localhost:8000` (the panel is at `/index.html`; the API-info endpoint keeps precedence at `/`). Scan history lives in `/app/scans.db` — to keep it across container recreation, create the file on the host (`touch scans.db`) and uncomment the `volumes` block in [`docker-compose.yml`](docker-compose.yml). If you reach the container from another host, rebuild with `docker compose build --build-arg VITE_API_BASE_URL=https://seo.example.com` so the panel is built with the right API origin.
+
 ### Start Backend API
 
 ```bash
@@ -80,6 +98,18 @@ defaults to `http://localhost:5173`:
 CORS_ORIGINS=https://app.example.com python -m api.main
 ```
 
+**Environment variables (all optional, for deployments):**
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated origins accepted by the API's CORS middleware. |
+| `SEO_PRISM_MAX_PAGES_LIMIT` | unset — **no cap** | Optional operator guard: upper bound on the `max_pages` requested per scan (HTTP API and MCP server). The open-source edition ships with no ceiling; set it (e.g. `100`) only when you host the tool for others. An invalid or non-positive value is ignored with a logged warning. |
+| `SEO_PRISM_API_KEY` | unset — API open | When set, every endpoint requires the key in an `X-API-Key` request header; a missing or wrong key gets `401`. |
+| `SEO_PRISM_BLOCK_PRIVATE_TARGETS` | unset — disabled | Set to `1` to reject scan targets whose host resolves to a loopback, private or link-local address (including the cloud metadata endpoint), so the API cannot be used as an SSRF pivot. Leave unset for local development, where scanning `localhost` is the intended use. |
+| `SEO_PRISM_STATIC_DIR` | unset — API only | Directory containing the compiled frontend; when set, the API serves it at `/` while keeping every API route reachable. The Docker image sets it to `/app/static`. |
+
+The full deployment reference (Docker persistence, public-deployment examples) is in [backend/README.md](backend/README.md).
+
 ### Start Frontend
 
 ```bash
@@ -96,6 +126,8 @@ cd backend
 source venv/bin/activate
 python cli.py --url http://localhost:3000
 python cli.py --url https://example.com --max-pages 50
+python cli.py --url https://example.com --max-pages 500   # no hard cap: any larger value is honored
+python cli.py --url https://example.com --ignore-robots   # override robots.txt for a remote target
 ```
 
 ### JSON Output (`--json`)
@@ -109,7 +141,7 @@ python cli.py --url https://example.com --json 2>/dev/null | jq '.issues | lengt
 
 ### Generate Professional SEO Report
 
-Generate a professional executive SEO report. The default format is **PDF** (complete, print-ready, every issue listed with automatic pagination — no manual adjustments needed). Reports are fully bilingual (`--lang es|en`): category labels, issue descriptions and section texts are all translated. The legacy PowerPoint format is still available as an editable option.
+Generate a professional executive SEO report. The default format is **PDF** (complete, print-ready, every issue listed with automatic pagination — no manual adjustments needed). Reports are fully bilingual (`--lang es|en`): category labels, issue descriptions and section texts are all translated. The legacy PowerPoint format is still available as an editable option. Both formats are white-label: your brand name, accent color and logo replace SEO Prism's on the cover, headers and footers.
 
 ```bash
 cd backend
@@ -121,12 +153,16 @@ python cli.py --url <URL> --generate-report --report-format pptx  # editable Pow
 **Available options:**
 
 - `--url` (required): Target URL to scan
-- `--max-pages` (optional, default 100): Maximum number of pages to crawl
+- `--max-pages` (optional, default 100): Maximum number of pages to crawl (no hard cap: any larger value is honored)
+- `--ignore-robots` (flag): Ignore robots.txt even for remote URLs (local URLs are always scanned without robots.txt)
 - `--json` (flag): Print complete scan results as JSON to stdout (progress goes to stderr)
 - `--generate-report` (flag): Enable report generation
 - `--report-format` (optional, default `pdf`): `pdf` or `pptx`
 - `--lang` (optional, default 'en'): Report language - 'es' for Spanish, 'en' for English
 - `--output` (optional): Output file path (default: `seo_report.pdf` or `seo_report.pptx` per format)
+- `--brand-name` (optional, default `SEO Prism`): Brand name shown on the report cover, headers and footers
+- `--brand-color` (optional): Brand accent color as hex (e.g. `#9333EA`); malformed values fall back to the default palette
+- `--brand-logo` (optional): Path to a logo image embedded on the report cover (ignored when the file does not exist)
 
 **Examples:**
 
@@ -139,6 +175,9 @@ python cli.py --url https://example.com --generate-report
 
 # Editable PowerPoint version
 python cli.py --url https://example.com --generate-report --report-format pptx
+
+# White-label PDF with your own brand
+python cli.py --url https://example.com --generate-report --brand-name "Acme" --brand-color "#9333EA" --brand-logo acme.png
 
 # With page limit and Spanish report
 python cli.py --url http://localhost:3000 --max-pages 50 --generate-report --lang es
@@ -206,14 +245,19 @@ Agents that can run shells don't need MCP: `cli.py --json` works directly — se
 
 - `GET /` - API info
 - `POST /scan` - Start a new scan
+- `GET /scans` - List recent scans (id, URL, date, grade and issue count per scan)
 - `GET /results` - Get latest scan results
 - `GET /results/{scan_id}` - Get specific scan results
+- `GET /health` - Liveness probe (no authentication)
+
+When `SEO_PRISM_API_KEY` is set, every endpoint except `/health` requires the key in an `X-API-Key` request header.
 
 ## Testing
 
 The backend pytest suite covers every analysis module, the CLI, both report
-generators, the grading fairness guarantees and the standard-file discovery scenarios
-(integration tests with a real HTTP server).
+generators, the grading fairness guarantees, the standard-file discovery scenarios
+(integration tests with a real HTTP server), robots.txt compliance, SPA detection
+and the SSRF network guard.
 
 ```bash
 cd backend
@@ -231,6 +275,10 @@ pnpm check     # type check
 pnpm build     # type check + production build
 ```
 
+Continuous integration (`.github/workflows/ci.yml`) runs the backend pytest
+suite and the frontend test, type-check and build steps on every push and
+pull request to `main`.
+
 ## Project Structure
 
 ```
@@ -238,7 +286,9 @@ seo-prism/
 ├── backend/
 │   ├── core/
 │   │   ├── crawler.py
+│   │   ├── net_guard.py
 │   │   ├── pipeline.py
+│   │   ├── robots.py
 │   │   ├── soup.py
 │   │   └── url_utils.py
 │   ├── modules/
@@ -254,6 +304,7 @@ seo-prism/
 │   │   ├── orphan_pages.py
 │   │   ├── resource_analyzer.py
 │   │   ├── seo_grade.py
+│   │   ├── spa_detection.py
 │   │   ├── standard_files.py
 │   │   ├── structured_data.py
 │   │   ├── thin_content.py
@@ -265,9 +316,11 @@ seo-prism/
 │   │   └── main.py
 │   ├── tests/
 │   ├── cli.py
+│   ├── limits.py
 │   ├── mcp_server.py
 │   ├── database.py
 │   ├── version.py
+│   ├── README.md
 │   ├── requirements.txt
 │   └── pyproject.toml
 ├── skills/
@@ -279,7 +332,8 @@ seo-prism/
 │   │   │   ├── sections/
 │   │   │   └── ui/
 │   │   ├── hooks/
-│   │   │   └── usePagination.ts
+│   │   │   ├── usePagination.ts
+│   │   │   └── useScanHistory.ts
 │   │   ├── i18n/
 │   │   │   ├── en.ts
 │   │   │   ├── es.ts
@@ -290,11 +344,17 @@ seo-prism/
 │   │   ├── issueMeta.tsx
 │   │   ├── filters.ts
 │   │   ├── types.ts
+│   │   ├── types_scans.ts
 │   │   └── version.ts
 │   ├── .env.example
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── vite.config.ts
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── Dockerfile
+├── docker-compose.yml
 ├── LICENSE
 └── README.md
 ```
@@ -313,12 +373,12 @@ If you are considering the Nous Portal **Plus** plan, you can use [my referral l
 
 *The offer is for new customers starting a new Plus subscription. It applies to the first invoice, and each payment card can be used for only one referral. If the card has already backed another referral, the discount is reversed and no referral reward is paid.*
 
-Using SEO Prism for your company and need a commercial license? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
+Using SEO Prism for your company and need a commercial license? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md). It is an annual AGPL-exemption subscription, paid **by international bank transfer only** (email the author, receive an invoice with payment details, pay, and receive the signed PDF license).
 
 ## License
 
 SEO Prism is dual-licensed:
 
-- **AGPL-3.0-only** ([LICENSE](LICENSE)): Free and open source. Every source file carries an `SPDX-License-Identifier` header. The network-use clause means anyone offering SEO Prism as a hosted service must publish their modified source.
+- **AGPL-3.0-only** ([LICENSE](LICENSE)): Free and open source. Every source file carries an `SPDX-License-Identifier` header. The open-source edition offers its full potential — no caps, no gating; the optional operator guards above are off by default. The network-use clause means anyone offering SEO Prism as a hosted service must publish their modified source.
 
-- **LicenseRef-SEO-Prism-Commercial** ([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)): Commercial license for proprietary use, without the requirement to publish your modifications. Contact the author for details.
+- **LicenseRef-SEO-Prism-Commercial** ([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)): Annual subscription to an AGPL exemption for organizations that need to keep their modifications private. It unlocks nothing — there are no features behind it — and it is paid by international bank transfer.
