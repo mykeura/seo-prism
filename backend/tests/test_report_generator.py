@@ -10,6 +10,11 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from PIL import Image as PILImage
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+
 from modules.report_generator import SEOReportGenerator
 
 
@@ -414,9 +419,85 @@ class TestSEOReportGenerator:
     def test_generate_report_file_not_writable(self, sample_results):
         """Test handling of file write errors."""
         generator = SEOReportGenerator()
-        
+
         # Use a path that doesn't exist and can't be created
         invalid_path = '/root/nonexistent_directory/test.pptx'
-        
+
         with pytest.raises(Exception):
             generator.generate_report(sample_results, invalid_path, 'en')
+
+    def test_custom_brand_name_and_color(self, sample_results):
+        """White-label brand name and accent color replace the SEO Prism defaults."""
+        generator = SEOReportGenerator(
+            brand_name='Acme SEO Studio', brand_color='#9333EA')
+        assert generator.theme['accent'] == RGBColor(0x93, 0x33, 0xEA)
+
+        fd, path = tempfile.mkstemp(suffix='.pptx')
+        os.close(fd)
+
+        try:
+            result_path = generator.generate_report(sample_results, path, 'en')
+
+            assert result_path == path
+            assert os.path.exists(path)
+            assert os.path.getsize(path) > 0
+
+            texts = [
+                shape.text_frame.text
+                for slide in Presentation(path).slides
+                for shape in slide.shapes
+                if shape.has_text_frame
+            ]
+            assert 'Acme SEO Studio' in '\n'.join(texts)
+            assert 'SEO Prism' not in '\n'.join(texts)
+        finally:
+            if os.path.exists(path):
+                os.unlink(path)
+
+    def test_invalid_brand_color_falls_back_to_default(self):
+        generator = SEOReportGenerator(brand_color='not-a-color')
+        assert generator.theme['accent'] == SEOReportGenerator.THEME_COLORS['accent']
+
+    def test_custom_brand_logo_embedded_on_cover(self, sample_results):
+        with tempfile.TemporaryDirectory() as tmp_path:
+            logo_path = os.path.join(tmp_path, 'logo.png')
+            PILImage.new('RGB', (64, 32), (147, 51, 234)).save(logo_path, 'PNG')
+
+            generator = SEOReportGenerator(brand_logo_path=logo_path)
+
+            fd, path = tempfile.mkstemp(suffix='.pptx')
+            os.close(fd)
+            try:
+                result_path = generator.generate_report(sample_results, path, 'en')
+
+                assert result_path == path
+                assert os.path.getsize(path) > 0
+                cover_shapes = list(Presentation(path).slides[0].shapes)
+                assert any(shape.shape_type == MSO_SHAPE_TYPE.PICTURE
+                           for shape in cover_shapes), \
+                    'brand logo not embedded on the cover slide'
+            finally:
+                if os.path.exists(path):
+                    os.unlink(path)
+
+    def test_missing_brand_logo_falls_back_to_brand_name_box(self, sample_results):
+        generator = SEOReportGenerator(
+            brand_name='Acme SEO Studio', brand_logo_path='/nonexistent/logo.png')
+
+        fd, path = tempfile.mkstemp(suffix='.pptx')
+        os.close(fd)
+
+        try:
+            result_path = generator.generate_report(sample_results, path, 'en')
+
+            assert result_path == path
+            assert os.path.getsize(path) > 0
+            cover_shapes = list(Presentation(path).slides[0].shapes)
+            assert not any(shape.shape_type == MSO_SHAPE_TYPE.PICTURE
+                           for shape in cover_shapes)
+            assert 'Acme SEO Studio' in '\n'.join(
+                shape.text_frame.text for shape in cover_shapes
+                if shape.has_text_frame)
+        finally:
+            if os.path.exists(path):
+                os.unlink(path)

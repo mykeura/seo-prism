@@ -9,6 +9,9 @@ Supports bilingual reports (Spanish/English) with corporate design.
 """
 
 from typing import Dict, List
+import os
+
+from PIL import Image as PILImage
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
@@ -33,16 +36,46 @@ class SEOReportGenerator:
         'header_bg': RGBColor(30, 58, 138),    # Header background
     }
     
-    def __init__(self, custom_theme: Dict = None):
+    def __init__(self, custom_theme: Dict = None, brand_name: str = 'SEO Prism',
+                 brand_color: str = None, brand_logo_path: str = None):
         """
         Initialize the SEO report generator.
-        
+
         Args:
             custom_theme: Optional dictionary of custom colors to override defaults
+            brand_name: Brand shown on the cover (default 'SEO Prism')
+            brand_color: Optional hex accent color ('#RRGGBB') applied to the
+                         cover gradient and accent elements; malformed values
+                         are ignored
+            brand_logo_path: Optional logo image embedded on the cover when the
+                             file exists; otherwise the placeholder box shows
+                             the brand name
         """
         self.theme = self.THEME_COLORS.copy()
         if custom_theme:
             self.theme.update(custom_theme)
+
+        self._custom_brand_color = self._sanitize_hex_color(brand_color)
+        if self._custom_brand_color is not None:
+            self.theme['accent'] = self._custom_brand_color
+        self.brand_name = (brand_name or '').strip() or 'SEO Prism'
+        self.brand_logo_path = brand_logo_path
+
+    @staticmethod
+    def _sanitize_hex_color(value):
+        """Parse a user-supplied hex color; None when absent or malformed."""
+        if not value:
+            return None
+        hex_part = str(value).strip().lstrip('#')
+        if len(hex_part) == 3:
+            hex_part = ''.join(ch * 2 for ch in hex_part)
+        if len(hex_part) != 6:
+            return None
+        try:
+            return RGBColor(int(hex_part[0:2], 16), int(hex_part[2:4], 16),
+                            int(hex_part[4:6], 16))
+        except (ValueError, TypeError):
+            return None
     
     def generate_report(self, results: Dict, output_path: str, lang: str = 'en') -> str:
         """
@@ -59,6 +92,8 @@ class SEOReportGenerator:
         prs = Presentation()
         prs.slide_width = Inches(10)
         prs.slide_height = Inches(7.5)
+        prs.core_properties.author = self.brand_name
+        prs.core_properties.title = get_translation(lang, 'report_title')
         
         self._add_cover_slide(prs, results, lang)
         self._add_executive_summary(prs, results, lang)
@@ -70,6 +105,31 @@ class SEOReportGenerator:
         
         prs.save(output_path)
         return output_path
+
+    def _add_brand_logo(self, slide, left_in: float, top_in: float,
+                        box_w_in: float, box_h_in: float):
+        """Embed the brand logo aspect-fitted inside the cover box; None when
+        no usable logo file is configured."""
+        path = self.brand_logo_path
+        if not path or not os.path.exists(path):
+            return None
+        try:
+            with PILImage.open(path) as img:
+                img_w, img_h = img.size
+        except Exception:
+            return None
+        if not img_w or not img_h:
+            return None
+        fit_w = box_w_in
+        fit_h = fit_w * img_h / img_w
+        if fit_h > box_h_in:
+            fit_h = box_h_in
+            fit_w = fit_h * img_w / img_h
+        return slide.shapes.add_picture(
+            path,
+            Inches(left_in + (box_w_in - fit_w) / 2),
+            Inches(top_in + (box_h_in - fit_h) / 2),
+            Inches(fit_w), Inches(fit_h))
     
     def _add_cover_slide(self, prs: Presentation, results: Dict, lang: str):
         """Add cover slide with logo placeholder, grade, and key info."""
@@ -83,21 +143,23 @@ class SEOReportGenerator:
         fill.gradient_stops[0].color.rgb = self.theme['primary']
         fill.gradient_stops[1].color.rgb = self.theme['accent']
         
-        logo_shape = slide.shapes.add_shape(
-            1,  # Rectangle
-            Inches(1), Inches(0.5), Inches(2), Inches(1.5)
-        )
-        logo_shape.fill.solid()
-        logo_shape.fill.fore_color.rgb = self.theme['background']
-        logo_shape.line.color.rgb = self.theme['text_light']
-        
-        logo_text = logo_shape.text_frame
-        logo_text.text = get_translation(lang, 'placeholder_logo')
-        logo_text.paragraphs[0].alignment = PP_ALIGN.CENTER
-        for paragraph in logo_text.paragraphs:
-            for run in paragraph.runs:
-                run.font.size = Pt(10)
-                run.font.color.rgb = self.theme['text_light']
+        if self._add_brand_logo(slide, 1, 0.5, 2, 1.5) is None:
+            logo_shape = slide.shapes.add_shape(
+                1,  # Rectangle
+                Inches(1), Inches(0.5), Inches(2), Inches(1.5)
+            )
+            logo_shape.fill.solid()
+            logo_shape.fill.fore_color.rgb = self.theme['background']
+            logo_shape.line.color.rgb = self.theme['text_light']
+
+            logo_text = logo_shape.text_frame
+            logo_text.word_wrap = True
+            logo_text.text = self.brand_name
+            logo_text.paragraphs[0].alignment = PP_ALIGN.CENTER
+            for paragraph in logo_text.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(10)
+                    run.font.color.rgb = self.theme['text_light']
         
         title_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(2.5), Inches(9), Inches(1)

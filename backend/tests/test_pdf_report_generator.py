@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from PIL import Image as PILImage
+from reportlab.lib import colors
 
 from modules.pdf_report_generator import SEOReportPDFGenerator
 from modules.description_translations import translate_description
@@ -183,6 +185,62 @@ class TestSEOReportPDFGenerator:
             path, _ = _generate(tmp_path, results, lang='es')
             text = _extract_text(path)
             assert 'brand_new_check' in text
+
+    def test_default_brand_name_and_disclaimer(self, sample_results):
+        """Without brand arguments the report keeps the SEO Prism branding and
+        always carries the grade-is-not-a-certification disclaimer."""
+        with tempfile.TemporaryDirectory() as tmp_path:
+            path, _ = _generate(tmp_path, sample_results, lang='en')
+            text = ' '.join(_extract_text(path).split())
+            assert 'SEO Prism' in text
+            assert 'not a certification' in text
+
+    def test_grade_disclaimer_is_translated(self, sample_results):
+        with tempfile.TemporaryDirectory() as tmp_path:
+            path, _ = _generate(tmp_path, sample_results, lang='es')
+            text = ' '.join(_extract_text(path).split())
+            assert 'no constituye una certificación' in text
+
+    def test_custom_brand_name_and_color(self, sample_results):
+        """White-label brand name and accent color replace the SEO Prism
+        defaults on cover, headers and footers."""
+        with tempfile.TemporaryDirectory() as tmp_path:
+            output = str(Path(tmp_path) / 'seo_report.pdf')
+            generator = SEOReportPDFGenerator(
+                brand_name='Acme SEO Studio', brand_color='#9333EA')
+            path = generator.generate_report(sample_results, output, 'en')
+            assert os.path.exists(path)
+            assert Path(path).read_bytes().startswith(b'%PDF')
+            assert generator.theme['accent'] == colors.HexColor('#9333EA')
+            text = _extract_text(path)
+            assert 'Acme SEO Studio' in text
+            assert 'SEO Prism' not in text
+            assert 'not a certification' in ' '.join(text.split())
+
+    def test_invalid_brand_color_falls_back_to_default(self):
+        generator = SEOReportPDFGenerator(brand_color='not-a-color')
+        assert generator.theme['accent'] == SEOReportPDFGenerator.THEME['accent']
+
+    def test_custom_brand_logo_embedded_on_cover(self, sample_results):
+        with tempfile.TemporaryDirectory() as tmp_path:
+            logo_path = str(Path(tmp_path) / 'logo.png')
+            PILImage.new('RGB', (64, 32), (147, 51, 234)).save(logo_path, 'PNG')
+            output = str(Path(tmp_path) / 'seo_report.pdf')
+            generator = SEOReportPDFGenerator(brand_logo_path=logo_path)
+            path = generator.generate_report(sample_results, output, 'en')
+            reader = pypdf.PdfReader(path)
+            assert list(reader.pages[0].images), \
+                'brand logo not embedded on the cover page'
+
+    def test_missing_brand_logo_falls_back(self, sample_results):
+        with tempfile.TemporaryDirectory() as tmp_path:
+            output = str(Path(tmp_path) / 'seo_report.pdf')
+            generator = SEOReportPDFGenerator(
+                brand_name='Acme SEO Studio',
+                brand_logo_path=str(Path(tmp_path) / 'missing.png'))
+            path = generator.generate_report(sample_results, output, 'en')
+            assert Path(path).read_bytes().startswith(b'%PDF')
+            assert 'Acme SEO Studio' in _extract_text(path)
 
 
 class TestTranslateDescription:

@@ -23,10 +23,12 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
     HRFlowable,
+    Image,
     LongTable,
     NextPageTemplate,
     PageBreak,
@@ -39,6 +41,15 @@ from reportlab.platypus import (
 
 from .report_translations import get_translation, get_impact_template, get_issue_label
 from .description_translations import translate_description
+
+# Footer disclaimer: the grade is an orientation, never a certification.
+_GRADE_DISCLAIMERS = {
+    'en': 'Note: the A-F SEO grade is indicative — it reflects automated technical '
+          'checks at the time of the scan and is not a certification.',
+    'es': 'Nota: la calificación SEO A-F es orientativa — refleja comprobaciones '
+          'técnicas automatizadas en el momento del análisis y no constituye una '
+          'certificación.',
+}
 
 
 class SEOReportPDFGenerator:
@@ -83,17 +94,29 @@ class SEOReportPDFGenerator:
 
     SEVERITY_WEIGHT = {'high': 3, 'medium': 2, 'low': 1}
 
-    def __init__(self, custom_theme: dict = None):
+    def __init__(self, custom_theme: dict = None, brand_name: str = 'SEO Prism',
+                 brand_color: str = None, brand_logo_path: str = None):
         """
         Initialize the PDF report generator.
 
         Args:
             custom_theme: Optional dictionary of custom colors to override defaults
+            brand_name: Brand shown on cover, headers and footers (default 'SEO Prism')
+            brand_color: Optional hex accent color ('#RRGGBB') applied to the brand
+                         title and accent rules; malformed values are ignored
+            brand_logo_path: Optional logo image embedded on the cover when the
+                             file exists; otherwise the layout is unchanged
         """
         self.theme = {k: (v if not isinstance(v, tuple) else colors.HexColor('#%02X%02X%02X' % v))
                       for k, v in self.THEME.copy().items()}
         if custom_theme:
             self.theme.update(custom_theme)
+
+        self._custom_brand_color = self._sanitize_hex_color(brand_color)
+        if self._custom_brand_color is not None:
+            self.theme['accent'] = self._custom_brand_color
+        self.brand_name = (brand_name or '').strip() or 'SEO Prism'
+        self.brand_logo_path = brand_logo_path
 
         self._lang = 'en'
         self._scan_url = ''
@@ -131,8 +154,8 @@ class SEOReportPDFGenerator:
         doc = BaseDocTemplate(
             output_path,
             pagesize=A4,
-            title=f"SEO Prism — {self._report_title} — {self._scan_url}",
-            author='SEO Prism',
+            title=f"{self.brand_name} — {self._report_title} — {self._scan_url}",
+            author=self.brand_name,
             subject=self._report_title,
         )
 
@@ -158,6 +181,7 @@ class SEOReportPDFGenerator:
         story.append(PageBreak())
         story.extend(self._recommendations_flowables(results, self._lang))
         story.extend(self._notes_flowables(self._lang))
+        story.extend(self._disclaimer_flowables(self._lang))
 
         doc.build(story)
         return output_path
@@ -169,10 +193,11 @@ class SEOReportPDFGenerator:
     def _build_styles(self):
         """Create the paragraph styles used across the report."""
         t = self.theme
+        brand_text_color = self._custom_brand_color or t['primary']
         self.styles = {
             'brand': ParagraphStyle(
                 'brand', fontName='Helvetica-Bold', fontSize=38, leading=42,
-                alignment=TA_CENTER, textColor=t['primary']),
+                alignment=TA_CENTER, textColor=brand_text_color),
             'tagline': ParagraphStyle(
                 'tagline', fontName='Helvetica', fontSize=11, leading=14,
                 alignment=TA_CENTER, textColor=t['text_light']),
@@ -258,7 +283,7 @@ class SEOReportPDFGenerator:
         canvas.setFont('Helvetica-Bold', 8)
         canvas.setFillColor(self.theme['primary'])
         canvas.drawString(self.MARGIN, self.PAGE_H - 26,
-                          f"SEO Prism — {self._report_title}")
+                          f"{self._strip_unencodable(self.brand_name)} — {self._report_title}")
         if self._scan_url:
             canvas.setFont('Helvetica', 7.5)
             canvas.setFillColor(self.theme['text_light'])
@@ -272,7 +297,7 @@ class SEOReportPDFGenerator:
         canvas.line(self.MARGIN, 1.1 * cm, self.PAGE_W - self.MARGIN, 1.1 * cm)
         canvas.setFont('Helvetica', 7.5)
         canvas.setFillColor(self.theme['text_light'])
-        canvas.drawString(self.MARGIN, 0.75 * cm, 'SEO Prism')
+        canvas.drawString(self.MARGIN, 0.75 * cm, self._strip_unencodable(self.brand_name))
         page_label = get_translation(self._lang, 'page')
         canvas.drawRightString(self.PAGE_W - self.MARGIN, 0.75 * cm,
                                f"{page_label} {canvas.getPageNumber()}")
@@ -293,13 +318,8 @@ class SEOReportPDFGenerator:
     # ------------------------------------------------------------------ #
 
     @staticmethod
-    def _pdf_text(value) -> str:
-        """Sanitize and XML-escape text for Paragraph markup.
-
-        The built-in Helvetica fonts use WinAnsi encoding and cannot render
-        emoji or other exotic characters (they would appear as black
-        squares), so any non-encodable character is dropped before escaping.
-        """
+    def _strip_unencodable(value) -> str:
+        """Drop any character the built-in Helvetica fonts cannot render."""
         if value is None:
             return ''
         kept = []
@@ -309,7 +329,46 @@ class SEOReportPDFGenerator:
                 kept.append(ch)
             except UnicodeEncodeError:
                 continue
-        return escape(''.join(kept))
+        return ''.join(kept)
+
+    @staticmethod
+    def _pdf_text(value) -> str:
+        """Sanitize and XML-escape text for Paragraph markup.
+
+        The built-in Helvetica fonts use WinAnsi encoding and cannot render
+        emoji or other exotic characters (they would appear as black
+        squares), so any non-encodable character is dropped before escaping.
+        """
+        return escape(SEOReportPDFGenerator._strip_unencodable(value))
+
+    @staticmethod
+    def _sanitize_hex_color(value):
+        """Parse a user-supplied hex color; None when absent or malformed."""
+        if not value:
+            return None
+        hex_part = str(value).strip().lstrip('#')
+        if len(hex_part) == 3:
+            hex_part = ''.join(ch * 2 for ch in hex_part)
+        if len(hex_part) != 6:
+            return None
+        try:
+            return colors.HexColor('#' + hex_part.upper())
+        except (ValueError, TypeError):
+            return None
+
+    def _brand_logo_flowable(self):
+        """Image flowable for the brand logo, or None when unavailable."""
+        if not self.brand_logo_path or not os.path.exists(self.brand_logo_path):
+            return None
+        try:
+            width, height = ImageReader(self.brand_logo_path).getSize()
+            if not width or not height:
+                return None
+            scale = min((8 * cm) / width, (3 * cm) / height, 1.0)
+            return Image(self.brand_logo_path, width=width * scale,
+                         height=height * scale)
+        except Exception:
+            return None
 
     @staticmethod
     def _severity_counts(issues: list, breakdown: dict) -> dict:
@@ -378,26 +437,28 @@ class SEOReportPDFGenerator:
         issues = results.get('issues', [])
         counts = self._severity_counts(issues, grade_data.get('breakdown', {}))
 
-        flow = [
-            Spacer(1, 2.6 * cm),
-            Paragraph('SEO Prism', self.styles['brand']),
-            Paragraph(get_translation(lang, 'tool_tagline'), self.styles['tagline']),
-            Spacer(1, 1.1 * cm),
-            Paragraph(get_translation(lang, 'report_title'), self.styles['cover_title']),
-            Paragraph(get_translation(lang, 'executive_report'), self.styles['cover_sub']),
-            Spacer(1, 1.4 * cm),
-            Paragraph(
-                f"<b>{self._pdf_text(get_translation(lang, 'analyzed_url'))}:</b> {self._pdf_text(scan.get('url', 'N/A') or 'N/A')}",
-                self.styles['cover_info']),
-            Paragraph(
-                f"<b>{self._pdf_text(get_translation(lang, 'analysis_date'))}:</b> "
-                f"{self._pdf_text(scan.get('timestamp') or datetime.now().strftime('%Y-%m-%d'))}",
-                self.styles['cover_info']),
-            Paragraph(
-                f"<b>{self._pdf_text(get_translation(lang, 'total_pages'))}:</b> {scan.get('total_pages', 0)}",
-                self.styles['cover_info']),
-            Spacer(1, 1.6 * cm),
-        ]
+        flow = [Spacer(1, 2.6 * cm)]
+        logo = self._brand_logo_flowable()
+        if logo is not None:
+            flow.append(logo)
+            flow.append(Spacer(1, 0.8 * cm))
+        flow.append(Paragraph(self._pdf_text(self.brand_name), self.styles['brand']))
+        flow.append(Paragraph(get_translation(lang, 'tool_tagline'), self.styles['tagline']))
+        flow.append(Spacer(1, 1.1 * cm))
+        flow.append(Paragraph(get_translation(lang, 'report_title'), self.styles['cover_title']))
+        flow.append(Paragraph(get_translation(lang, 'executive_report'), self.styles['cover_sub']))
+        flow.append(Spacer(1, 1.4 * cm))
+        flow.append(Paragraph(
+            f"<b>{self._pdf_text(get_translation(lang, 'analyzed_url'))}:</b> {self._pdf_text(scan.get('url', 'N/A') or 'N/A')}",
+            self.styles['cover_info']))
+        flow.append(Paragraph(
+            f"<b>{self._pdf_text(get_translation(lang, 'analysis_date'))}:</b> "
+            f"{self._pdf_text(scan.get('timestamp') or datetime.now().strftime('%Y-%m-%d'))}",
+            self.styles['cover_info']))
+        flow.append(Paragraph(
+            f"<b>{self._pdf_text(get_translation(lang, 'total_pages'))}:</b> {scan.get('total_pages', 0)}",
+            self.styles['cover_info']))
+        flow.append(Spacer(1, 1.6 * cm))
 
         high_hex = self.theme['high'].hexval()[2:]
         medium_hex = self.theme['medium'].hexval()[2:]
@@ -637,5 +698,15 @@ class SEOReportPDFGenerator:
             HRFlowable(width='100%', thickness=1, color=self.theme['accent'],
                        spaceBefore=0, spaceAfter=10),
             Paragraph(get_translation(lang, 'placeholder_notes'),
+                      self.styles['note_italic']),
+        ]
+
+    def _disclaimer_flowables(self, lang: str) -> list:
+        """Footer disclaimer: the A-F grade is indicative, not a certification."""
+        return [
+            Spacer(1, 0.6 * cm),
+            HRFlowable(width='100%', thickness=0.6, color=self.theme['line'],
+                       spaceBefore=0, spaceAfter=6),
+            Paragraph(_GRADE_DISCLAIMERS.get(lang, _GRADE_DISCLAIMERS['en']),
                       self.styles['note_italic']),
         ]
