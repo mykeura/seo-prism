@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEO-Prism-Commercial
+# SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
+
+services:
+  seo-prism:
+    build: .
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    # Operator guards and hosting options are documented in backend/README.md.
+    # Set only the variables you actually use; an empty value still reaches
+    # the app, so do not interpolate unset variables here.
+    # environment:
+    #   CORS_ORIGINS: https://panel.example.com
+    #   SEO_PRISM_API_KEY: change-me
+    #   SEO_PRISM_BLOCK_PRIVATE_TARGETS: "1"
+    #   SEO_PRISM_MAX_PAGES_LIMIT: "100"
+    # Scan history lives in /app/scans.db; mount a file to keep it across
+    # container recreation (create it first: touch scans.db).
+    # volumes:
+    #   - ./scans.db:/app/scans.db
