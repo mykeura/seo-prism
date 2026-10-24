@@ -5,6 +5,8 @@ import sqlite3
 from datetime import datetime
 from typing import List, Dict, Optional
 
+from modules.seo_grade import SEOGradeCalculator
+
 
 class Database:
     """SQLite database for storing scan results."""
@@ -251,6 +253,46 @@ class Database:
             return self.get_scan_results(result['id'])
         
         return None
+    
+    def list_scans(self, limit: int = 50) -> List[Dict]:
+        """
+        List recent scans, newest first.
+        
+        Args:
+            limit: Maximum number of scans to return
+        
+        Returns:
+            List of dicts with keys scan_id, url, scan_date (ISO string),
+            grade_letter, grade_score and total_issues. The grade is not
+            persisted; it is recomputed from the stored page count and the
+            issue severities, the same inputs the pipeline graded on.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            'SELECT id, url, timestamp, total_pages, total_issues '
+            'FROM scans ORDER BY timestamp DESC, id DESC LIMIT ?',
+            (limit,)
+        )
+        rows = cursor.fetchall()
+        
+        calculator = SEOGradeCalculator()
+        scans = []
+        for row in rows:
+            cursor.execute(
+                'SELECT severity FROM issues WHERE scan_id = ?',
+                (row['id'],)
+            )
+            issues = [{'severity': r['severity']} for r in cursor.fetchall()]
+            grade = calculator.calculate_grade(row['total_pages'] or 0, issues)
+            scans.append({
+                'scan_id': row['id'],
+                'url': row['url'],
+                'scan_date': row['timestamp'],
+                'grade_letter': grade['grade'],
+                'grade_score': grade['score'],
+                'total_issues': row['total_issues'],
+            })
+        return scans
     
     def close(self):
         """Close database connection."""
