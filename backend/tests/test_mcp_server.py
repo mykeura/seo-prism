@@ -67,6 +67,34 @@ def test_seo_scan_tool_rejects_invalid_url():
     assert 'error' in result
 
 
+class _FakeDB:
+    def close(self):
+        pass
+
+
+def test_seo_scan_clamps_only_when_env_limit_is_set(monkeypatch):
+    captured = {}
+
+    async def fake_pipeline(db, url, max_pages, ignore_robots):
+        captured['max_pages'] = max_pages
+        return {'scan_id': 1, 'html_page_count': 1, 'issues': [],
+                'seo_grade': {'grade': 'A', 'score': 95}, 'resource_analysis': {}}
+
+    monkeypatch.setattr(mcp_server, 'Database', lambda *a, **k: _FakeDB())
+    monkeypatch.setattr(mcp_server, 'run_scan_pipeline', fake_pipeline)
+    monkeypatch.delenv('SEO_PRISM_MAX_PAGES_LIMIT', raising=False)
+
+    asyncio.run(mcp_server.seo_scan('http://127.0.0.1:1', max_pages=99999))
+    assert captured['max_pages'] == 99999
+
+    monkeypatch.setenv('SEO_PRISM_MAX_PAGES_LIMIT', '30')
+    asyncio.run(mcp_server.seo_scan('http://127.0.0.1:1', max_pages=99999))
+    assert captured['max_pages'] == 30
+
+    asyncio.run(mcp_server.seo_scan('http://127.0.0.1:1', max_pages=0))
+    assert captured['max_pages'] == 1
+
+
 def test_mcp_stdio_protocol():
     """Drive the real server over stdio: initialize, tools/list, tools/call."""
     backend_dir = Path(__file__).parent.parent

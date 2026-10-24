@@ -17,7 +17,7 @@ from mcp.server.fastmcp import FastMCP
 from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
-from limits import MAX_PAGES_LIMIT
+from limits import get_max_pages_limit
 from version import __version__
 
 # FastMCP pins the HTTP host/port on the instance (run() only takes the
@@ -57,7 +57,12 @@ def build_server(
         if not validate_url(url):
             return {"error": f"Invalid URL: {url}"}
 
-        max_pages = max(1, min(max_pages, MAX_PAGES_LIMIT))
+        # max_pages >= 1 always; the upper bound applies only when the
+        # operator set SEO_PRISM_MAX_PAGES_LIMIT.
+        max_pages = max(1, max_pages)
+        limit = get_max_pages_limit()
+        if limit is not None:
+            max_pages = min(max_pages, limit)
         db = Database()
         try:
             result = await run_scan_pipeline(

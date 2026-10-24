@@ -1,16 +1,33 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEO-Prism-Commercial
 # SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
-"""Tests for the HTTP API request guards (max_pages clamp)."""
+"""
+Tests for the HTTP API guards: optional max_pages limit, optional API key,
+opt-in private-target guard, health endpoint, scan history and error
+sanitization.
+"""
+import re
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 
 import api.main as main
+from database import Database
+from limits import get_max_pages_limit
+from modules.seo_grade import SEOGradeCalculator
 
 
 class _FakeDB:
     def close(self):
         pass
+
+
+@pytest.fixture(autouse=True)
+def clean_env(monkeypatch):
+    for var in ('SEO_PRISM_MAX_PAGES_LIMIT', 'SEO_PRISM_API_KEY',
+                'SEO_PRISM_BLOCK_PRIVATE_TARGETS'):
+        monkeypatch.delenv(var, raising=False)
 
 
 @pytest.fixture
@@ -32,21 +49,262 @@ def client(monkeypatch):
     return TestClient(main.app), captured
 
 
+@pytest.fixture
+def db_client(monkeypatch, tmp_path):
+    """Client backed by a real on-disk Database, for the /scans history.
+
+    Like in production, every request opens its own connection; the yielded
+    handle exists only to seed data from the test's thread.
+    """
+    db_path = str(tmp_path / 'scans.db')
+    monkeypatch.setattr(main, 'Database', lambda *a, **k: Database(db_path))
+
+    db = Database(db_path)
+    yield TestClient(main.app), db
+    db.close()
+
+
+def _seed_scan(db, url, pages, issues):
+    """Store a scan the way the pipeline would: totals plus issue rows."""
+    scan_id = db.create_scan(url)
+    for severity, count in issues.items():
+        for _ in range(count):
+            db.add_issue(scan_id, 'test_issue', url, severity=severity)
+    db.update_scan_totals(scan_id, pages, sum(issues.values()))
+    return scan_id
+
+
+# --- max_pages limit -------------------------------------------------------
+
 @pytest.mark.parametrize('sent,expected', [
-    (99999, 100),
-    (100, 100),
+    (None, 100),
     (1, 1),
     (0, 1),
     (-5, 1),
-    (None, 100),
+    (99999, 99999),
 ])
-def test_scan_clamps_max_pages(client, sent, expected):
+def test_scan_without_env_limit_has_no_ceiling(client, sent, expected):
     http, captured = client
     resp = http.post('/scan', json={'url': 'http://127.0.0.1:1', 'max_pages': sent})
     assert resp.status_code == 200
     assert captured['max_pages'] == expected
 
 
+@pytest.mark.parametrize('sent,expected', [
+    (99999, 50),
+    (100, 50),
+    (25, 25),
+    (0, 1),
+    (None, 50),
+])
+def test_scan_clamps_only_when_env_limit_is_set(client, monkeypatch, sent, expected):
+    monkeypatch.setenv('SEO_PRISM_MAX_PAGES_LIMIT', '50')
+    http, captured = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1', 'max_pages': sent})
+    assert resp.status_code == 200
+    assert captured['max_pages'] == expected
+
+
+@pytest.mark.parametrize('raw', ['not-a-number', '0', '-3', ''])
+def test_scan_ignores_invalid_env_limit(client, monkeypatch, raw):
+    monkeypatch.setenv('SEO_PRISM_MAX_PAGES_LIMIT', raw)
+    http, captured = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1', 'max_pages': 200})
+    assert resp.status_code == 200
+    assert captured['max_pages'] == 200
+
+
+def test_get_max_pages_limit_reads_env(monkeypatch):
+    monkeypatch.delenv('SEO_PRISM_MAX_PAGES_LIMIT', raising=False)
+    assert get_max_pages_limit() is None
+    monkeypatch.setenv('SEO_PRISM_MAX_PAGES_LIMIT', '42')
+    assert get_max_pages_limit() == 42
+    monkeypatch.setenv('SEO_PRISM_MAX_PAGES_LIMIT', 'nope')
+    assert get_max_pages_limit() is None
+
+
+# --- /health ----------------------------------------------------------------
+
+def test_health_ok(client):
+    http, _ = client
+    resp = http.get('/health')
+    assert resp.status_code == 200
+    assert resp.json() == {'status': 'ok', 'version': main.__version__}
+
+
+def test_health_open_even_with_api_key(client, monkeypatch):
+    monkeypatch.setenv('SEO_PRISM_API_KEY', 'sekrit')
+    http, _ = client
+    resp = http.get('/health')
+    assert resp.status_code == 200
+
+
+# --- API key ----------------------------------------------------------------
+
+def test_endpoints_open_without_api_key_env(client):
+    http, _ = client
+    assert http.post('/scan', json={'url': 'http://127.0.0.1:1'}).status_code == 200
+    assert http.get('/').status_code == 200
+
+
+def test_api_key_missing_rejected(client, monkeypatch):
+    monkeypatch.setenv('SEO_PRISM_API_KEY', 'sekrit')
+    http, captured = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1'})
+    assert resp.status_code == 401
+    assert resp.json() == {'detail': 'Unauthorized'}
+    assert 'max_pages' not in captured
+
+
+def test_api_key_incorrect_rejected(client, monkeypatch):
+    monkeypatch.setenv('SEO_PRISM_API_KEY', 'sekrit')
+    http, _ = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1'},
+                     headers={'X-API-Key': 'wrong-value'})
+    assert resp.status_code == 401
+    # Missing and incorrect keys must be indistinguishable.
+    assert resp.json() == {'detail': 'Unauthorized'}
+
+
+def test_api_key_required_on_every_endpoint(client, monkeypatch):
+    monkeypatch.setenv('SEO_PRISM_API_KEY', 'sekrit')
+    http, _ = client
+    assert http.get('/').status_code == 401
+    assert http.get('/scans').status_code == 401
+    assert http.get('/results').status_code == 401
+    assert http.get('/results/1').status_code == 401
+
+
+def test_api_key_correct_accepted(client, monkeypatch):
+    monkeypatch.setenv('SEO_PRISM_API_KEY', 'sekrit')
+    http, captured = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1'},
+                     headers={'X-API-Key': 'sekrit'})
+    assert resp.status_code == 200
+    assert 'max_pages' in captured
+
+
+# --- private-target guard -----------------------------------------------------
+
+def test_scan_blocks_private_target_when_guard_enabled(client, monkeypatch):
+    monkeypatch.setenv('SEO_PRISM_BLOCK_PRIVATE_TARGETS', '1')
+    http, captured = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1'})
+    assert resp.status_code == 400
+    assert 'non-public' in resp.json()['detail']
+    assert 'max_pages' not in captured
+
+
+def test_scan_allows_private_target_without_guard(client):
+    http, captured = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1'})
+    assert resp.status_code == 200
+    assert 'max_pages' in captured
+
+
+# --- error hygiene --------------------------------------------------------------
+
+def test_scan_error_is_sanitized(client, monkeypatch):
+    async def boom(db, url, max_pages, ignore_robots):
+        raise RuntimeError('secret: sqlite:////home/operator/hidden.db')
+
+    monkeypatch.setattr(main, 'run_scan_pipeline', boom)
+    http, _ = client
+    resp = http.post('/scan', json={'url': 'http://127.0.0.1:1'})
+    assert resp.status_code == 500
+    detail = resp.json()['detail']
+    assert detail.startswith('Internal server error')
+    assert re.fullmatch(r'Internal server error \(ref: [0-9a-f]{8}\)', detail)
+    assert 'secret' not in detail
+
+
+def test_results_error_is_sanitized(client, monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError('secret password=hunter2')
+
+    monkeypatch.setattr(main, 'Database', boom)
+    http, _ = client
+    resp = http.get('/results')
+    assert resp.status_code == 500
+    detail = resp.json()['detail']
+    assert detail.startswith('Internal server error')
+    assert 'hunter2' not in detail
+
+
 def test_scan_rejects_invalid_url(client):
     http, _ = client
     assert http.post('/scan', json={'url': 'not-a-url'}).status_code == 400
+
+
+# --- /scans history ------------------------------------------------------------
+
+def test_scans_empty_history(db_client):
+    http, _ = db_client
+    resp = http.get('/scans')
+    assert resp.status_code == 200
+    assert resp.json() == {'scans': []}
+
+
+def test_scans_lists_created_scan_with_exact_contract(db_client):
+    http, db = db_client
+    _seed_scan(db, 'https://example.com', pages=2,
+               issues={'high': 1, 'low': 2})
+    resp = http.get('/scans')
+    assert resp.status_code == 200
+    entries = resp.json()['scans']
+    assert len(entries) == 1
+    entry = entries[0]
+    assert set(entry) == {'scan_id', 'url', 'scan_date', 'grade_letter',
+                          'grade_score', 'total_issues'}
+    assert entry['scan_id'] == 1
+    assert entry['url'] == 'https://example.com'
+    assert entry['total_issues'] == 3
+    datetime.fromisoformat(entry['scan_date'])
+    # The grade must match what the pipeline graded on: the stored page
+    # count plus the severities persisted for the scan.
+    expected = SEOGradeCalculator().calculate_grade(2, [
+        {'severity': 'high'}, {'severity': 'low'}, {'severity': 'low'},
+    ])
+    assert entry['grade_letter'] == expected['grade']
+    assert entry['grade_score'] == expected['score']
+
+
+def test_scans_ordered_newest_first(db_client):
+    http, db = db_client
+    first = _seed_scan(db, 'https://first.example.com', 1, {})
+    second = _seed_scan(db, 'https://second.example.com', 1, {})
+    third = _seed_scan(db, 'https://third.example.com', 1, {})
+    resp = http.get('/scans')
+    assert [e['scan_id'] for e in resp.json()['scans']] == [third, second, first]
+
+
+def test_scans_limit_returns_newest_n(db_client):
+    http, db = db_client
+    _seed_scan(db, 'https://old.example.com', 1, {})
+    _seed_scan(db, 'https://middle.example.com', 1, {})
+    newest = _seed_scan(db, 'https://new.example.com', 1, {})
+    resp = http.get('/scans', params={'limit': 2})
+    entries = resp.json()['scans']
+    assert len(entries) == 2
+    assert entries[0]['scan_id'] == newest
+    assert entries[0]['url'] == 'https://new.example.com'
+
+
+def test_scans_limit_is_clamped_into_valid_range(db_client):
+    http, db = db_client
+    _seed_scan(db, 'https://only.example.com', 1, {})
+    assert len(http.get('/scans', params={'limit': 0}).json()['scans']) == 1
+    assert len(http.get('/scans', params={'limit': -5}).json()['scans']) == 1
+
+
+def test_scans_rejects_non_integer_limit(db_client):
+    http, _ = db_client
+    assert http.get('/scans', params={'limit': 'many'}).status_code == 422
+
+
+def test_scans_respects_optional_api_key(db_client, monkeypatch):
+    monkeypatch.setenv('SEO_PRISM_API_KEY', 'sekrit')
+    http, db = db_client
+    _seed_scan(db, 'https://example.com', 1, {})
+    assert http.get('/scans').status_code == 401
+    assert http.get('/scans', headers={'X-API-Key': 'sekrit'}).status_code == 200
