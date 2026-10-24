@@ -3,10 +3,11 @@
 
 import asyncio
 import aiohttp
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Set, Optional, Tuple
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 from version import __version__
+from .robots import HostKey, RobotsCache, host_key
 from .url_utils import parse_target_url, is_local, resolve_relative_url, normalize_url
 
 _USER_AGENT = f'Mozilla/5.0 (compatible; SEO-Prism/{__version__}; +https://seo-prism.local)'
@@ -43,8 +44,20 @@ class Crawler:
         self.visited_urls: Set[str] = set()
         self.queued_urls: Set[str] = set()
         self.results: List[Dict] = []
-        
+        # URLs robots.txt disallowed for this crawler; they are never fetched.
+        self.robots_skipped_urls: Set[str] = set()
+
+        self._robots: Optional[RobotsCache] = None
+        self._robots_host: Optional[HostKey] = None
+        self._host_next_allowed: Dict[HostKey, float] = {}
+        self._pacing_locks: Dict[HostKey, asyncio.Lock] = {}
+
         self.session: Optional[aiohttp.ClientSession] = None
+
+    @property
+    def robots_skipped_count(self) -> int:
+        """How many URLs robots.txt disallowed during the last crawl()."""
+        return len(self.robots_skipped_urls)
     
     async def __aenter__(self):
         """Async context manager entry."""
@@ -81,6 +94,48 @@ class Crawler:
         except Exception:
             return False
     
+    async def _filter_allowed(self, urls: List[str]) -> List[str]:
+        """Drop URLs robots.txt disallows for this crawler, counting each skip.
+
+        Only the crawled host's robots.txt is consulted: URLs pointing
+        elsewhere pass through untouched so no third-party robots.txt is
+        ever fetched.
+        """
+        if self._robots is None or self._robots_host is None:
+            return urls
+        allowed = []
+        for url in urls:
+            if host_key(url) != self._robots_host:
+                allowed.append(url)
+                continue
+            rules = await self._robots.rules_for(url)
+            if rules.can_fetch(url):
+                allowed.append(url)
+            else:
+                self.robots_skipped_urls.add(normalize_url(url))
+        return allowed
+
+    async def _pace(self, url: str) -> None:
+        """Wait so consecutive requests to one host keep its Crawl-delay.
+
+        No-op unless the host's robots.txt defines a pause; hosts without
+        one keep the current unpaced behaviour.
+        """
+        if self._robots is None or self._robots_host is None:
+            return
+        if host_key(url) != self._robots_host:
+            return
+        delay = (await self._robots.rules_for(url)).delay_for(url)
+        if not delay:
+            return
+        lock = self._pacing_locks.setdefault(self._robots_host, asyncio.Lock())
+        async with lock:
+            loop = asyncio.get_running_loop()
+            wait = self._host_next_allowed.get(self._robots_host, 0.0) - loop.time()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._host_next_allowed[self._robots_host] = loop.time() + delay
+
     async def _fetch_resource(self, url: str) -> Optional[Dict]:
         """
         Fetch a single resource (image, script, stylesheet) and verify its status.
@@ -100,10 +155,12 @@ class Crawler:
             return None
         
         self.visited_urls.add(normalized_url)
-        
+
+        await self._pace(url)
+
         try:
             headers = {'User-Agent': _USER_AGENT}
-            
+
             # Prefer HEAD for resources (faster, doesn't download content)
             async with self.session.head(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 status = response.status
@@ -163,10 +220,12 @@ class Crawler:
             return None
         
         self.visited_urls.add(normalized_url)
-        
+
+        await self._pace(url)
+
         try:
             headers = {'User-Agent': _USER_AGENT}
-            
+
             async with self.session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 status = response.status
                 
@@ -281,26 +340,38 @@ class Crawler:
     async def crawl(self, max_pages: int = 1000) -> List[Dict]:
         """
         Crawl the website starting from base URL.
-        
+
         Args:
             max_pages: Maximum number of pages to crawl
-        
+
         Returns:
-            List of page results
+            List of page results. When robots.txt is respected
+            (ignore_robots=False) URLs it disallows for this crawler's
+            user agent are never fetched; their count is exposed as
+            robots_skipped_count / robots_skipped_urls.
         """
         if not self.session:
             raise RuntimeError("Crawler must be used as async context manager")
-        
+
         results = []
         urls_to_visit = [self.base_url]
         self.queued_urls.add(normalize_url(self.base_url))
         resources_to_verify: Set[str] = set()
         external_links_to_verify: Set[str] = set()
-        
+
+        if not self.ignore_robots:
+            # Fetched once per host and cached; a missing or unreachable
+            # robots.txt yields allow-all rules, so the scan proceeds.
+            self._robots = RobotsCache(self.session, _USER_AGENT)
+            self._robots_host = host_key(self.base_url)
+            await self._robots.rules_for(self.base_url)
+
         while urls_to_visit and len(results) < max_pages:
             current_batch = urls_to_visit[:20]
             urls_to_visit = urls_to_visit[20:]
-            
+
+            current_batch = await self._filter_allowed(current_batch)
+
             tasks = [self._fetch_page(url) for url in current_batch]
             page_results = await asyncio.gather(*tasks)
             
@@ -325,6 +396,10 @@ class Crawler:
                             elif not self._is_same_domain(resource_url) and resource_url not in self.visited_urls:
                                 external_links_to_verify.add(resource_url)
         
+        # Same-host resources and anchors are HEAD-verified too; a robots.txt
+        # disallow means no request at all, so they are filtered as well.
+        resources_to_verify = await self._filter_allowed(list(resources_to_verify))
+
         if resources_to_verify:
             resource_list = list(resources_to_verify)
             batch_size = 30

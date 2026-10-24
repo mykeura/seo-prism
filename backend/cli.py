@@ -13,20 +13,33 @@ from modules.pdf_report_generator import SEOReportPDFGenerator
 
 @click.command()
 @click.option('--url', required=True, help='Target URL to scan')
-@click.option('--max-pages', default=100, help='Maximum number of pages to crawl')
+@click.option('--max-pages', default=100,
+              help='Maximum number of pages to crawl (default: 100; no hard cap, any larger value is honored)')
+@click.option('--ignore-robots', 'ignore_robots_flag', is_flag=True,
+              help='Ignore robots.txt even for remote URLs (local URLs are always scanned without robots.txt)')
 @click.option('--json', 'as_json', is_flag=True, help='Print complete scan results as JSON to stdout (progress messages go to stderr)')
 @click.option('--generate-report', is_flag=True, help='Generate professional SEO report (PDF by default, PowerPoint optional)')
 @click.option('--report-format', 'report_format', default='pdf', type=click.Choice(['pdf', 'pptx']), help='Report format: pdf (default, complete and print-ready) or pptx (editable)')
 @click.option('--lang', default='en', type=click.Choice(['en', 'es']), help='Report language (en or es)')
 @click.option('--output', default=None, help='Output file path for the report (default: seo_report.pdf or seo_report.pptx per format)')
-def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_format: str, lang: str, output: str):
+@click.option('--brand-name', default='SEO Prism', show_default=True,
+              help='Brand name shown on the report cover, headers and footers (white-label, free for everyone)')
+@click.option('--brand-color', default=None,
+              help="Brand accent color as hex (e.g. '#9333EA'); malformed values fall back to the default palette")
+@click.option('--brand-logo', default=None,
+              help='Path to a logo image embedded on the report cover (ignored when the file does not exist)')
+def scan(url: str, max_pages: int, ignore_robots_flag: bool, as_json: bool,
+         generate_report: bool, report_format: str, lang: str, output: str,
+         brand_name: str, brand_color: str, brand_logo: str):
     """
     Scan a website for SEO issues.
 
     Example:
         poetry run scan --url http://localhost:3000
         poetry run scan --url https://example.com --max-pages 50
+        poetry run scan --url https://example.com --ignore-robots
         poetry run scan --url https://example.com --json > results.json
+        poetry run scan --url https://example.com --generate-report --brand-name "Acme" --brand-color "#9333EA" --brand-logo acme.png
     """
     # In --json mode every human-readable message goes to stderr so that
     # stdout carries ONLY the machine-readable JSON payload.
@@ -42,10 +55,12 @@ def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_
         return
 
     is_local_url = is_local(url)
-    ignore_robots = is_local_url
+    ignore_robots = is_local_url or ignore_robots_flag
 
-    if is_local_url:
-        echo("✅ Scanning in fast mode (ignoring robots.txt)")
+    if ignore_robots_flag:
+        echo("🚧 Ignoring robots.txt (--ignore-robots)")
+    elif is_local_url:
+        echo("✅ Scanning local URL (robots.txt ignored by default)")
     else:
         echo("⚠️  Scanning remote URL (respecting robots.txt)")
 
@@ -53,6 +68,10 @@ def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_
 
     try:
         results = asyncio.run(run_scan(url, max_pages, ignore_robots))
+
+        robots_skipped = results.get('robots_skipped', 0)
+        if robots_skipped:
+            echo(f"🤖 robots.txt: skipped {robots_skipped} URL(s) it disallows")
 
         if as_json:
             payload = {
@@ -76,10 +95,14 @@ def scan(url: str, max_pages: int, as_json: bool, generate_report: bool, report_
                 # One single-typed generator variable per branch so the
                 # static call graph keeps the scan -> generate_report edge.
                 if report_format == 'pdf':
-                    pdf_generator = SEOReportPDFGenerator()
+                    pdf_generator = SEOReportPDFGenerator(
+                        brand_name=brand_name, brand_color=brand_color,
+                        brand_logo_path=brand_logo)
                     report_path = pdf_generator.generate_report(results, output, lang)
                 else:
-                    pptx_generator = SEOReportGenerator()
+                    pptx_generator = SEOReportGenerator(
+                        brand_name=brand_name, brand_color=brand_color,
+                        brand_logo_path=brand_logo)
                     report_path = pptx_generator.generate_report(results, output, lang)
                 echo(f"✅ Report generated: {report_path}")
                 if report_format == 'pptx':
@@ -109,6 +132,7 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     results = db.get_scan_results(pipeline_results['scan_id'])
     results['seo_grade'] = pipeline_results['seo_grade']
     results['resource_analysis'] = pipeline_results['resource_analysis']
+    results['robots_skipped'] = pipeline_results.get('robots_skipped', 0)
     db.close()
 
     return results

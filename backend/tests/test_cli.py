@@ -75,6 +75,15 @@ def _patch_run_scan(monkeypatch, results):
     monkeypatch.setattr(cli, 'run_scan', fake_run_scan)
 
 
+def _patch_run_scan_recording(monkeypatch, results, calls):
+    """Replace cli.run_scan, recording every call's arguments in `calls`."""
+    async def fake_run_scan(url, max_pages, ignore_robots):
+        calls.append({'url': url, 'max_pages': max_pages,
+                      'ignore_robots': ignore_robots})
+        return results
+    monkeypatch.setattr(cli, 'run_scan', fake_run_scan)
+
+
 def test_display_shows_all_issues_without_truncation(runner, monkeypatch):
     """A category with 25 issues must show all 25, with no 'and N more'."""
     issues = [
@@ -222,3 +231,87 @@ def test_unknown_issue_type_falls_into_other_issues(runner, monkeypatch):
     assert 'https://example.com/mystery' in result.output
     assert '(in https://example.com/)' in result.output
     assert 'A brand new failure type' in result.output
+
+
+class TestRobotsModeSelection:
+    def test_remote_url_respects_robots_by_default(self, runner, monkeypatch):
+        calls = []
+        _patch_run_scan_recording(monkeypatch, make_results([]), calls)
+
+        result = runner.invoke(cli.scan, ['--url', 'https://example.com'])
+
+        assert result.exit_code == 0
+        assert calls[0]['ignore_robots'] is False
+        assert 'Scanning remote URL (respecting robots.txt)' in result.output
+
+    def test_ignore_robots_flag_overrides_remote_default(self, runner, monkeypatch):
+        calls = []
+        _patch_run_scan_recording(monkeypatch, make_results([]), calls)
+
+        result = runner.invoke(
+            cli.scan, ['--url', 'https://example.com', '--ignore-robots'])
+
+        assert result.exit_code == 0
+        assert calls[0]['ignore_robots'] is True
+        assert 'Ignoring robots.txt' in result.output
+
+    def test_local_url_ignores_robots_by_default(self, runner, monkeypatch):
+        calls = []
+        _patch_run_scan_recording(monkeypatch, make_results([]), calls)
+
+        result = runner.invoke(cli.scan, ['--url', 'http://localhost:8000'])
+
+        assert result.exit_code == 0
+        assert calls[0]['ignore_robots'] is True
+        assert 'robots.txt ignored by default' in result.output
+
+    def test_ignore_robots_flag_accepted_for_local_url(self, runner, monkeypatch):
+        calls = []
+        _patch_run_scan_recording(monkeypatch, make_results([]), calls)
+
+        result = runner.invoke(
+            cli.scan, ['--url', 'http://localhost:8000', '--ignore-robots'])
+
+        assert result.exit_code == 0
+        assert calls[0]['ignore_robots'] is True
+
+
+class TestRobotsProgressMessages:
+    def test_skipped_urls_are_reported(self, runner, monkeypatch):
+        results = make_results([])
+        results['robots_skipped'] = 4
+        _patch_run_scan(monkeypatch, results)
+
+        result = runner.invoke(cli.scan, ['--url', 'https://example.com'])
+
+        assert result.exit_code == 0
+        assert 'robots.txt: skipped 4 URL(s)' in result.output
+
+    def test_skipped_urls_reported_on_stderr_in_json_mode(self, runner, monkeypatch):
+        results = make_results([])
+        results['robots_skipped'] = 4
+        _patch_run_scan(monkeypatch, results)
+
+        result = runner.invoke(cli.scan, ['--url', 'https://example.com', '--json'])
+
+        assert result.exit_code == 0
+        assert 'robots.txt: skipped 4 URL(s)' in result.stderr
+        json.loads(result.stdout)  # stdout stays a pure JSON payload
+
+    def test_no_skipped_message_when_nothing_was_skipped(self, runner, monkeypatch):
+        _patch_run_scan(monkeypatch, make_results([]))
+
+        result = runner.invoke(cli.scan, ['--url', 'https://example.com'])
+
+        assert result.exit_code == 0
+        assert 'robots.txt: skipped' not in result.output
+
+
+class TestMaxPagesHelp:
+    def test_help_states_there_is_no_hard_cap(self, runner):
+        result = runner.invoke(cli.scan, ['--help'])
+
+        assert result.exit_code == 0
+        # click wraps help text at the terminal width, so compare without
+        # line breaks.
+        assert 'no hard cap' in ' '.join(result.output.split())
