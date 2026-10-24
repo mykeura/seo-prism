@@ -6,27 +6,20 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons'
 import { Card, CardContent } from './components/ui/card'
 import { AppHeader } from './components/AppHeader'
+import { ExportCsvButton } from './components/ExportCsvButton'
 import { Hero } from './components/Hero'
 import { ScanForm } from './components/ScanForm'
+import { ScanHistory } from './components/ScanHistory'
 import { ScanOverview } from './components/ScanOverview'
 import { SectionNav } from './components/SectionNav'
 import { SECTIONS, defaultSectionId, summarizeSections } from './sections'
 import { normalizeUrl } from './lib/url'
+import { readErrorDetail } from './hooks/useScanHistory'
 import type { SEOGrade, ScanResults } from './types'
 import { useT } from './i18n'
 import { APP_VERSION } from './version'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-
-/** The API reports failures as {"detail": "..."}; surface it when present. */
-async function readErrorDetail(response: Response): Promise<string | null> {
-  try {
-    const body = await response.json()
-    return typeof body?.detail === 'string' ? body.detail : null
-  } catch {
-    return null
-  }
-}
 
 function App() {
   const t = useT()
@@ -38,6 +31,7 @@ function App() {
   const [seoGrade, setSeoGrade] = useState<SEOGrade | null>(null)
   const [url, setUrl] = useState('')
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const summaries = useMemo(() => (results ? summarizeSections(results) : []), [results])
   const activeSectionId =
@@ -100,6 +94,42 @@ function App() {
     }
   }
 
+  const handleLoadScan = async (scanId: number, grade?: Pick<SEOGrade, 'grade' | 'score'>) => {
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+    setResults(null)
+    setSeoGrade(null)
+    setSelectedSection(null)
+
+    try {
+      const resultsResponse = await fetch(`${API_BASE_URL}/results/${scanId}`)
+
+      if (!resultsResponse.ok) {
+        throw new Error(t.app.resultsFailed)
+      }
+
+      const data: ScanResults = await resultsResponse.json()
+      setResults(data)
+      // The history row carries letter and score only; the gauge reads just
+      // those, so a zeroed breakdown stands in for the absent detail.
+      setSeoGrade(
+        data.seo_grade ??
+          (grade ? { ...grade, breakdown: { high: 0, medium: 0, low: 0, total: 0 } } : null),
+      )
+      setUrl(data.scan.url)
+    } catch (err) {
+      if (err instanceof TypeError) {
+        // fetch() rejects with TypeError when the server cannot be reached
+        setError(t.app.backendUnreachable(API_BASE_URL))
+      } else {
+        setError(err instanceof Error ? err.message : t.app.genericError)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const scanForm = (variant: 'hero' | 'compact') => (
     <ScanForm
       url={url}
@@ -118,7 +148,13 @@ function App() {
       <div aria-hidden="true" className="prisma-aurora" />
 
       <div className="container mx-auto max-w-6xl px-4 pb-10">
-        <AppHeader />
+        <AppHeader historyOpen={historyOpen} onToggleHistory={() => setHistoryOpen((open) => !open)} />
+
+        {historyOpen && (
+          <div id="scan-history" className="pb-6">
+            <ScanHistory apiBaseUrl={API_BASE_URL} loading={loading} onLoadScan={handleLoadScan} />
+          </div>
+        )}
 
         {results ? (
           <main className="space-y-6 pt-2">
@@ -148,7 +184,17 @@ function App() {
                 activeId={activeSectionId}
                 onSelect={setSelectedSection}
               />
-              <div className="min-w-0">{activeSection?.render(results)}</div>
+              <div className="min-w-0">
+                {activeSection && (
+                  <div className="mb-3 flex justify-end">
+                    <ExportCsvButton
+                      issues={activeSection.issues(results)}
+                      filename={`seo-prism-${activeSection.id}-${results.scan.id}.csv`}
+                    />
+                  </div>
+                )}
+                {activeSection?.render(results)}
+              </div>
             </div>
           </main>
         ) : (

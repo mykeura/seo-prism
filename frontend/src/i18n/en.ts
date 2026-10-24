@@ -56,6 +56,18 @@ export const en = {
     label: 'Report sections',
     clean: 'No issues',
   },
+  history: {
+    title: 'Scan history',
+    description: 'Previous scans kept by this instance. Select one to reopen its report.',
+    loading: 'Loading scan history...',
+    loadFailed: 'Failed to load scan history',
+    retry: 'Retry',
+    emptyTitle: 'No scans yet',
+    emptyBody: 'Run your first scan and it will appear here.',
+  },
+  csvExport: {
+    button: 'Export CSV',
+  },
   common: {
     showingOf: (visible: number, total: number, label: string) =>
       `Showing ${visible} of ${total} ${label}.`,

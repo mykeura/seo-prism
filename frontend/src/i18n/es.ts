@@ -58,6 +58,18 @@ export const es: Translations = {
     label: 'Secciones del informe',
     clean: 'Sin problemas',
   },
+  history: {
+    title: 'Historial de análisis',
+    description: 'Análisis anteriores guardados en esta instancia. Selecciona uno para volver a abrir su informe.',
+    loading: 'Cargando el historial...',
+    loadFailed: 'No se pudo cargar el historial',
+    retry: 'Reintentar',
+    emptyTitle: 'Aún no hay análisis',
+    emptyBody: 'Ejecuta tu primer análisis y aparecerá aquí.',
+  },
+  csvExport: {
+    button: 'Exportar CSV',
+  },
   common: {
     showingOf: (visible: number, total: number, label: string) =>
       `Mostrando ${visible} de ${total} ${label}.`,

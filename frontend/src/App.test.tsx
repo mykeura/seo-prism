@@ -3,7 +3,7 @@
 
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { LanguageProvider } from './i18n'
 import { grade, issue, scanResults } from './test/fixtures'
@@ -13,6 +13,8 @@ function mockApi(options: {
   results?: ScanResults
   scan?: unknown
   scanStatus?: number
+  scans?: unknown
+  scansStatus?: number
   networkError?: boolean
 }) {
   const results = options.results ?? scanResults([])
@@ -27,6 +29,9 @@ function mockApi(options: {
         options.scan ?? { scan_id: 7, message: 'Scan completed', seo_grade: grade('B', 84) },
         options.scanStatus ?? 200,
       )
+    }
+    if (url.endsWith('/scans')) {
+      return json(options.scans ?? { scans: [] }, options.scansStatus ?? 200)
     }
     if (/\/results(\/\d+)?$/.test(url)) return json(results)
     throw new Error(`unexpected request: ${url}`)
@@ -49,6 +54,27 @@ const mixedResults = () =>
     issue('missing_structured_data', 'medium', 'https://example.com/c'),
     issue('robots_txt_found', 'info', 'https://example.com/robots.txt'),
   ])
+
+const historyResponse = {
+  scans: [
+    {
+      scan_id: 3,
+      url: 'https://old.example.com',
+      scan_date: '2026-10-01T09:30:00',
+      grade_letter: 'C',
+      grade_score: 61,
+      total_issues: 9,
+    },
+    {
+      scan_id: 1,
+      url: 'https://first.example.com',
+      scan_date: '2026-09-20T18:00:00',
+      grade_letter: 'A',
+      grade_score: 98,
+      total_issues: 0,
+    },
+  ],
+}
 
 describe('landing view', () => {
   it('shows the headline, the URL field and what gets checked', () => {
@@ -216,5 +242,188 @@ describe('when something goes wrong', () => {
     await scan('example.com')
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/^Error: Failed to start scan$/)
+  })
+})
+
+describe('scan history', () => {
+  it('fetches the history only when the panel opens and lists each scan', async () => {
+    const fetchMock = mockApi({ scans: historyResponse })
+    render(<App />)
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Scan history' }))
+
+    expect(await screen.findByText('https://old.example.com')).toBeInTheDocument()
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/scans$/)
+    const row = screen.getByRole('button', { name: /old\.example\.com/ })
+    expect(within(row).getByText('C')).toBeInTheDocument()
+    expect(within(row).getByText('9')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /first\.example\.com/ })).toBeInTheDocument()
+  })
+
+  it('shows an empty state before the first scan exists', async () => {
+    mockApi({ scans: { scans: [] } })
+    render(<App />)
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Scan history' }))
+
+    expect(await screen.findByText('No scans yet')).toBeInTheDocument()
+    expect(screen.getByText('Run your first scan and it will appear here.')).toBeInTheDocument()
+  })
+
+  it('reports a failed request and retries it', async () => {
+    const fetchMock = mockApi({ scans: { detail: 'db locked' }, scansStatus: 500 })
+    render(<App />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Scan history' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load scan history: db locked')
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    const scansCalls = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/scans'))
+    expect(scansCalls).toHaveLength(2)
+  })
+
+  it('explains that the API cannot be reached', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch')
+      }),
+    )
+    render(<App />)
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Scan history' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the SEO Prism API")
+  })
+
+  it('reopens a stored report through the existing results flow', async () => {
+    const fetchMock = mockApi({ scans: historyResponse, results: mixedResults() })
+    render(<App />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Scan history' }))
+
+    await user.click(await screen.findByRole('button', { name: /old\.example\.com/ }))
+
+    expect(await screen.findByRole('img', { name: 'SEO grade C, 61 out of 100' })).toBeInTheDocument()
+    expect(String(fetchMock.mock.calls[1][0])).toMatch(/\/results\/3$/)
+    // the form input follows the reopened report's own URL
+    expect(screen.getByLabelText('Website URL')).toHaveValue('https://example.com')
+  })
+
+  it('surfaces a failure when the stored report cannot be fetched', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        const json = (body: unknown, status = 200) =>
+          new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+        if (url.endsWith('/scans')) return json(historyResponse)
+        if (url.endsWith('/results/3')) return json({ detail: 'Scan not found' }, 404)
+        throw new Error(`unexpected request: ${url}`)
+      }),
+    )
+    render(<App />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Scan history' }))
+
+    await user.click(await screen.findByRole('button', { name: /old\.example\.com/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to get results')
+  })
+})
+
+describe('csv export', () => {
+  function stubBlobUrl() {
+    const blobs: Blob[] = []
+    const downloads: HTMLAnchorElement[] = []
+    const url = URL as unknown as Record<'createObjectURL' | 'revokeObjectURL', unknown>
+    const originalCreate = url.createObjectURL
+    const originalRevoke = url.revokeObjectURL
+    url.createObjectURL = (blob: Blob) => {
+      blobs.push(blob)
+      return 'blob:mock'
+    }
+    url.revokeObjectURL = () => {}
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push(this)
+    })
+    return {
+      blobs,
+      downloads,
+      restore: () => {
+        url.createObjectURL = originalCreate
+        url.revokeObjectURL = originalRevoke
+        vi.mocked(HTMLAnchorElement.prototype.click).mockRestore()
+      },
+    }
+  }
+
+  let stub: ReturnType<typeof stubBlobUrl>
+  afterEach(() => stub.restore())
+
+  it('downloads the active section, following the section switch', async () => {
+    stub = stubBlobUrl()
+    mockApi({ results: mixedResults() })
+    render(<App />)
+    await scan('example.com')
+    await screen.findByRole('img', { name: /SEO grade/ })
+
+    // the report opens on Header Analysis (its missing H1 is the top severity)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Export CSV' }))
+    expect(stub.blobs).toHaveLength(1)
+    expect(await stub.blobs[0].text()).toBe(
+      [
+        '"issue_type","url","source_page","severity","description"',
+        '"missing_h1","https://example.com/a","https://example.com/a","high","missing_h1 on https://example.com/a"',
+      ].join('\n'),
+    )
+    expect(stub.downloads[0].download).toBe('seo-prism-headerAnalysis-7.csv')
+
+    const nav = screen.getByRole('navigation', { name: 'Report sections' })
+    await userEvent.setup().click(within(nav).getByRole('button', { name: /Broken Links/ }))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Export CSV' }))
+    const csv = await stub.blobs[1].text()
+    expect(csv).toContain('"broken_link","https://example.com/gone","https://example.com/","medium"')
+    expect(stub.downloads[1].download).toBe('seo-prism-brokenLinks-7.csv')
+  })
+
+  it('quotes fields so commas and quotes survive the round trip', async () => {
+    stub = stubBlobUrl()
+    mockApi({
+      results: scanResults([
+        issue('missing_title', 'high', 'https://example.com/a,b', {
+          description: 'says "hello", loudly',
+        }),
+      ]),
+    })
+    render(<App />)
+    await scan('example.com')
+    await screen.findByRole('img', { name: /SEO grade/ })
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Export CSV' }))
+
+    expect(await stub.blobs[0].text()).toBe(
+      [
+        '"issue_type","url","source_page","severity","description"',
+        '"missing_title","https://example.com/a,b","https://example.com/a,b","high","says ""hello"", loudly"',
+      ].join('\n'),
+    )
+  })
+
+  it('stays disabled for a section without issues', async () => {
+    stub = stubBlobUrl()
+    mockApi({ results: mixedResults() })
+    render(<App />)
+    await scan('example.com')
+    await screen.findByRole('img', { name: /SEO grade/ })
+
+    const nav = screen.getByRole('navigation', { name: 'Report sections' })
+    await userEvent.setup().click(within(nav).getByRole('button', { name: /Thin Content/ }))
+
+    expect(screen.getByRole('button', { name: 'Export CSV' })).toBeDisabled()
+    expect(stub.blobs).toHaveLength(0)
   })
 })
