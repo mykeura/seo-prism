@@ -15,7 +15,8 @@ import {
   faExclamationTriangle,
   faGlobe,
   faDatabase,
-  faBrain
+  faBrain,
+  faCode
 } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import type { SeverityVariant } from './types'
@@ -138,6 +139,7 @@ const issueIcons: Record<string, IssueIconMeta> = {
   missing_rdfa: { icon: faDatabase, className: 'text-secondary' },
   rdfa_unknown_type: { icon: faDatabase, className: 'text-warning' },
   thin_content: { icon: faFileAlt, className: 'text-warning' },
+  spa_detected: { icon: faCode, className: 'text-secondary' },
 }
 
 export function getIssueIcon(type: string): ReactNode {

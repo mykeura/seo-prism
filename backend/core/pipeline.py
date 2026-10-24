@@ -16,6 +16,7 @@ from modules.meta_tags import MetaTagsModule
 from modules.orphan_pages import OrphanPagesModule
 from modules.resource_analyzer import ResourceAnalyzer
 from modules.seo_grade import SEOGradeCalculator
+from modules.spa_detection import SpaDetectionModule
 from modules.standard_files import StandardFilesModule
 from modules.structured_data import StructuredDataModule
 from modules.thin_content import ThinContentModule
@@ -83,12 +84,13 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
 
     Returns:
         Dict with 'scan_id', 'crawled_pages', 'issues', 'seo_grade',
-        'resource_analysis' and 'html_page_count'
+        'resource_analysis', 'html_page_count' and 'robots_skipped'
     """
     scan_id = db.create_scan(url)
 
     async with Crawler(url, ignore_robots=ignore_robots) as crawler:
         crawled_pages = await crawler.crawl(max_pages=max_pages)
+    robots_skipped = crawler.robots_skipped_count
 
     # A 404 page is not a page of the site: drop its content before it is
     # stored, analysed or counted (see discard_error_page_content).
@@ -103,6 +105,7 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
     # Modules whose analyze() signature differs from the standard one
     issues.extend(await StandardFilesModule(db).analyze(scan_id, url))
     issues.extend(OrphanPagesModule(db).analyze(scan_id, crawled_pages, url))
+    issues.extend(SpaDetectionModule(db).analyze(scan_id, crawled_pages, url))
 
     # Drop cached parse trees; the raw page dicts stay intact
     for page in crawled_pages:
@@ -123,4 +126,5 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
         'seo_grade': seo_grade,
         'resource_analysis': resource_analysis,
         'html_page_count': html_page_count,
+        'robots_skipped': robots_skipped,
     }

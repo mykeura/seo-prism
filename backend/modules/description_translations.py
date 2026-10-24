@@ -75,6 +75,12 @@ STATIC_DESCRIPTIONS_ES = {
         'Archivo llms.txt encontrado - ayuda a los modelos de IA a entender tu sitio',
     'llms.txt file not found - optional but recommended for AI discoverability':
         'Archivo llms.txt no encontrado - opcional pero recomendado para la descubribilidad por IA',
+    'The site appears to be a JavaScript-rendered application (SPA): the crawl is '
+    'based on unrendered HTML, so titles and content may appear missing even though '
+    'they are visible in a browser':
+        'El sitio parece ser una aplicación renderizada con JavaScript (SPA): el rastreo se '
+        'basa en HTML sin renderizar, por lo que los títulos y el contenido pueden aparecer '
+        'como ausentes aunque se vean en el navegador',
 }
 
 PATTERN_DESCRIPTIONS_ES = [

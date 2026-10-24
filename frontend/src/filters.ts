@@ -203,5 +203,8 @@ export function getHeaderIssues(issues: Issue[]): Issue[] {
 }
 
 export function getThinContentIssues(issues: Issue[]): Issue[] {
-  return issues.filter(i => i.issue_type === 'thin_content')
+  return issues.filter(i =>
+    i.issue_type === 'thin_content' ||
+    i.issue_type === 'spa_detected'
+  )
 }
