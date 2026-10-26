@@ -12,7 +12,7 @@ import argparse
 import sys
 from typing import Any, Callable
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
@@ -20,28 +20,26 @@ from database import Database
 from limits import get_max_pages_limit
 from version import __version__
 
-# FastMCP pins the HTTP host/port on the instance (run() only takes the
-# transport), so the CLI defaults live here.
+# CLI defaults for the streamable-http transport.
 _DEFAULT_HOST = "127.0.0.1"
 _DEFAULT_PORT = 8080
 
 
-def build_server(
-    host: str = _DEFAULT_HOST, port: int = _DEFAULT_PORT
-) -> tuple[FastMCP, Callable[..., Any]]:
-    server = FastMCP(
+def build_server() -> tuple[MCPServer, Callable[..., Any]]:
+    # host/port are transport options in mcp SDK v2 and belong to run(), not
+    # to the constructor; the CLI defaults in _DEFAULT_HOST/_DEFAULT_PORT are
+    # only baked in when the server is started from main().
+    server = MCPServer(
         name="seo-prism",
         instructions=(
             "SEO audit tool: call seo_scan with a public URL and it returns the "
             "crawled issues, the SEO grade and the resource analysis. Issues are "
             "English-only; fields are issue_type, url, source_page, description, severity."
         ),
-        host=host,
-        port=port,
+        # MCPServer drops the SDK version into serverInfo by default. Propagate
+        # ours so clients see the SEO Prism release.
+        version=__version__,
     )
-    # FastMCP drops the project version (it reports the MCP SDK version by
-    # default). Propagate ours to the low-level server so clients see 1.23.0.
-    server._mcp_server.version = __version__
 
     @server.tool(
         name="seo_scan",
@@ -104,10 +102,10 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=_DEFAULT_PORT)
     args = parser.parse_args()
 
-    server, _seo_scan = build_server(host=args.host, port=args.port)
+    server, _seo_scan = build_server()
 
     if args.transport == "streamable-http":
-        server.run(transport="streamable-http")
+        server.run(transport="streamable-http", host=args.host, port=args.port)
     else:
         server.run(transport="stdio")
 

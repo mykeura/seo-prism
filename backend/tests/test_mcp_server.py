@@ -113,7 +113,7 @@ def test_mcp_stdio_protocol():
     tools = asyncio.run(_session())
     names = [t.name for t in tools.tools]
     assert names == ['seo_scan']
-    schema = tools.tools[0].inputSchema
+    schema = tools.tools[0].input_schema
     assert 'url' in schema['properties']
     assert 'url' in schema['required']
 
