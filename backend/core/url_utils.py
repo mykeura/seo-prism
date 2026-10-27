@@ -1,8 +1,49 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEO-Prism-Commercial
 # SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
+import ipaddress
+import re
 from urllib.parse import urlparse, urlunparse
 from typing import Tuple, Optional
+
+
+_DNS_LABEL = re.compile(r'^[a-z0-9-]+$')
+
+
+def _validate_hostname(domain: str) -> str:
+    """Validate an IP literal or DNS hostname and return its normalized form."""
+    try:
+        ipaddress.ip_address(domain)
+    except ValueError:
+        pass
+    else:
+        return domain
+
+    try:
+        ascii_domain = domain.encode('idna').decode('ascii').lower()
+    except UnicodeError as exc:
+        raise ValueError("Invalid URL: invalid hostname format") from exc
+
+    ascii_domain = ascii_domain.rstrip('.')
+    if not ascii_domain or len(ascii_domain) > 253:
+        raise ValueError("Invalid URL: invalid hostname format")
+
+    labels = ascii_domain.split('.')
+    if any(
+        not label
+        or len(label) > 63
+        or label.startswith('-')
+        or label.endswith('-')
+        or not _DNS_LABEL.fullmatch(label)
+        for label in labels
+    ):
+        raise ValueError("Invalid URL: invalid hostname format")
+
+    # Keep the historical rule: single-label hosts are only localhost.
+    if len(labels) == 1 and labels[0] != 'localhost':
+        raise ValueError("Invalid URL: invalid hostname format")
+
+    return ascii_domain
 
 
 def parse_target_url(user_input: str) -> Tuple[str, int, str]:
@@ -24,26 +65,27 @@ def parse_target_url(user_input: str) -> Tuple[str, int, str]:
         if not parsed.scheme:
             parsed = urlparse(f"http://{user_input}")
         
+        if parsed.scheme not in ('http', 'https'):
+            raise ValueError("Invalid URL: unsupported scheme")
+
         if not parsed.netloc:
             raise ValueError("Invalid URL: missing network location")
         
         domain = parsed.hostname
         if not domain:
             raise ValueError("Invalid URL: missing hostname")
-        
-        # Validate hostname format - must contain at least one dot or be localhost
-        # or be a valid IP address
-        if domain != 'localhost' and '.' not in domain:
-            import re
-            ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-            if not re.match(ip_pattern, domain):
-                raise ValueError("Invalid URL: invalid hostname format")
+
+        domain = _validate_hostname(domain)
         
         port = parsed.port
         if port is None:
             port = 80 if parsed.scheme == 'http' else 443
-        
-        domain_with_port = f"{domain}:{port}" if port not in [80, 443] else domain
+        if not 1 <= port <= 65535:
+            raise ValueError("Invalid URL: port must be between 1 and 65535")
+
+        # IPv6 literals need brackets when rebuilt with a port.
+        host = f'[{domain}]' if ':' in domain else domain
+        domain_with_port = f"{host}:{port}" if port not in (80, 443) else host
         
         return domain_with_port, port, parsed.scheme
     
@@ -97,7 +139,12 @@ def validate_url(url: str) -> bool:
     """
     try:
         parsed = urlparse(url)
-        return all([parsed.scheme in ['http', 'https'], parsed.netloc])
+        if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+            return False
+        # Accessing .port raises on non-numeric/out-of-range ports and
+        # parse_target_url validates the hostname (including IPv6 literals).
+        parse_target_url(url)
+        return True
     except Exception:
         return False
 

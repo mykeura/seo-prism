@@ -39,10 +39,30 @@ class TestParseTargetUrl:
         assert port == 80
         assert scheme == "http"
     
+    def test_parse_ipv6_url(self):
+        """IPv6 literals are accepted and rebuilt with brackets."""
+        domain, port, scheme = parse_target_url("http://[::1]:8000")
+        assert domain == "[::1]:8000"
+        assert port == 8000
+        assert scheme == "http"
+
     def test_parse_invalid_url(self):
         """Test parsing an invalid URL raises ValueError."""
         with pytest.raises(ValueError):
             parse_target_url("not a url")
+
+    @pytest.mark.parametrize('url', [
+        'http://example.com:99999',
+        'http://example.com:abc',
+        'http://example.com:0',
+        'http://exa mple.com',
+        'http://-bad.example.com',
+        'http://bad-.example.com',
+        'http://a..example.com',
+    ])
+    def test_parse_rejects_invalid_host_or_port(self, url):
+        with pytest.raises(ValueError):
+            parse_target_url(url)
 
 
 class TestIsLocal:
@@ -114,6 +134,18 @@ class TestValidateUrl:
     def test_invalid_format(self):
         """Test completely invalid format."""
         assert validate_url("not a url") is False
+
+    def test_valid_ipv6_url(self):
+        assert validate_url("http://[::1]:8000") is True
+
+    @pytest.mark.parametrize('url', [
+        'http://example.com:99999',
+        'http://example.com:abc',
+        'http://example.com:0',
+        'http://exa mple.com',
+    ])
+    def test_invalid_host_or_port(self, url):
+        assert validate_url(url) is False
 
 
 class TestResolveRelativeUrl:
