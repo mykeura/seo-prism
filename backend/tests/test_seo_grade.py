@@ -282,14 +282,14 @@ class TestSEOGradeFairness:
         assert result['score'] == 0
         assert result['grade'] == 'F'
 
-    def test_unknown_severity_counts_but_does_not_weigh(self):
-        """'info' issues appear in breakdown.total yet do not lower the score."""
+    def test_info_notices_do_not_count_or_weigh(self):
+        """Info notices are not issues: no weight and no breakdown.total."""
         calculator = SEOGradeCalculator()
         result = calculator.calculate_grade(10, [{'severity': 'info'}] * 5)
 
         assert result['score'] == 100
         assert result['grade'] == 'A'
-        assert result['breakdown']['total'] == 5
+        assert result['breakdown']['total'] == 0
 
     def test_reference_values_of_the_scale(self):
         """Documents the log scale so accidental re-linearization is caught."""

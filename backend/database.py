@@ -2,10 +2,27 @@
 # SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 
+from core.issues import count_actionable_issues
 from modules.seo_grade import SEOGradeCalculator
+
+
+def _iso_utc(value: str) -> str:
+    """Return an ISO timestamp with a zone, converting legacy naive rows.
+
+    Older scans stored a naive ``datetime.now()`` (server local time); new
+    scans store UTC with an explicit offset. Converting on read keeps the
+    API contract uniform without rewriting existing databases.
+    """
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return value
+    if parsed.tzinfo is None:
+        parsed = parsed.astimezone()
+    return parsed.astimezone(timezone.utc).isoformat()
 
 
 class Database:
@@ -25,7 +42,11 @@ class Database:
     
     def _connect(self):
         """Establish database connection."""
-        self.conn = sqlite3.connect(self.db_path)
+        # The scan pipeline runs its CPU-bound analysis in a worker thread
+        # while using the same connection. Access stays sequential (the event
+        # loop awaits the worker before touching it again), so relaxing the
+        # thread check is safe; each request owns its own Database instance.
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         # WAL + synchronous=NORMAL: each add_issue commit stops costing a full
         # fsync (~7.7ms -> ~0.07ms measured). Under WAL, synchronous=NORMAL only
@@ -96,7 +117,7 @@ class Database:
         cursor = self.conn.cursor()
         cursor.execute(
             'INSERT INTO scans (url, timestamp) VALUES (?, ?)',
-            (url, datetime.now().isoformat())
+            (url, datetime.now(timezone.utc).isoformat())
         )
         self.conn.commit()
         return cursor.lastrowid
@@ -190,7 +211,7 @@ class Database:
         Args:
             scan_id: Scan ID
             total_pages: Total pages scanned
-            total_issues: Total issues found
+            total_issues: Actionable issues found (info notices excluded)
         """
         cursor = self.conn.cursor()
         cursor.execute(
@@ -231,9 +252,18 @@ class Database:
             (scan_id,)
         )
         pages = [dict(row) for row in cursor.fetchall()]
-        
+
+        scan_dict = dict(scan)
+        if 'timestamp' in scan_dict:
+            scan_dict['timestamp'] = _iso_utc(scan_dict['timestamp'])
+        # Count from the issue rows instead of trusting the stored total:
+        # info-level confirmations are not issues and older scans may have
+        # been persisted with them included.
+        scan_dict['total_issues'] = count_actionable_issues(issues)
+        scan_dict['info_notices'] = len(issues) - scan_dict['total_issues']
+
         return {
-            'scan': dict(scan),
+            'scan': scan_dict,
             'issues': issues,
             'pages': pages
         }
@@ -263,14 +293,18 @@ class Database:
         
         Returns:
             List of dicts with keys scan_id, url, scan_date (ISO string),
-            grade_letter, grade_score and total_issues. The grade is not
-            persisted; it is recomputed from the stored page count and the
-            issue severities, the same inputs the pipeline graded on.
+            grade_letter, grade_score and total_issues. Both the grade and
+            the actionable issue count are recomputed from the stored page
+            count and issue severities, so info-level notices are excluded
+            even for scans persisted before this rule existed.
         """
         cursor = self.conn.cursor()
         cursor.execute(
             'SELECT id, url, timestamp, total_pages, total_issues '
-            'FROM scans ORDER BY timestamp DESC, id DESC LIMIT ?',
+            # id order (insertion order) rather than timestamp: rows written
+            # before the UTC change hold a naive local timestamp, so string
+            # comparison across the two formats is not chronological.
+            'FROM scans ORDER BY id DESC LIMIT ?',
             (limit,)
         )
         rows = cursor.fetchall()
@@ -287,10 +321,10 @@ class Database:
             scans.append({
                 'scan_id': row['id'],
                 'url': row['url'],
-                'scan_date': row['timestamp'],
+                'scan_date': _iso_utc(row['timestamp']),
                 'grade_letter': grade['grade'],
                 'grade_score': grade['score'],
-                'total_issues': row['total_issues'],
+                'total_issues': count_actionable_issues(issues),
             })
         return scans
     

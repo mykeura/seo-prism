@@ -4,6 +4,7 @@
 import asyncio
 import json
 import click
+from core.issues import count_actionable_issues
 from core.net_guard import NetworkGuard
 from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
@@ -305,6 +306,9 @@ def display_results(results: dict):
     click.echo(f"📅 Scan Time: {scan.get('timestamp', 'N/A')}")
     click.echo(f"📄 Pages Analyzed: {scan.get('total_pages', 0)}")
     click.echo(f"⚠️  Total Issues: {scan.get('total_issues', 0)}")
+    info_notices = len(issues) - count_actionable_issues(issues)
+    if info_notices:
+        click.echo(f"ℹ️  Info Notices: {info_notices}")
 
     if seo_grade:
         grade = seo_grade.get('grade', 'N/A')

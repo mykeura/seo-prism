@@ -15,6 +15,7 @@ import uuid
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.issues import count_actionable_issues
 from core.net_guard import NetworkGuard
 from core.pipeline import ScanError, run_scan_pipeline
 from core.url_utils import is_local, validate_url
@@ -73,6 +74,7 @@ class ScanResponse(BaseModel):
     url: str
     total_pages: int
     total_issues: int
+    info_notices: int = 0
     message: str
     seo_grade: dict
     resource_analysis: dict
@@ -188,11 +190,13 @@ async def start_scan(request: ScanRequest):
         else:
             message = "Scan completed"
         
+        total_issues = count_actionable_issues(pipeline_results['issues'])
         return ScanResponse(
             scan_id=pipeline_results['scan_id'],
             url=request.url,
             total_pages=pipeline_results['html_page_count'],
-            total_issues=len(pipeline_results['issues']),
+            total_issues=total_issues,
+            info_notices=len(pipeline_results['issues']) - total_issues,
             message=message,
             seo_grade=pipeline_results['seo_grade'],
             resource_analysis=pipeline_results['resource_analysis']
@@ -216,18 +220,20 @@ async def get_latest_results():
     """
     try:
         db = Database()
-        results = db.get_latest_scan()
-        db.close()
-        
-        if not results:
-            raise HTTPException(status_code=404, detail="No scans found")
-        
-        return ScanResults(
-            scan=results['scan'],
-            issues=results['issues'],
-            pages=results['pages']
-        )
-    
+        try:
+            results = db.get_latest_scan()
+
+            if not results:
+                raise HTTPException(status_code=404, detail="No scans found")
+
+            return ScanResults(
+                scan=results['scan'],
+                issues=results['issues'],
+                pages=results['pages']
+            )
+        finally:
+            db.close()
+
     except HTTPException:
         raise
     except Exception:
@@ -247,18 +253,20 @@ async def get_scan_results(scan_id: int):
     """
     try:
         db = Database()
-        results = db.get_scan_results(scan_id)
-        db.close()
-        
-        if not results or not results.get('scan'):
-            raise HTTPException(status_code=404, detail=f"Scan {scan_id} not found")
-        
-        return ScanResults(
-            scan=results['scan'],
-            issues=results['issues'],
-            pages=results['pages']
-        )
-    
+        try:
+            results = db.get_scan_results(scan_id)
+
+            if not results or not results.get('scan'):
+                raise HTTPException(status_code=404, detail=f"Scan {scan_id} not found")
+
+            return ScanResults(
+                scan=results['scan'],
+                issues=results['issues'],
+                pages=results['pages']
+            )
+        finally:
+            db.close()
+
     except HTTPException:
         raise
     except Exception:
@@ -279,9 +287,11 @@ async def list_scans(limit: int = 50):
     limit = max(1, min(limit, 200))
     try:
         db = Database()
-        scans = db.list_scans(limit)
-        db.close()
-        return ScanHistoryResponse(scans=scans)
+        try:
+            scans = db.list_scans(limit)
+            return ScanHistoryResponse(scans=scans)
+        finally:
+            db.close()
     except Exception:
         raise _internal_error()
 

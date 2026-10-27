@@ -7,7 +7,7 @@ opt-in private-target guard, health endpoint, scan history and error
 sanitization.
 """
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -288,6 +288,29 @@ def test_scan_accepts_ipv6_literal(client):
     assert 'max_pages' in captured
 
 
+def test_scan_response_separates_info_notices(client, monkeypatch):
+    async def fake_pipeline(db, url, max_pages, ignore_robots):
+        return {
+            'scan_id': 1,
+            'html_page_count': 2,
+            'issues': [
+                {'severity': 'high'},
+                {'severity': 'info'},
+                {'severity': 'info'},
+            ],
+            'seo_grade': {'grade': 'A', 'score': 95},
+            'resource_analysis': {},
+        }
+
+    monkeypatch.setattr(main, 'run_scan_pipeline', fake_pipeline)
+    http, _ = client
+
+    body = http.post('/scan', json={'url': 'http://example.com'}).json()
+
+    assert body['total_issues'] == 1
+    assert body['info_notices'] == 2
+
+
 # --- /scans history ------------------------------------------------------------
 
 def test_scans_empty_history(db_client):
@@ -311,7 +334,7 @@ def test_scans_lists_created_scan_with_exact_contract(db_client):
     assert entry['scan_id'] == 1
     assert entry['url'] == 'https://example.com'
     assert entry['total_issues'] == 3
-    datetime.fromisoformat(entry['scan_date'])
+    assert datetime.fromisoformat(entry['scan_date']).utcoffset().total_seconds() == 0
     # The grade must match what the pipeline graded on: the stored page
     # count plus the severities persisted for the scan.
     expected = SEOGradeCalculator().calculate_grade(2, [
@@ -319,6 +342,49 @@ def test_scans_lists_created_scan_with_exact_contract(db_client):
     ])
     assert entry['grade_letter'] == expected['grade']
     assert entry['grade_score'] == expected['score']
+
+
+def test_scan_dates_are_utc_with_offset_including_legacy_rows(db_client):
+    http, db = db_client
+    scan_id = db.create_scan('https://legacy.example.com')
+    # Rows written by older versions stored a naive local timestamp.
+    db.conn.execute(
+        'UPDATE scans SET timestamp = ? WHERE id = ?',
+        ('2024-01-02T03:04:05', scan_id),
+    )
+    db.conn.commit()
+
+    entry = http.get('/scans').json()['scans'][0]
+    body = http.get(f'/results/{scan_id}').json()
+
+    expected = datetime.fromisoformat(
+        '2024-01-02T03:04:05').astimezone(timezone.utc).isoformat()
+    assert entry['scan_date'] == expected
+    assert body['scan']['timestamp'] == expected
+
+
+def test_scans_excludes_info_notices_from_total(db_client):
+    http, db = db_client
+    # The stored total includes every row (the old behaviour); the endpoint
+    # must recompute the actionable count from the issue severities.
+    _seed_scan(db, 'https://example.com', pages=2,
+               issues={'high': 1, 'info': 3})
+
+    entry = http.get('/scans').json()['scans'][0]
+
+    assert entry['total_issues'] == 1
+
+
+def test_results_recompute_total_issues_and_info_notices(db_client):
+    http, db = db_client
+    scan_id = _seed_scan(db, 'https://example.com', pages=2,
+                         issues={'medium': 2, 'info': 1})
+
+    body = http.get(f'/results/{scan_id}').json()
+
+    assert len(body['issues']) == 3
+    assert body['scan']['total_issues'] == 2
+    assert body['scan']['info_notices'] == 1
 
 
 def test_scans_ordered_newest_first(db_client):

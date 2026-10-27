@@ -127,6 +127,25 @@ def test_seo_scan_returns_error_when_target_is_unreachable(monkeypatch):
     assert result == {'error': "Could not reach 'http://example.com'"}
 
 
+def test_seo_scan_reports_actionable_totals_separately(monkeypatch):
+    async def fake_pipeline(db, url, max_pages, ignore_robots, guard=None):
+        return {
+            'scan_id': 1,
+            'html_page_count': 1,
+            'issues': [{'severity': 'high'}, {'severity': 'info'}],
+            'seo_grade': {'grade': 'A', 'score': 95},
+            'resource_analysis': {},
+        }
+
+    monkeypatch.setattr(mcp_server, 'Database', lambda *a, **k: _FakeDB())
+    monkeypatch.setattr(mcp_server, 'run_scan_pipeline', fake_pipeline)
+
+    result = asyncio.run(mcp_server.seo_scan('http://example.com'))
+
+    assert result['scan']['total_issues'] == 1
+    assert result['scan']['info_notices'] == 1
+
+
 def test_mcp_stdio_protocol():
     """Drive the real server over stdio: initialize, tools/list, tools/call."""
     backend_dir = Path(__file__).parent.parent

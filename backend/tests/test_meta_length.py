@@ -167,6 +167,29 @@ class TestMetaLengthModule:
         assert 'too long' in issues[0]['description'].lower()
         assert '200 characters' in issues[0]['description']
     
+    def test_meta_description_name_is_case_insensitive(self, temp_db, sample_scan_id):
+        """<meta name="Description"> must be measured like the lowercase form."""
+        html = ('<html><head><title>This is an optimal title length for SEO</title>'
+                '<meta name="Description" content="Short desc"></head>'
+                '<body><h1>Test</h1></body></html>')
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com/page',
+                'status': 200,
+                'html': html,
+                'links': []
+            }
+        ]
+
+        module = MetaLengthModule(temp_db)
+        issues = module.analyze(sample_scan_id, crawled_pages)
+
+        # The short content is detected: a case-sensitive lookup finds nothing
+        # and silently skips the length check.
+        assert len(issues) == 1
+        assert issues[0]['issue_type'] == 'meta_description_too_short'
+
     def test_meta_description_optimal_length(self, temp_db, sample_scan_id):
         """Test that optimal meta description length (70-150 chars) produces no issues."""
         optimal_desc = 'This is an optimal meta description length for SEO purposes and ranking'

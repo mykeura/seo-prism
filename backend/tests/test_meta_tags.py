@@ -78,3 +78,17 @@ def test_missing_h1_still_reported():
         assert any(i['issue_type'] == 'missing_h1' for i in issues)
     finally:
         db.close()
+
+
+def test_meta_description_name_is_case_insensitive():
+    db = Database(':memory:')
+    try:
+        scan_id = db.create_scan('http://x.test')
+        pages = [{'url': 'http://x.test/a', 'status': 200,
+                  'html': ('<html><head><title>a</title>'
+                           '<meta name="Description" content="Present">'
+                           '</head><body><h1>A</h1></body></html>')}]
+        issues = MetaTagsModule(db).analyze(scan_id, pages)
+        assert not any(i['issue_type'] == 'missing_description' for i in issues)
+    finally:
+        db.close()

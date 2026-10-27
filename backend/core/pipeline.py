@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEO-Prism-Commercial
 # SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
+import asyncio
 from typing import Dict, List, Optional
 
 from core.crawler import Crawler
+from core.issues import count_actionable_issues
 from core.net_guard import NetworkGuard
 from core.url_utils import normalize_url
 from database import Database
@@ -137,6 +139,31 @@ def _page_modules(db: Database) -> List:
     ]
 
 
+def _analyze_page_modules(db: Database, scan_id: int,
+                          crawled_pages: List[Dict]) -> List[Dict]:
+    """Run the CPU-bound page modules off the event loop."""
+    issues = []
+    for module in _page_modules(db):
+        issues.extend(module.analyze(scan_id, crawled_pages))
+    return issues
+
+
+def _analyze_site(db: Database, scan_id: int, crawled_pages: List[Dict],
+                  url: str) -> tuple[List[Dict], Dict]:
+    """Run the remaining sync modules plus resource accounting off-loop."""
+    issues = []
+    issues.extend(OrphanPagesModule(db).analyze(scan_id, crawled_pages, url))
+    issues.extend(SpaDetectionModule(db).analyze(scan_id, crawled_pages, url))
+
+    resource_analysis = ResourceAnalyzer().analyze_resources(crawled_pages)
+
+    # Drop cached parse trees; the raw page dicts stay intact.
+    for page in crawled_pages:
+        page.pop('_soup', None)
+
+    return issues, resource_analysis
+
+
 async def run_scan_pipeline(db: Database, url: str, max_pages: int,
                             ignore_robots: bool,
                             guard: Optional[NetworkGuard] = None) -> Dict:
@@ -175,24 +202,26 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
 
     db.store_crawled_pages(scan_id, crawled_pages)
 
-    issues = []
-    for module in _page_modules(db):
-        issues.extend(module.analyze(scan_id, crawled_pages))
+    # Parsing and analysing every page is CPU-bound: keep it on a worker
+    # thread so the event loop can still answer /health (and other requests)
+    # while a scan runs. The connection is only used sequentially: the loop
+    # awaits each worker call before touching the database again.
+    issues = await asyncio.to_thread(
+        _analyze_page_modules, db, scan_id, crawled_pages)
 
-    # Modules whose analyze() signature differs from the standard one
+    # Modules whose analyze() signature differs from the standard one.
+    # StandardFiles performs network I/O, so it stays on the event loop.
     issues.extend(await StandardFilesModule(db, guard=guard).analyze(scan_id, url))
-    issues.extend(OrphanPagesModule(db).analyze(scan_id, crawled_pages, url))
-    issues.extend(SpaDetectionModule(db).analyze(scan_id, crawled_pages, url))
 
-    # Drop cached parse trees; the raw page dicts stay intact
-    for page in crawled_pages:
-        page.pop('_soup', None)
+    site_issues, resource_analysis = await asyncio.to_thread(
+        _analyze_site, db, scan_id, crawled_pages, url)
+    issues.extend(site_issues)
 
-    resource_analyzer = ResourceAnalyzer()
-    resource_analysis = resource_analyzer.analyze_resources(crawled_pages)
     html_page_count = resource_analysis['html_pages']
 
-    db.update_scan_totals(scan_id, html_page_count, len(issues))
+    total_issues = count_actionable_issues(issues)
+    info_notices = len(issues) - total_issues
+    db.update_scan_totals(scan_id, html_page_count, total_issues)
 
     seo_grade = SEOGradeCalculator().calculate_grade(html_page_count, issues)
 
@@ -200,6 +229,8 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
         'scan_id': scan_id,
         'crawled_pages': crawled_pages,
         'issues': issues,
+        'total_issues': total_issues,
+        'info_notices': info_notices,
         'seo_grade': seo_grade,
         'resource_analysis': resource_analysis,
         'html_page_count': html_page_count,

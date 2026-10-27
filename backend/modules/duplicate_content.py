@@ -46,7 +46,8 @@ class DuplicateContentModule:
             title_tag = soup.find('title')
             title_match = title_tag.get_text().strip() if title_tag else None
 
-            meta_desc = soup.find('meta', attrs={'name': 'description'})
+            meta_desc = soup.find(
+                'meta', attrs={'name': lambda value: value and value.lower() == 'description'})
             desc_match = meta_desc.get('content', '').strip() if meta_desc and meta_desc.get('content') else None
             
             if title_match:

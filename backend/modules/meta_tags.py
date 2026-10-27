@@ -83,7 +83,8 @@ class MetaTagsModule:
                     severity='high'
                 )
             
-            meta_description = soup.find('meta', attrs={'name': 'description'})
+            meta_description = soup.find(
+                'meta', attrs={'name': lambda value: value and value.lower() == 'description'})
             description = meta_description.get('content', '').strip() if meta_description else ''
             
             if not description:

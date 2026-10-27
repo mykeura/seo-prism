@@ -142,6 +142,26 @@ class TestDuplicateContentModule:
         assert len(duplicate_title_issues) == 3
         assert '3 pages' in duplicate_title_issues[0]['description']
     
+    def test_analyze_description_name_is_case_insensitive(self, temp_db, sample_scan_id):
+        """Test that <meta name="Description"> is matched regardless of case."""
+        module = DuplicateContentModule(temp_db)
+        
+        pages = [
+            {
+                'url': 'https://example.com/page1',
+                'html': '<html><head><title>Title 1</title><meta name="Description" content="Same Description"></head><body>Content 1</body></html>'
+            },
+            {
+                'url': 'https://example.com/page2',
+                'html': '<html><head><title>Title 2</title><meta name="DESCRIPTION" content="Same Description"></head><body>Content 2</body></html>'
+            }
+        ]
+        
+        issues = module.analyze(sample_scan_id, pages)
+        
+        duplicate_desc_issues = [i for i in issues if i['issue_type'] == 'duplicate_description']
+        assert len(duplicate_desc_issues) == 2
+    
     def test_analyze_case_sensitive_titles(self, temp_db, sample_scan_id):
         """Test that duplicate detection is case-sensitive."""
         module = DuplicateContentModule(temp_db)

@@ -12,6 +12,7 @@ import pytest
 from click.testing import CliRunner
 
 import cli
+from core.issues import count_actionable_issues
 from core.pipeline import ScanTargetUnreachable
 
 
@@ -37,7 +38,7 @@ def make_results(issues):
             'url': 'https://example.com',
             'timestamp': '2026-08-23 12:00:00',
             'total_pages': 3,
-            'total_issues': len(issues),
+            'total_issues': count_actionable_issues(issues),
         },
         'issues': issues,
         # Full HTML on purpose: --json output must never include `pages`.
@@ -83,6 +84,32 @@ def _patch_run_scan_recording(monkeypatch, results, calls):
                       'ignore_robots': ignore_robots})
         return results
     monkeypatch.setattr(cli, 'run_scan', fake_run_scan)
+
+
+def test_display_separates_info_notices_from_actionable_issues(runner, monkeypatch):
+    issues = [
+        make_issue('missing_title', 'https://example.com/a', severity='high'),
+        make_issue('robots_txt_found', 'https://example.com/robots.txt',
+                   severity='info'),
+    ]
+    _patch_run_scan(monkeypatch, make_results(issues))
+
+    result = runner.invoke(cli.scan, ['--url', 'https://example.com'])
+
+    assert result.exit_code == 0
+    assert 'Total Issues: 1' in result.output
+    assert 'Info Notices: 1' in result.output
+
+
+def test_max_pages_rejects_non_positive_values(runner, monkeypatch):
+    calls = []
+    _patch_run_scan_recording(monkeypatch, make_results([]), calls)
+
+    result = runner.invoke(cli.scan, ['--url', 'https://example.com', '--max-pages', '0'])
+
+    assert result.exit_code != 0
+    assert calls == []
+    assert 'max-pages' in result.output
 
 
 def test_display_shows_all_issues_without_truncation(runner, monkeypatch):

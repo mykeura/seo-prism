@@ -16,6 +16,9 @@ densities equally regardless of site size:
 
     density = (3*high + 1*medium + 0.5*low) / pages
     score   = 100 * (1 - log10(1 + density) / log10(1 + MAX_ERROR_DENSITY))
+
+Info-level entries are confirmations, not errors: they never add weight,
+never lower the score and are excluded from breakdown.total.
 """
 
 import math
@@ -104,7 +107,7 @@ class SEOGradeCalculator:
                 'high': error_counts['high'],
                 'medium': error_counts['medium'],
                 'low': error_counts['low'],
-                'total': len(issues)
+                'total': sum(error_counts.values())
             }
         }
     

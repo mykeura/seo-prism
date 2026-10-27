@@ -14,6 +14,7 @@ from typing import Any, Callable
 
 from mcp.server.mcpserver import MCPServer
 
+from core.issues import count_actionable_issues
 from core.net_guard import NetworkGuard
 from core.pipeline import ScanError, run_scan_pipeline
 from core.url_utils import is_local, validate_url
@@ -78,12 +79,14 @@ def build_server() -> tuple[MCPServer, Callable[..., Any]]:
         finally:
             db.close()
 
+        total_issues = count_actionable_issues(result["issues"])
         return {
             "scan": {
                 "id": result["scan_id"],
                 "url": url,
                 "pages_analyzed": result["html_page_count"],
-                "total_issues": len(result["issues"]),
+                "total_issues": total_issues,
+                "info_notices": len(result["issues"]) - total_issues,
                 "version": __version__,
             },
             "issues": result["issues"],
