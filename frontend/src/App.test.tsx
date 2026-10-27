@@ -6,8 +6,11 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { LanguageProvider } from './i18n'
+import { clearApiKey, setApiKey } from './lib/api'
 import { grade, issue, scanResults } from './test/fixtures'
 import type { ScanResults } from './types'
+
+afterEach(() => clearApiKey())
 
 function mockApi(options: {
   results?: ScanResults
@@ -121,6 +124,29 @@ describe('running a scan', () => {
     expect(String(scanCall[0])).toMatch(/\/scan$/)
     expect(JSON.parse((scanCall[1] as RequestInit).body as string)).toEqual({ url: 'https://example.com' })
     expect(String(resultsCall[0])).toMatch(/\/results\/7$/)
+  })
+
+  it('sends the API key from sessionStorage on every request', async () => {
+    setApiKey('sekrit')
+    const fetchMock = mockApi({ results: mixedResults() })
+    render(<App />)
+
+    await scan('example.com')
+    await screen.findByRole('img', { name: /SEO grade/ })
+
+    const [scanCall, resultsCall] = fetchMock.mock.calls
+    expect(new Headers((scanCall[1] as RequestInit).headers).get('X-API-Key')).toBe('sekrit')
+    expect(new Headers((resultsCall[1] as RequestInit).headers).get('X-API-Key')).toBe('sekrit')
+  })
+
+  it('opens the API key panel and explains a 401', async () => {
+    mockApi({ scanStatus: 401, scan: { detail: 'Unauthorized' } })
+    render(<App />)
+
+    await scan('example.com')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/requires an API key/)
+    expect(screen.getByLabelText('API key')).toBeInTheDocument()
   })
 
   it('uses http for local addresses', async () => {

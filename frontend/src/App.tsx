@@ -13,6 +13,7 @@ import { ScanHistory } from './components/ScanHistory'
 import { ScanOverview } from './components/ScanOverview'
 import { SectionNav } from './components/SectionNav'
 import { SECTIONS, defaultSectionId, summarizeSections } from './sections'
+import { apiFetch } from './lib/api'
 import { normalizeUrl } from './lib/url'
 import { readErrorDetail } from './hooks/useScanHistory'
 import type { SEOGrade, ScanResults } from './types'
@@ -55,13 +56,14 @@ function App() {
     setSelectedSection(null)
 
     try {
-      const scanResponse = await fetch(`${API_BASE_URL}/scan`, {
+      const scanResponse = await apiFetch(`${API_BASE_URL}/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: target }),
       })
 
       if (!scanResponse.ok) {
+        if (scanResponse.status === 401) throw new Error(t.apiKey.required)
         const detail = await readErrorDetail(scanResponse)
         throw new Error(detail ? `${t.app.startScanFailed}: ${detail}` : t.app.startScanFailed)
       }
@@ -75,9 +77,10 @@ function App() {
       // Ask for this scan by id: "latest" could be another scan if two
       // were started close together.
       const resultsPath = scanData.scan_id != null ? `/results/${scanData.scan_id}` : '/results'
-      const resultsResponse = await fetch(`${API_BASE_URL}${resultsPath}`)
+      const resultsResponse = await apiFetch(`${API_BASE_URL}${resultsPath}`)
 
       if (!resultsResponse.ok) {
+        if (resultsResponse.status === 401) throw new Error(t.apiKey.required)
         throw new Error(t.app.resultsFailed)
       }
 
@@ -103,9 +106,10 @@ function App() {
     setSelectedSection(null)
 
     try {
-      const resultsResponse = await fetch(`${API_BASE_URL}/results/${scanId}`)
+      const resultsResponse = await apiFetch(`${API_BASE_URL}/results/${scanId}`)
 
       if (!resultsResponse.ok) {
+        if (resultsResponse.status === 401) throw new Error(t.apiKey.required)
         throw new Error(t.app.resultsFailed)
       }
 

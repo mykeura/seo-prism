@@ -3,6 +3,7 @@
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClockRotateLeft } from '@fortawesome/free-solid-svg-icons'
+import { ApiKeyControl } from './ApiKeyControl'
 import { Button } from './ui/button'
 import { APP_VERSION } from '../version'
 import { useT } from '../i18n'
@@ -22,6 +23,7 @@ export function AppHeader({ historyOpen, onToggleHistory }: AppHeaderProps) {
         <span className="font-display text-base font-semibold tracking-tight">SEO Prism</span>
       </div>
       <div className="flex items-center gap-3">
+        <ApiKeyControl />
         <Button
           variant="ghost"
           size="sm"

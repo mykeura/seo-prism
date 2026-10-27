@@ -16,6 +16,18 @@ export const es: Translations = {
     backendUnreachable: (url: string) =>
       `No se puede conectar con la API de SEO Prism en ${url}. Comprueba que el backend esté en ejecución.`,
   },
+  apiKey: {
+    button: 'API key',
+    title: 'API key',
+    description:
+      'Se guarda solo en esta pestaña del navegador (sessionStorage) y se envía como X-API-Key. Nunca se incluye en el build.',
+    placeholder: 'Pega la API key',
+    save: 'Guardar',
+    clear: 'Borrar',
+    configured: 'API key configurada',
+    required:
+      'Esta instancia requiere una API key. Configúrala o corrígela con el botón de API key.',
+  },
   hero: {
     title: 'Descubre cómo leen tu sitio los buscadores',
     checksLabel: 'Qué se comprueba',

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
 import { useEffect, useState } from 'react'
+import { apiFetch } from '../lib/api'
 import { useT } from '../i18n'
 import type { ScanHistoryEntry, ScansResponse } from '../types_scans'
 
@@ -32,8 +33,9 @@ export function useScanHistory(apiBaseUrl: string) {
 
     ;(async () => {
       try {
-        const response = await fetch(`${apiBaseUrl}/scans`)
+        const response = await apiFetch(`${apiBaseUrl}/scans`)
         if (!response.ok) {
+          if (response.status === 401) throw new Error(t.apiKey.required)
           const detail = await readErrorDetail(response)
           throw new Error(detail ? `${t.history.loadFailed}: ${detail}` : t.history.loadFailed)
         }

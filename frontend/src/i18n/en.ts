@@ -14,6 +14,18 @@ export const en = {
     backendUnreachable: (url: string) =>
       `Can't reach the SEO Prism API at ${url}. Check that the backend is running.`,
   },
+  apiKey: {
+    button: 'API key',
+    title: 'API key',
+    description:
+      'Stored only in this browser tab (sessionStorage) and sent as X-API-Key. It is never included in the build.',
+    placeholder: 'Paste the API key',
+    save: 'Save',
+    clear: 'Clear',
+    configured: 'API key set',
+    required:
+      'This instance requires an API key. Set or correct it with the API key button.',
+  },
   hero: {
     title: 'See how search engines read your site',
     checksLabel: 'What gets checked',
