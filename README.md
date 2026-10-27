@@ -104,8 +104,8 @@ CORS_ORIGINS=https://app.example.com python -m api.main
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated origins accepted by the API's CORS middleware. |
 | `SEO_PRISM_MAX_PAGES_LIMIT` | unset — **no cap** | Optional operator guard: upper bound on the `max_pages` requested per scan (HTTP API and MCP server). The open-source edition ships with no ceiling; set it (e.g. `100`) only when you host the tool for others. An invalid or non-positive value is ignored with a logged warning. |
-| `SEO_PRISM_API_KEY` | unset — API open | When set, every endpoint requires the key in an `X-API-Key` request header; a missing or wrong key gets `401`. |
-| `SEO_PRISM_BLOCK_PRIVATE_TARGETS` | unset — disabled | Set to `1` to reject scan targets whose host resolves to a loopback, private or link-local address (including the cloud metadata endpoint), so the API cannot be used as an SSRF pivot. Leave unset for local development, where scanning `localhost` is the intended use. |
+| `SEO_PRISM_API_KEY` | unset — API open | When set, every endpoint except `/health` requires the key in an `X-API-Key` request header; a missing or wrong key gets `401`. The bundled panel asks for the key on a 401, keeps it in `sessionStorage` and sends it with every request; it is never baked into the build. |
+| `SEO_PRISM_BLOCK_PRIVATE_TARGETS` | unset — disabled | Set to `1` to reject any host that resolves to a loopback, private, link-local, CGNAT or reserved address (including `169.254.169.254`). It is enforced on the scan target and on every redirect, external resource, robots.txt and standard-file request, in the HTTP API, MCP server and CLI; the aiohttp connector validates each connection, including IP literals. It validates at connect time rather than pinning a separate DNS lookup, so a residual DNS-rebinding window remains. Leave unset for local development, where scanning `localhost` is the intended use. |
 | `SEO_PRISM_STATIC_DIR` | unset — API only | Directory containing the compiled frontend; when set, the API serves it at `/` while keeping every API route reachable. The Docker image sets it to `/app/static`. |
 
 The full deployment reference (Docker persistence, public-deployment examples) is in [backend/README.md](backend/README.md).
@@ -139,6 +139,8 @@ python cli.py --url https://example.com --json > scan_results.json
 python cli.py --url https://example.com --json 2>/dev/null | jq '.issues | length'
 ```
 
+A target that cannot produce a valid HTML page (unreachable host, timeout, 4xx/5xx root, non-HTML target or a root blocked by robots.txt) is neither graded nor stored in history. The CLI exits with code `1` and, in `--json` mode, writes a single `{"error": "..."}` object to stdout (progress and the human-readable error go to stderr). Successful scans exit `0`.
+
 ### Generate Professional SEO Report
 
 Generate a professional executive SEO report. The default format is **PDF** (complete, print-ready, every issue listed with automatic pagination — no manual adjustments needed). Reports are fully bilingual (`--lang es|en`): category labels, issue descriptions and section texts are all translated. The legacy PowerPoint format is still available as an editable option. Both formats are white-label: your brand name, accent color and logo replace SEO Prism's on the cover, headers and footers.
@@ -153,7 +155,7 @@ python cli.py --url <URL> --generate-report --report-format pptx  # editable Pow
 **Available options:**
 
 - `--url` (required): Target URL to scan
-- `--max-pages` (optional, default 100): Maximum number of pages to crawl (no hard cap: any larger value is honored)
+- `--max-pages` (optional, default 100, minimum 1): Maximum number of pages to crawl (no hard cap: any larger value is honored)
 - `--ignore-robots` (flag): Ignore robots.txt even for remote URLs (local URLs are always scanned without robots.txt)
 - `--json` (flag): Print complete scan results as JSON to stdout (progress goes to stderr)
 - `--generate-report` (flag): Enable report generation
@@ -244,13 +246,13 @@ Agents that can run shells don't need MCP: `cli.py --json` works directly — se
 ## API Endpoints
 
 - `GET /` - API info
-- `POST /scan` - Start a new scan
+- `POST /scan` - Start a new scan. Returns `400` for an invalid URL or a target blocked by robots.txt, and `502` when the target is unreachable; failed targets are not stored in history
 - `GET /scans` - List recent scans (id, URL, date, grade and issue count per scan)
 - `GET /results` - Get latest scan results
 - `GET /results/{scan_id}` - Get specific scan results
 - `GET /health` - Liveness probe (no authentication)
 
-When `SEO_PRISM_API_KEY` is set, every endpoint except `/health` requires the key in an `X-API-Key` request header.
+When `SEO_PRISM_API_KEY` is set, every endpoint except `/health` requires the key in an `X-API-Key` request header. The bundled web panel reacts to a `401` by opening an API-key field (stored only in that browser tab's `sessionStorage`); the key is not part of the compiled bundle. The Docker healthcheck probes `/health`, which stays unauthenticated.
 
 ## Testing
 
