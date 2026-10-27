@@ -27,8 +27,21 @@ python -m api.main
 ```
 
 Serves `http://localhost:8000` with `GET /`, `POST /scan`,
-`GET /results` and `GET /results/{scan_id}`. Scan history is stored in a
-SQLite file (`scans.db`, created relative to the working directory).
+`GET /scans`, `GET /results`, `GET /results/{scan_id}` and `GET /health`.
+Scan history is stored in a SQLite file (`scans.db`, created relative to the
+working directory); timestamps are written in UTC with an explicit offset and
+legacy naive rows are converted on read.
+
+Issue totals report actionable issues only. Info-level entries (robots.txt,
+sitemap, security.txt and llms.txt found) remain in the issue list so their
+section can show them, but are excluded from `total_issues`, from the history
+and CLI counters and from `seo_grade.breakdown.total`; `POST /scan`, the CLI
+summary and `GET /results/{scan_id}` expose them as `info_notices`. The
+accounting lives in `core/issues.py`.
+
+Page analysis (BeautifulSoup plus the modules that read it) runs in a worker
+thread via `asyncio.to_thread`, so `/health` and other requests keep answering
+while a scan is in progress.
 
 ### CLI
 

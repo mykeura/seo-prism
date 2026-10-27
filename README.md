@@ -34,7 +34,8 @@ SEO Prism features a modern web interface that you can use from any browser. Whe
 - ✅ White-label reports: `--brand-name`, `--brand-color` and `--brand-logo` put your own brand on the PDF/PowerPoint cover, headers and footers
 - ✅ robots.txt respected by default for remote targets (per-host rules, Crawl-delay/Request-rate pacing, skipped-URL counter); local URLs skip it for speed and `--ignore-robots` overrides it
 - ✅ SPA notice: a single low-severity warning when the site looks JavaScript-rendered, instead of a cascade of misleading "missing title" issues
-- ✅ Scan history (`GET /scans`) in the web panel — reopen any previous report — and CSV export of every issue section
+- ✅ Scan history (`GET /scans`) in the web panel — reopen any previous report, refreshed as soon as a new scan finishes — and CSV export of every issue section
+- ✅ Actionable counts everywhere: info-level confirmations (`robots.txt found`, `sitemap found`, ...) stay visible in their own section but never inflate the issue total in the panel, history, CLI, API or MCP output
 - ✅ Full potential, no artificial limits: every feature above ships in the open-source edition and `--max-pages` has no hard cap
 
 ## Open source, full potential
@@ -49,6 +50,8 @@ crawled pages to get the error density `d`. The score uses a logarithmic penalty
 than a large site with fewer, two sites with the same error density get exactly the same score,
 and the scale keeps discriminating beyond the point where a linear one would collapse to F.
 The letter (A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 60, F below) is derived from the rounded score.
+
+Info-level entries (`robots.txt found`, `sitemap found`, `security.txt found`, `llms.txt found`) are confirmations, not problems: they are reported in their section with severity `info` but carry no weight, are excluded from `breakdown.total` and from every issue count (`total_issues`, the history badge, the CLI counter and the API payload), which report them separately as `info_notices`.
 
 ## Installation
 
@@ -132,7 +135,7 @@ python cli.py --url https://example.com --ignore-robots   # override robots.txt 
 
 ### JSON Output (`--json`)
 
-Add `--json` to get the complete analysis in a single machine-readable document (ideal for AI agents or piping to `jq`). Progress messages go to `stderr` and `stdout` contains ONLY the JSON payload with the keys `scan`, `issues` (every issue, untruncated), `seo_grade` and `resource_analysis`; page HTML is excluded to keep the output compact.
+Add `--json` to get the complete analysis in a single machine-readable document (ideal for AI agents or piping to `jq`). Progress messages go to `stderr` and `stdout` contains ONLY the JSON payload with the keys `scan` (including `total_issues` and `info_notices`), `issues` (every issue, untruncated), `seo_grade` and `resource_analysis`; page HTML is excluded to keep the output compact.
 
 ```bash
 python cli.py --url https://example.com --json > scan_results.json
@@ -246,8 +249,8 @@ Agents that can run shells don't need MCP: `cli.py --json` works directly — se
 ## API Endpoints
 
 - `GET /` - API info
-- `POST /scan` - Start a new scan. Returns `400` for an invalid URL or a target blocked by robots.txt, and `502` when the target is unreachable; failed targets are not stored in history
-- `GET /scans` - List recent scans (id, URL, date, grade and issue count per scan)
+- `POST /scan` - Start a new scan. Returns `400` for an invalid URL or a target blocked by robots.txt, and `502` when the target is unreachable; failed targets are not stored in history. The response carries `total_issues` (actionable issues only) and `info_notices` (info-level confirmations) as separate counters
+- `GET /scans` - List recent scans (id, URL, date, grade and actionable issue count per scan). Dates are UTC with an explicit offset (`...T12:34:56+00:00`); rows written by older versions are converted on read
 - `GET /results` - Get latest scan results
 - `GET /results/{scan_id}` - Get specific scan results
 - `GET /health` - Liveness probe (no authentication)

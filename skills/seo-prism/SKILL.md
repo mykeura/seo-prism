@@ -17,14 +17,17 @@ venv/bin/python cli.py --url https://example.com --max-pages 25 --json
 
 - `--json` prints the full payload to stdout; progress goes to stderr.
 - `issues[]` entries: `issue_type`, `url`, `source_page`, `description`, `severity`.
-- `seo_grade`: `grade` (A-F), `score`, `total_issues`, `severity_counts`.
+- `scan.total_issues` counts actionable issues only; `scan.info_notices` counts
+  the `severity: "info"` confirmations (robots.txt/sitemap/security.txt/llms.txt found).
+- `seo_grade`: `grade` (A-F), `score`, `breakdown` (`high`, `medium`, `low`, `total`).
 - Local URLs (localhost, 127.0.0.1, *.test) ignore robots.txt; remote URLs respect it.
 - Optional PDF/PPTX report: add `--generate-report --lang en|es`.
 
 ## Option B — MCP server (stdio)
 
 Register `backend/mcp_server.py` as an MCP stdio server; it exposes one tool,
-`seo_scan(url, max_pages)` returning `{scan, issues, seo_grade, resource_analysis}`.
+`seo_scan(url, max_pages)` returning `{scan, issues, seo_grade, resource_analysis}`,
+where `scan.total_issues`/`scan.info_notices` follow the same actionable/issues split.
 
 ```bash
 python mcp_server.py                     # stdio (agent launches it)
