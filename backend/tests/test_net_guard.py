@@ -3,11 +3,20 @@
 
 """Tests for the DNS-resolution private-target guard."""
 import asyncio
+import http.server
 import socket
+import threading
 
 import pytest
 
-from core.net_guard import ensure_public_url
+import core.net_guard as net_guard
+from core.crawler import Crawler
+from core.net_guard import (
+    NetworkGuard,
+    build_connector,
+    ensure_public_host,
+    ensure_public_url,
+)
 
 
 def _addrinfos(addresses, family=socket.AF_INET):
@@ -87,3 +96,78 @@ def test_rejects_unresolvable_host():
 def test_rejects_url_without_hostname():
     with pytest.raises(ValueError, match='hostname'):
         asyncio.run(ensure_public_url('not-a-url'))
+
+
+@pytest.mark.parametrize('address', [
+    '::ffff:127.0.0.1',
+    '224.0.0.1',
+    '100.64.0.1',
+    '0.0.0.0',
+])
+def test_rejects_other_non_public_literals(address):
+    with pytest.raises(ValueError, match='non-public'):
+        asyncio.run(ensure_public_host(address))
+
+
+def test_network_guard_disabled_allows_private_targets():
+    asyncio.run(NetworkGuard(False).check_url('http://127.0.0.1:8000/'))
+
+
+def test_network_guard_from_env(monkeypatch):
+    monkeypatch.delenv('SEO_PRISM_BLOCK_PRIVATE_TARGETS', raising=False)
+    assert NetworkGuard.from_env().enabled is False
+
+    monkeypatch.setenv('SEO_PRISM_BLOCK_PRIVATE_TARGETS', '1')
+    assert NetworkGuard.from_env().enabled is True
+
+
+def test_guarded_connector_blocks_ip_literals_before_connecting():
+    async def main():
+        connector = build_connector(NetworkGuard(True))
+        try:
+            with pytest.raises(ValueError, match='non-public'):
+                await connector._resolve_host('169.254.169.254', 80)
+        finally:
+            await connector.close()
+
+    asyncio.run(main())
+
+
+class _RedirectToMetadata(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        self.send_response(302)
+        self.send_header('Location', 'http://169.254.169.254/latest/meta-data/')
+        self.end_headers()
+
+
+def test_redirect_to_private_ip_is_blocked_by_the_connector(monkeypatch):
+    """The initial host is allowed; the redirect target must be rejected."""
+    def fake_is_non_public(address):
+        return not str(address).startswith('127.0.0.1')
+
+    monkeypatch.setattr(net_guard, '_is_non_public', fake_is_non_public)
+
+    server = http.server.ThreadingHTTPServer(
+        ('127.0.0.1', 0), _RedirectToMetadata)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f'http://127.0.0.1:{server.server_address[1]}/'
+
+    async def main():
+        async with Crawler(base, ignore_robots=True,
+                           guard=NetworkGuard(True)) as crawler:
+            return await crawler.crawl(max_pages=1)
+
+    try:
+        results = asyncio.run(main())
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+    assert len(results) == 1
+    assert results[0]['status'] == 0
+    assert 'non-public' in results[0]['error']

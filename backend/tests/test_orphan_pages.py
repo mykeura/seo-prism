@@ -144,6 +144,46 @@ class TestOrphanPagesModule:
         if issues:
             assert issues[0]['severity'] == 'medium'
     
+    def test_redirect_target_is_linked_through_the_requested_url(self, temp_db, sample_scan_id):
+        """A page reached via /r is linked, even though its URL is /target."""
+        module = OrphanPagesModule(temp_db)
+
+        page_id = temp_db.add_page(
+            sample_scan_id, 'https://example.com/', 200, '<html></html>')
+        temp_db.add_link(page_id, 'https://example.com/r', 'https://example.com/')
+
+        crawled_pages = [
+            {'url': 'https://example.com/', 'status': 200, 'html': '<html></html>'},
+            {
+                'url': 'https://example.com/target',
+                'status': 200,
+                'html': '<html></html>',
+                'requested_url': 'https://example.com/r',
+                'redirect_status': 302,
+            },
+        ]
+
+        issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
+
+        assert issues == []
+
+    def test_redirect_only_hop_is_not_an_orphan_page(self, temp_db, sample_scan_id):
+        module = OrphanPagesModule(temp_db)
+
+        crawled_pages = [
+            {'url': 'https://example.com/', 'status': 200, 'html': '<html></html>'},
+            {
+                'url': 'https://example.com/r',
+                'status': 301,
+                'html': None,
+                'is_redirect': True,
+            },
+        ]
+
+        issues = module.analyze(sample_scan_id, crawled_pages, 'https://example.com')
+
+        assert issues == []
+
     def test_analyze_with_resources(self, temp_db, sample_scan_id):
         """Test that resources are not considered as pages."""
         module = OrphanPagesModule(temp_db)

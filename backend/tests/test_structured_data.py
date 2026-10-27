@@ -330,3 +330,59 @@ class TestStructuredDataModule:
         
         short_headline = [i for i in issues if i['issue_type'] == 'json_ld_short_headline']
         assert all(issue['severity'] == 'medium' for issue in short_headline)
+
+
+class TestStructuredDataRobustness:
+    """Valid JSON that is not a JSON-LD object must never abort the scan."""
+
+    @staticmethod
+    def _analyze(module, scan_id, payload):
+        html = (
+            '<html><head><script type="application/ld+json">'
+            f'{payload}'
+            '</script></head><body>Content</body></html>'
+        )
+        pages = [{'url': 'https://example.com', 'html': html}]
+        return module.analyze(scan_id, pages)
+
+    @pytest.mark.parametrize('payload', [
+        '', '   ', 'null', '"text"', '123', 'true',
+        '["text"]', '[null]', '[1, 2]',
+        '{"@graph": null}', '{"@graph": "oops"}',
+    ])
+    def test_malformed_shapes_report_an_issue_instead_of_crashing(
+            self, temp_db, sample_scan_id, payload):
+        module = StructuredDataModule(temp_db)
+
+        issues = self._analyze(module, sample_scan_id, payload)
+
+        assert any(i['issue_type'] == 'json_ld_invalid_json' for i in issues)
+
+    @pytest.mark.parametrize('payload', [
+        '{"@context": "https://schema.org", "@type": ["Organization", "NGO"], '
+        '"name": "Example", "url": "https://example.com"}',
+        '{"@context": "https://schema.org", "@type": "SiteNavigationElement", '
+        '"name": "Home"}',
+        '{"@context": "https://schema.org", "@type": ["Organization", '
+        '"CustomProductType"], "name": "Example", "url": "https://example.com"}',
+        '{"@graph": {"@type": "WebSite", "name": "Example"}}',
+    ])
+    def test_multi_type_and_common_schema_types_do_not_warn_as_unknown(
+            self, temp_db, sample_scan_id, payload):
+        module = StructuredDataModule(temp_db)
+
+        issues = self._analyze(module, sample_scan_id, payload)
+
+        assert not [i for i in issues if i['issue_type'] == 'json_ld_unknown_type']
+
+    def test_non_string_headline_is_ignored_without_crashing(
+            self, temp_db, sample_scan_id):
+        module = StructuredDataModule(temp_db)
+        payload = (
+            '{"@context": "https://schema.org", "@type": "Article", '
+            '"headline": 123}'
+        )
+
+        issues = self._analyze(module, sample_scan_id, payload)
+
+        assert not [i for i in issues if i['issue_type'] == 'json_ld_short_headline']

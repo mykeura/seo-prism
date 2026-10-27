@@ -15,7 +15,7 @@ Analyzes canonical tags for SEO issues including:
 
 from bs4 import BeautifulSoup
 from core.soup import soup_for
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, urlunparse
 from typing import List, Dict, Set
 
 
@@ -72,8 +72,23 @@ class CanonicalTagsModule:
         for page in crawled_pages:
             url = page.get('url', '')
             status = page.get('status', 0)
+            normalized_page_url = self._normalize_url(url)
 
-            page_status_map[url] = status
+            # Both the status map and the canonical map use the same
+            # normalized form; mixing raw and normalized keys made the 404
+            # lookup miss whenever a crawled URL contained uppercase letters.
+            page_status_map[normalized_page_url] = status
+
+            # The crawler attributes a redirected page's content to its final
+            # URL and keeps the requested URL as metadata. Register the hop
+            # under the requested URL so a canonical pointing at it is
+            # reported as a redirect instead of silently ignored.
+            requested_url = page.get('requested_url')
+            redirect_status = page.get('redirect_status')
+            if requested_url and redirect_status is not None:
+                normalized_requested = self._normalize_url(requested_url)
+                if normalized_requested != normalized_page_url:
+                    page_status_map[normalized_requested] = redirect_status
 
             # Only extract canonical if page has HTML (reuses the shared
             # soup cache instead of re-parsing the HTML a second time)
@@ -81,7 +96,9 @@ class CanonicalTagsModule:
             if soup:
                 canonical_tag = soup.find('link', rel='canonical')
                 if canonical_tag and canonical_tag.get('href'):
-                    canonical_map[url] = urljoin(url, canonical_tag.get('href', '').strip())
+                    canonical_map[normalized_page_url] = self._normalize_url(
+                        urljoin(url, canonical_tag.get('href', '').strip())
+                    )
         
         visited_canonicals: Set[str] = set()
         
@@ -122,10 +139,8 @@ class CanonicalTagsModule:
                 if normalized_canonical == normalized_page_url:
                     continue
                 
-                canonical_map_normalized = {self._normalize_url(k): self._normalize_url(v) for k, v in canonical_map.items()}
-                
-                if normalized_canonical in canonical_map_normalized:
-                    target_canonical_normalized = canonical_map_normalized[normalized_canonical]
+                if normalized_canonical in canonical_map:
+                    target_canonical_normalized = canonical_map[normalized_canonical]
                     
                     if target_canonical_normalized == normalized_page_url:
                         self._report(issues, scan_id, {
@@ -135,12 +150,13 @@ class CanonicalTagsModule:
                             'description': f'Circular canonical chain detected: {page_url} → {canonical_url} → {page_url}',
                             'severity': 'high'
                         })
-                    elif len(self._trace_canonical_chain(canonical_map, page_url, visited=set())) > 2:
+                    elif len(self._trace_canonical_chain(
+                            canonical_map, normalized_page_url, visited=set())) > 2:
                         self._report(issues, scan_id, {
                             'issue_type': 'canonical_chain',
                             'url': page_url,
                             'source_page': page_url,
-                            'description': f'Excessive canonical chain detected: {self._format_chain(canonical_map, page_url)}',
+                            'description': f'Excessive canonical chain detected: {self._format_chain(canonical_map, normalized_page_url)}',
                             'severity': 'high'
                         })
                 
@@ -155,7 +171,7 @@ class CanonicalTagsModule:
                         'severity': 'high'
                     })
 
-                elif target_status is not None and target_status in [301, 302]:
+                elif target_status is not None and 300 <= target_status < 400:
                     self._report(issues, scan_id, {
                         'issue_type': 'canonical_to_redirect',
                         'url': page_url,
@@ -240,13 +256,16 @@ class CanonicalTagsModule:
         """
         parsed = urlparse(url)
         
-        path = parsed.path.rstrip('/')
-        
-        normalized = f"{parsed.scheme}://{parsed.netloc}{path}"
-        if parsed.query:
-            normalized += f"?{parsed.query}"
-        
-        return normalized.lower()
+        # Scheme and host are case-insensitive; the path is not. Lowercasing
+        # the whole URL hid real 404s on case-sensitive servers.
+        return urlunparse((
+            parsed.scheme.lower(),
+            parsed.netloc.lower(),
+            parsed.path.rstrip('/'),
+            '',
+            parsed.query,
+            '',
+        ))
     
     def _has_url_variation(self, url1: str, url2: str) -> bool:
         """

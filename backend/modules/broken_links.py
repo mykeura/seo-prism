@@ -96,6 +96,12 @@ class BrokenLinksModule:
         url_status_map = {}
         for page in crawled_pages:
             url_status_map[page['url']] = page['status']
+            # Links point at the requested URL; when it redirected, the
+            # broken-health of the link is the status reached at the end of
+            # the chain (e.g. /old -> 301 -> /missing 404).
+            requested_url = page.get('requested_url')
+            if requested_url:
+                url_status_map[requested_url] = page.get('final_status', page['status'])
         
         all_resources = []
         for page in crawled_pages:

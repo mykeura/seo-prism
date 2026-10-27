@@ -1,11 +1,55 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEO-Prism-Commercial
 # SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
+import re
 from typing import List, Dict
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from core.soup import soup_for
 from database import Database
+
+
+# BCP-47 primary language subtags that are 2 letters. An incomplete list here
+# produced false "invalid code" issues for valid languages such as Catalan,
+# Galician, Basque, Norwegian Bokmal or Icelandic.
+_ISO_639_1 = frozenset("""
+aa ab ae af ak am an ar as av ay az ba be bg bh bi bm bn bo br bs ca ce ch co
+cr cs cu cv cy da de dv dz ee el en eo es et eu fa ff fi fj fo fr fy ga gd gl
+gn gu gv ha he hi ho hr ht hu hy hz ia id ie ig ii ik io is it iu ja jv ka kg
+ki kj kk kl km kn ko kr ks ku kv kw ky la lb lg li ln lo lt lu lv mg mh mi mk
+ml mn mr ms mt my na nb nd ne ng nl nn no nr nv ny oc oj om or os pa pi pl ps
+pt qu rm rn ro ru rw sa sc sd se sg si sk sl sm sn so sq sr ss st su sv sw ta
+te tg th ti tk tl tn to tr ts tt tw ty ug uk ur uz ve vi vo wa wo xh yi yo za
+zh zu
+""".split())
+
+# Deprecated ISO 639-1 codes still found in the wild.
+_LEGACY_LANGUAGE_CODES = frozenset({'sh', 'mo', 'iw', 'in', 'ji', 'jw'})
+
+# Primary language (2-3 letters) plus optional alphanumeric subtags of 1-8
+# characters (script, region, variants and extensions).
+_HREFLANG_SYNTAX = re.compile(r'^[a-z]{2,3}(?:-[a-z0-9]{1,8})*$')
+
+
+def is_valid_hreflang_code(code: str) -> bool:
+    """Validate a BCP-47 language tag without rejecting unlisted languages."""
+    normalized = (code or '').strip().lower()
+    if not normalized:
+        return False
+    if normalized == 'x-default':
+        return True
+    # Private-use and grandfathered tags (x-..., i-...).
+    if normalized.startswith(('x-', 'i-')):
+        return True
+    if not _HREFLANG_SYNTAX.match(normalized):
+        return False
+
+    primary = normalized.split('-', 1)[0]
+    if len(primary) == 2:
+        return primary in _ISO_639_1 or primary in _LEGACY_LANGUAGE_CODES
+    # Three-letter ISO 639-2/3 codes are valid BCP-47 primary subtags; we
+    # accept them instead of maintaining another incomplete whitelist.
+    return True
 
 
 class HreflangModule:
@@ -173,20 +217,10 @@ class HreflangModule:
         """
         issues = []
         
-        valid_codes = {
-            'x-default', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko',
-            'ar', 'hi', 'tr', 'pl', 'nl', 'sv', 'da', 'no', 'fi', 'el', 'cs', 'ro',
-            'hu', 'bg', 'sk', 'sl', 'hr', 'sr', 'uk', 'be', 'et', 'lv', 'lt', 'th',
-            'vi', 'id', 'ms', 'fil', 'he', 'fa', 'ur', 'bn', 'ta', 'te', 'ml', 'kn',
-            'gu', 'mr', 'ne', 'si', 'my', 'km', 'lo', 'ka', 'am', 'sw', 'zu', 'af'
-        }
-        
         for data in hreflang_data:
             code = data['hreflang']
             
-            base_code = code.split('-')[0] if '-' in code else code
-            
-            if code != 'x-default' and base_code not in valid_codes:
+            if not is_valid_hreflang_code(code):
                 issues.append({
                     'issue_type': 'hreflang_invalid_code',
                     'url': url,

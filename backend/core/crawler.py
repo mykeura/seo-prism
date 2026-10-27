@@ -7,6 +7,7 @@ from typing import List, Dict, Set, Optional, Tuple
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 from version import __version__
+from .net_guard import NetworkGuard, build_connector
 from .robots import HostKey, RobotsCache, host_key
 from .url_utils import parse_target_url, is_local, resolve_relative_url, normalize_url
 
@@ -25,16 +26,19 @@ _DNS_CACHE_TTL_SECONDS = 300
 class Crawler:
     """Async web crawler for SEO analysis."""
     
-    def __init__(self, base_url: str, ignore_robots: bool = False):
+    def __init__(self, base_url: str, ignore_robots: bool = False,
+                 guard: Optional[NetworkGuard] = None):
         """
         Initialize the crawler.
         
         Args:
             base_url: The starting URL to crawl
             ignore_robots: If True, ignore robots.txt (default for local URLs)
+            guard: Optional SSRF guard applied to every HTTP connection
         """
         self.base_url = base_url
         self.ignore_robots = ignore_robots
+        self.guard = guard or NetworkGuard(False)
         
         try:
             self.domain, self.port, self.scheme = parse_target_url(base_url)
@@ -44,6 +48,7 @@ class Crawler:
         self.visited_urls: Set[str] = set()
         self.queued_urls: Set[str] = set()
         self.results: List[Dict] = []
+        self._base_normalized = normalize_url(base_url)
         # URLs robots.txt disallowed for this crawler; they are never fetched.
         self.robots_skipped_urls: Set[str] = set()
 
@@ -61,7 +66,8 @@ class Crawler:
     
     async def __aenter__(self):
         """Async context manager entry."""
-        connector = aiohttp.TCPConnector(
+        connector = build_connector(
+            self.guard,
             limit=_MAX_CONNECTIONS,
             limit_per_host=_MAX_CONNECTIONS_PER_HOST,
             ttl_dns_cache=_DNS_CACHE_TTL_SECONDS,
@@ -74,6 +80,10 @@ class Crawler:
         if self.session:
             await self.session.close()
     
+    @staticmethod
+    def _without_www(domain: str) -> str:
+        return domain[4:] if domain.startswith('www.') else domain
+
     def _is_same_domain(self, url: str) -> bool:
         """
         Check if URL belongs to the same domain as base URL.
@@ -90,7 +100,10 @@ class Crawler:
                 return False
             
             target_domain, target_port, _ = parse_target_url(url)
-            return target_domain == self.domain
+            # apex <-> www is the same site for crawl purposes; http/https
+            # and default-port differences are already normalized away by
+            # parse_target_url.
+            return self._without_www(target_domain) == self._without_www(self.domain)
         except Exception:
             return False
     
@@ -201,6 +214,26 @@ class Crawler:
                 'is_resource': True
             }
     
+    @staticmethod
+    def _redirect_only_result(requested_url: str, final_url: str,
+                              redirect_status: Optional[int],
+                              final_status: int,
+                              redirect_chain: List[str]) -> Dict:
+        """Result for a URL that redirects somewhere we will not analyse."""
+        return {
+            'url': requested_url,
+            'status': redirect_status if redirect_status is not None else final_status,
+            'links': [],
+            'resources': [],
+            'html': None,
+            'is_redirect': True,
+            'requested_url': requested_url,
+            'final_url': final_url,
+            'redirect_status': redirect_status,
+            'final_status': final_status,
+            'redirect_chain': redirect_chain,
+        }
+
     async def _fetch_page(self, url: str) -> Optional[Dict]:
         """
         Fetch a single page and extract links.
@@ -228,29 +261,98 @@ class Crawler:
 
             async with self.session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 status = response.status
-                
+                final_url_raw = str(getattr(response, 'url', None) or url)
+                final_url = normalize_url(final_url_raw)
+                history = tuple(getattr(response, 'history', ()) or ())
+                redirect_status = (
+                    getattr(history[0], 'status', None) if history else None
+                )
+                redirected = bool(history) and final_url != normalized_url
+                redirect_chain = []
+                if history:
+                    redirect_chain = [
+                        normalize_url(str(hop_url))
+                        for hop_url in (getattr(hop, 'url', None) for hop in history)
+                        if hop_url
+                    ]
+                    redirect_chain.append(final_url)
+
+                is_scan_root = normalized_url == self._base_normalized
+
+                # Internal links that redirect to another host point outside
+                # the scanned site: record the hop, but never analyse the
+                # external document as if it belonged to the site.
+                if redirected and not is_scan_root and not self._is_same_domain(final_url):
+                    self.visited_urls.add(final_url)
+                    return self._redirect_only_result(
+                        normalized_url, final_url, redirect_status, status,
+                        redirect_chain)
+
+                if redirected:
+                    if final_url in self.visited_urls:
+                        return self._redirect_only_result(
+                            normalized_url, final_url, redirect_status, status,
+                            redirect_chain)
+                    self.visited_urls.add(final_url)
+
                 content_type = response.headers.get('Content-Type', '')
                 if 'text/html' not in content_type:
-                    return {
-                        'url': normalized_url,
+                    result = {
+                        'url': final_url,
                         'status': status,
                         'links': [],
                         'resources': [],
                         'html': None
                     }
+                    if redirected:
+                        result.update({
+                            'requested_url': normalized_url,
+                            'final_url': final_url,
+                            'redirect_status': redirect_status,
+                            'final_status': status,
+                            'redirect_chain': redirect_chain,
+                        })
+                    return result
                 
                 html = await response.text()
+
+                # The scan root may legitimately redirect to another origin
+                # (http -> https, apex -> www, a moved site): adopt the final
+                # origin so its links are still crawled as internal.
+                if is_scan_root and redirected:
+                    try:
+                        self.domain, self.port, self.scheme = parse_target_url(final_url)
+                    except ValueError:
+                        pass
+                    if self._robots is not None:
+                        new_host = host_key(final_url)
+                        if new_host != self._robots_host:
+                            self._robots_host = new_host
+                            await self._robots.rules_for(final_url)
                 
                 soup = BeautifulSoup(html, 'html.parser')
-                internal_links, all_resources = self._extract_links(soup, url)
+                # Relative links resolve against the raw final URL: the
+                # normalized form drops the trailing slash and would turn
+                # /target/relative.html into /relative.html.
+                internal_links, all_resources = self._extract_links(
+                    soup, final_url_raw)
                 
-                return {
-                    'url': normalized_url,
+                result = {
+                    'url': final_url,
                     'status': status,
                     'links': internal_links,
                     'resources': all_resources,
                     'html': html
                 }
+                if redirected:
+                    result.update({
+                        'requested_url': normalized_url,
+                        'final_url': final_url,
+                        'redirect_status': redirect_status,
+                        'final_status': status,
+                        'redirect_chain': redirect_chain,
+                    })
+                return result
         
         except asyncio.TimeoutError:
             return {
@@ -353,6 +455,7 @@ class Crawler:
         if not self.session:
             raise RuntimeError("Crawler must be used as async context manager")
 
+        max_pages = max(1, max_pages)
         results = []
         urls_to_visit = [self.base_url]
         self.queued_urls.add(normalize_url(self.base_url))
@@ -367,8 +470,12 @@ class Crawler:
             await self._robots.rules_for(self.base_url)
 
         while urls_to_visit and len(results) < max_pages:
-            current_batch = urls_to_visit[:20]
-            urls_to_visit = urls_to_visit[20:]
+            # Never request more pages than the remaining budget: the old
+            # fixed 20-item batch overshot max_pages whenever a page exposed
+            # twenty or more links (e.g. max_pages=5 crawled 21 pages).
+            batch_size = min(20, max_pages - len(results))
+            current_batch = urls_to_visit[:batch_size]
+            urls_to_visit = urls_to_visit[batch_size:]
 
             current_batch = await self._filter_allowed(current_batch)
 

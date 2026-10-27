@@ -260,8 +260,11 @@ class TestTranslateDescription:
         assert translate_description(
             'es', 'The page contains 3 H1 headers') == 'La página contiene 3 encabezados H1'
         assert translate_description(
-            'es', 'Duplicate H1 found on another page: https://example.com/a') == \
-            'H1 duplicado encontrado en otra página: https://example.com/a'
+            'es',
+            'Duplicate H1 "Welcome" found on 2 other pages: '
+            'https://example.com/a, https://example.com/b') == \
+            'H1 duplicado "Welcome" encontrado en 2 página(s) adicional(es): ' \
+            'https://example.com/a, https://example.com/b'
         assert translate_description(
             'es', 'Title is too long (75 characters). Recommended: 10-60 characters') == \
             'El título es demasiado largo (75 caracteres). Recomendado: 10-60 caracteres'

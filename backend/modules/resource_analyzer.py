@@ -129,6 +129,11 @@ class ResourceAnalyzer:
         Returns:
             Resource type: 'html', 'css', 'js', 'image', 'other'
         """
+        if page.get('is_redirect'):
+            # A bare redirect hop is not an HTML page, even when its URL
+            # ends in .html/.php; the destination holds the content.
+            return 'other'
+
         if page.get('is_resource'):
             parsed = urlparse(url)
             path = parsed.path.lower()

@@ -91,6 +91,34 @@ class TestCanonicalTagsModule:
         assert issues[0]['issue_type'] == 'canonical_to_redirect'
         assert issues[0]['severity'] == 'medium'
     
+    def test_canonical_to_redirect_uses_crawler_redirect_metadata(self):
+        """The crawler stores the final 200 plus the requested 302 hop."""
+        module = CanonicalTagsModule(None)
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com/page',
+                'status': 200,
+                'html': '<html><head><link rel="canonical" href="/old">'
+                        '</head><body>Content</body></html>'
+            },
+            {
+                'url': 'https://example.com/new',
+                'status': 200,
+                'html': '<html><head><title>New</title></head>'
+                        '<body>New content</body></html>',
+                'requested_url': 'https://example.com/old',
+                'redirect_status': 302,
+                'final_status': 200,
+            },
+        ]
+
+        issues = module.analyze(1, crawled_pages)
+
+        redirect_issues = [i for i in issues if i['issue_type'] == 'canonical_to_redirect']
+        assert len(redirect_issues) == 1
+        assert redirect_issues[0]['severity'] == 'medium'
+
     def test_analyze_circular_canonical_chain(self):
         """Test detecting circular canonical chain."""
         module = CanonicalTagsModule(None)
@@ -219,6 +247,79 @@ class TestCanonicalTagsModule:
         url2 = module._normalize_url('https://example.com/page')
         
         assert url1 == url2
+
+    def test_normalize_url_preserves_path_case(self):
+        """Paths are case-sensitive; only scheme and host are lowercased."""
+        module = CanonicalTagsModule(None)
+
+        assert module._normalize_url('https://EXAMPLE.com/Page/') == \
+            'https://example.com/Page'
+        assert module._normalize_url('https://example.com/Page#top') == \
+            'https://example.com/Page'
+
+    def test_canonical_to_404_with_mixed_case_path(self):
+        """Regression: raw page keys were compared against lowercased URLs."""
+        module = CanonicalTagsModule(None)
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com/page',
+                'status': 200,
+                'html': '<html><head><link rel="canonical" href="/Missing"></head>'
+                        '<body>Content</body></html>'
+            },
+            {
+                'url': 'https://example.com/Missing',
+                'status': 404,
+                'html': None
+            }
+        ]
+
+        issues = module.analyze(1, crawled_pages)
+
+        assert [i['issue_type'] for i in issues] == ['canonical_to_404']
+
+    def test_canonical_status_lookup_ignores_trailing_slash_and_fragment(self):
+        module = CanonicalTagsModule(None)
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com/page',
+                'status': 200,
+                'html': '<html><head><link rel="canonical" '
+                        'href="/not-found/?q=1#top"></head><body>Content</body></html>'
+            },
+            {
+                'url': 'https://example.com/not-found?q=1',
+                'status': 404,
+                'html': None
+            }
+        ]
+
+        issues = module.analyze(1, crawled_pages)
+
+        assert [i['issue_type'] for i in issues] == ['canonical_to_404']
+
+    def test_different_path_case_is_not_assumed_to_be_the_same_page(self):
+        module = CanonicalTagsModule(None)
+
+        crawled_pages = [
+            {
+                'url': 'https://example.com/page',
+                'status': 200,
+                'html': '<html><head><link rel="canonical" href="/Missing"></head>'
+                        '<body>Content</body></html>'
+            },
+            {
+                'url': 'https://example.com/missing',
+                'status': 404,
+                'html': None
+            }
+        ]
+
+        issues = module.analyze(1, crawled_pages)
+
+        assert not [i for i in issues if i['issue_type'] == 'canonical_to_404']
     
     def test_has_url_variation(self):
         """Test detecting URL variations."""

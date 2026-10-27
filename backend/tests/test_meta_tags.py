@@ -12,7 +12,7 @@ def _page(url, h1_list):
             'html': f'<html><head><title>{url}</title></head><body>{h1s}</body></html>'}
 
 
-def test_three_pages_same_h1_each_reports_two_duplicates():
+def test_three_pages_same_h1_report_one_issue_each():
     db = Database(':memory:')
     try:
         scan_id = db.create_scan('http://x.test')
@@ -21,8 +21,37 @@ def test_three_pages_same_h1_each_reports_two_duplicates():
                  _page('http://x.test/c', ['Shared'])]
         issues = MetaTagsModule(db).analyze(scan_id, pages)
         dupes = [i for i in issues if i['issue_type'] == 'duplicate_h1']
-        # each of the 3 pages sees the other 2 -> 6 issues, no break
-        assert len(dupes) == 6
+        # One issue per affected page, never one per pair (the old code
+        # produced 6 for this fixture and N*(N-1) in the worst case).
+        assert len(dupes) == 3
+        assert {i['url'] for i in dupes} == {
+            'http://x.test/a', 'http://x.test/b', 'http://x.test/c'}
+        assert all(i['severity'] == 'high' for i in dupes)
+        assert all('Shared' in i['description'] for i in dupes)
+    finally:
+        db.close()
+
+
+def test_many_pages_same_h1_scale_linearly():
+    db = Database(':memory:')
+    try:
+        scan_id = db.create_scan('http://x.test')
+        pages = [_page(f'http://x.test/p{i}', ['Welcome']) for i in range(10)]
+        issues = MetaTagsModule(db).analyze(scan_id, pages)
+        dupes = [i for i in issues if i['issue_type'] == 'duplicate_h1']
+        assert len(dupes) == 10
+    finally:
+        db.close()
+
+
+def test_same_h1_different_case_is_duplicate():
+    db = Database(':memory:')
+    try:
+        scan_id = db.create_scan('http://x.test')
+        pages = [_page('http://x.test/a', ['Welcome']),
+                 _page('http://x.test/b', ['WELCOME'])]
+        issues = MetaTagsModule(db).analyze(scan_id, pages)
+        assert len([i for i in issues if i['issue_type'] == 'duplicate_h1']) == 2
     finally:
         db.close()
 

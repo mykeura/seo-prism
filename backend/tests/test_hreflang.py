@@ -276,3 +276,33 @@ class TestHreflangModule:
         
         invalid_issues = [i for i in issues if i['issue_type'] == 'hreflang_invalid_code']
         assert all(issue['severity'] == 'high' for issue in invalid_issues)
+
+
+class TestBcp47Validation:
+    """Valid BCP-47 tags must not be flagged just because they are uncommon."""
+
+    @pytest.mark.parametrize('code', [
+        'ca-ES', 'gl-ES', 'eu-ES', 'nb-NO', 'nn-NO', 'is-IS', 'ga-IE',
+        'cy-GB', 'fil-PH', 'zh-Hant', 'es-419', 'en-GB', 'de-CH-1901',
+        'x-default', 'X-DEFAULT', 'i-klingon', 'sh',
+    ])
+    def test_valid_codes_are_not_flagged(self, code):
+        module = HreflangModule(None)
+
+        issues = module._check_invalid_codes(
+            'https://example.com', [{'hreflang': code, 'href': 'https://example.com'}])
+
+        assert issues == []
+
+    @pytest.mark.parametrize('code', [
+        'invalid', 'english', 'en_US', 'xx', 'en-', 'en--US', '123',
+    ])
+    def test_malformed_codes_are_flagged(self, code):
+        module = HreflangModule(None)
+
+        issues = module._check_invalid_codes(
+            'https://example.com', [{'hreflang': code, 'href': 'https://example.com'}])
+
+        assert len(issues) == 1
+        assert issues[0]['issue_type'] == 'hreflang_invalid_code'
+        assert issues[0]['severity'] == 'high'

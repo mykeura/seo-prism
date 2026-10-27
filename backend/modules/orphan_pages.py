@@ -3,6 +3,7 @@
 
 from typing import List, Dict, Set
 from urllib.parse import urlparse
+from core.url_utils import normalize_url
 from database import Database
 
 
@@ -66,12 +67,16 @@ class OrphanPagesModule:
         """
         issues = []
         
-        crawled_urls = set()
+        root_urls = {normalize_url(base_url)}
+        pages_by_url = {}
         for page in crawled_pages:
-            if not page.get('is_resource', False):
-                crawled_urls.add(page['url'])
+            if page.get('is_resource', False) or page.get('is_redirect', False):
+                continue
+            page_url = page['url']
+            if page_url not in pages_by_url:
+                pages_by_url[page_url] = page
         
-        if not crawled_urls:
+        if not pages_by_url:
             return issues
         
         cursor = self.db.conn.cursor()
@@ -86,27 +91,35 @@ class OrphanPagesModule:
         
         base_url_clean = self._get_base_url(base_url)
         
-        for page_url in crawled_urls:
+        for page_url, page in pages_by_url.items():
+            requested_url = page.get('requested_url')
+            if page_url in root_urls or requested_url in root_urls:
+                continue
             if self._is_homepage(page_url, base_url_clean):
                 continue
+            if page_url in linked_urls:
+                continue
+            # A redirect target is linked through the URL that redirects to
+            # it; the requested URL is what appears as the link target.
+            if requested_url and requested_url in linked_urls:
+                continue
+
+            issue = {
+                'issue_type': 'orphan_page',
+                'url': page_url,
+                'source_page': None,
+                'description': 'Page has no incoming internal links',
+                'severity': 'medium'
+            }
+            issues.append(issue)
             
-            if page_url not in linked_urls:
-                issue = {
-                    'issue_type': 'orphan_page',
-                    'url': page_url,
-                    'source_page': None,
-                    'description': 'Page has no incoming internal links',
-                    'severity': 'medium'
-                }
-                issues.append(issue)
-                
-                self.db.add_issue(
-                    scan_id=scan_id,
-                    issue_type='orphan_page',
-                    url=page_url,
-                    source_page=None,
-                    description='Page has no incoming internal links',
-                    severity='medium'
-                )
+            self.db.add_issue(
+                scan_id=scan_id,
+                issue_type='orphan_page',
+                url=page_url,
+                source_page=None,
+                description='Page has no incoming internal links',
+                severity='medium'
+            )
         
         return issues

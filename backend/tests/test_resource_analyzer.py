@@ -105,6 +105,29 @@ class TestResourceAnalyzer:
         assert result['images'] == 6
         assert result['total_resources'] == 6
     
+    def test_redirect_hop_is_not_counted_as_an_html_page(self):
+        analyzer = ResourceAnalyzer()
+        resources = [
+            {
+                'url': 'http://example.com/old.html',
+                'status': 301,
+                'html': None,
+                'is_redirect': True,
+            },
+            {
+                'url': 'http://example.com/new',
+                'status': 200,
+                'html': '<html><body>New</body></html>',
+                'requested_url': 'http://example.com/old.html',
+                'redirect_status': 301,
+            },
+        ]
+
+        result = analyzer.analyze_resources(resources)
+
+        assert result['html_pages'] == 1
+        assert result['other_resources'] == 1
+
     def test_analyze_resources_mixed(self):
         """Test analyzing mixed resource types."""
         analyzer = ResourceAnalyzer()

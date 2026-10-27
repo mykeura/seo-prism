@@ -12,13 +12,53 @@ class StructuredDataModule:
     """Module to validate Schema/Structured Data (JSON-LD, Microdata, RDFa)."""
     
     SCHEMA_TYPES = {
-        'WebPage', 'WebSite', 'Article', 'BlogPosting', 'NewsArticle', 'TechArticle',
-        'Organization', 'Person', 'LocalBusiness', 'Restaurant', 'Hotel',
-        'Product', 'Offer', 'Review', 'AggregateRating', 'Rating',
-        'BreadcrumbList', 'ListItem', 'FAQPage', 'Question', 'Answer',
-        'HowTo', 'Recipe', 'Event', 'JobPosting', 'VideoObject', 'ImageObject',
-        'Book', 'Movie', 'MusicRecording', 'CreativeWork',
-        'SearchAction', 'EntryPoint', 'Action'
+        # Core pages and page elements
+        'WebPage', 'WebSite', 'ItemPage', 'AboutPage', 'ContactPage',
+        'CollectionPage', 'ProfilePage', 'SearchResultsPage', 'CheckoutPage',
+        'QAPage', 'FAQPage', 'RealEstateListing', 'MedicalWebPage',
+        'WebPageElement', 'WPHeader', 'WPFooter', 'WPSideBar',
+        'SiteNavigationElement', 'Table',
+        # Organizations and places
+        'Organization', 'NGO', 'Corporation', 'LocalBusiness', 'Restaurant',
+        'Hotel', 'Store', 'OnlineStore', 'ProfessionalService',
+        'HomeAndConstructionBusiness', 'LegalService', 'FinancialService',
+        'TravelAgency', 'AutomotiveBusiness', 'FoodEstablishment', 'Bakery',
+        'CafeOrCoffeeShop', 'BarOrPub', 'FastFoodRestaurant',
+        'MedicalOrganization', 'Dentist', 'Physician', 'Pharmacy', 'Hospital',
+        'EducationalOrganization', 'CollegeOrUniversity', 'School',
+        'GovernmentOrganization', 'SportsOrganization',
+        'Place', 'TouristAttraction', 'LandmarksOrHistoricalBuildings',
+        'AdministrativeArea', 'Country', 'State', 'City', 'Address',
+        'Accommodation', 'Apartment', 'House', 'SingleFamilyResidence', 'Room',
+        # People and creative works
+        'Person', 'Article', 'NewsArticle', 'BlogPosting', 'TechArticle',
+        'ScholarlyArticle', 'Report', 'CreativeWork', 'Book', 'Movie',
+        'MusicRecording', 'MusicAlbum', 'VideoObject', 'ImageObject',
+        'AudioObject', 'MediaObject', 'Clip', 'MovieClip', 'Episode',
+        'Season', 'Series', 'PodcastEpisode', 'PodcastSeason', 'PodcastSeries',
+        'TVEpisode', 'TVSeason', 'TVSeries', 'RadioEpisode', 'RadioSeason',
+        'RadioSeries', 'SoftwareApplication', 'MobileApplication',
+        'WebApplication', 'VideoGame', 'Dataset', 'SoftwareSourceCode',
+        'DigitalDocument', 'PresentationDigitalDocument',
+        'SpreadsheetDigitalDocument',
+        # Commerce and offers
+        'Product', 'ProductModel', 'Offer', 'AggregateOffer', 'Brand', 'Demand',
+        'MerchantReturnPolicy', 'OfferShippingDetails', 'Vehicle', 'Car',
+        'Motorcycle', 'Review', 'CriticReview', 'UserReview', 'AggregateRating',
+        'Rating', 'BreadcrumbList', 'ListItem', 'ItemList', 'Menu',
+        'MenuItem', 'MenuSection', 'SearchAction', 'EntryPoint', 'Action',
+        # Events, courses, recipes and jobs
+        'Event', 'MusicEvent', 'TheaterEvent', 'Festival', 'EducationEvent',
+        'BusinessEvent', 'ChildrensEvent', 'ComedyEvent', 'ScreeningEvent',
+        'SocialEvent', 'SportsEvent', 'ExhibitionEvent', 'FoodEvent',
+        'LiteraryEvent', 'VisualArtsEvent', 'PublicationEvent', 'SaleEvent',
+        'DeliveryEvent', 'Hackathon', 'Course', 'CourseInstance', 'Recipe',
+        'HowTo', 'HowToStep', 'HowToSection', 'JobPosting', 'Occupation',
+        # Q&A and supporting types
+        'Question', 'Answer', 'MonetaryAmount', 'QuantitativeValue',
+        'PropertyValue', 'ContactPoint', 'PostalAddress', 'GeoCoordinates',
+        'GeoShape', 'OpeningHoursSpecification', 'DefinedTerm',
+        'DefinedTermSet', 'Claim', 'ClaimReview', 'Guide',
     }
     
     REQUIRED_PROPERTIES = {
@@ -123,20 +163,23 @@ class StructuredDataModule:
             return issues
         
         for script in json_ld_scripts:
+            raw = script.string
+            if not isinstance(raw, str):
+                raw = script.get_text()
+
+            if not raw.strip():
+                issues.append({
+                    'issue_type': 'json_ld_invalid_json',
+                    'url': page_url,
+                    'source_page': page_url,
+                    'description': 'Invalid JSON-LD: the script is empty',
+                    'severity': 'high'
+                })
+                continue
+
             try:
-                data = json.loads(script.string)
-                
-                if '@graph' in data:
-                    schemas = data['@graph']
-                elif isinstance(data, list):
-                    schemas = data
-                else:
-                    schemas = [data]
-                
-                for schema in schemas:
-                    self._validate_schema(schema, page_url, issues, is_top_level=True)
-            
-            except json.JSONDecodeError as e:
+                data = json.loads(raw)
+            except (json.JSONDecodeError, TypeError) as e:
                 issues.append({
                     'issue_type': 'json_ld_invalid_json',
                     'url': page_url,
@@ -144,6 +187,33 @@ class StructuredDataModule:
                     'description': f'Invalid JSON-LD syntax: {str(e)}',
                     'severity': 'high'
                 })
+                continue
+
+            if isinstance(data, dict):
+                if '@graph' in data:
+                    graph = data['@graph']
+                    # A single object instead of an array is tolerated; any
+                    # other shape is reported per entry by _validate_schema.
+                    schemas = graph if isinstance(graph, list) else [graph]
+                else:
+                    schemas = [data]
+            elif isinstance(data, list):
+                schemas = data
+            else:
+                issues.append({
+                    'issue_type': 'json_ld_invalid_json',
+                    'url': page_url,
+                    'source_page': page_url,
+                    'description': (
+                        'Invalid JSON-LD structure: expected an object or an '
+                        f'array of objects, got {type(data).__name__}'
+                    ),
+                    'severity': 'high'
+                })
+                continue
+
+            for schema in schemas:
+                self._validate_schema(schema, page_url, issues, is_top_level=True)
         
         return issues
     
@@ -157,9 +227,29 @@ class StructuredDataModule:
             issues: List to append issues to
             is_top_level: Whether this is a top-level schema
         """
-        schema_type = schema.get('@type')
-        
-        if not schema_type:
+        if not isinstance(schema, dict):
+            issues.append({
+                'issue_type': 'json_ld_invalid_json',
+                'url': page_url,
+                'source_page': page_url,
+                'description': (
+                    'Invalid JSON-LD entry: expected an object, got '
+                    f'{type(schema).__name__}'
+                ),
+                'severity': 'high'
+            })
+            return
+
+        raw_type = schema.get('@type')
+        if isinstance(raw_type, str):
+            schema_types = [raw_type.strip()] if raw_type.strip() else []
+        elif isinstance(raw_type, list):
+            schema_types = [t.strip() for t in raw_type
+                            if isinstance(t, str) and t.strip()]
+        else:
+            schema_types = []
+
+        if not schema_types:
             # Only report missing @type for top-level schemas that should have it
             # Nested schemas without @type are often valid (e.g., mainEntityOfPage, logo)
             if is_top_level and ('@context' in schema or '@id' in schema):
@@ -171,8 +261,10 @@ class StructuredDataModule:
                     'severity': 'high'
                 })
             return
-        
-        if schema_type not in self.SCHEMA_TYPES:
+
+        known_types = [t for t in schema_types if t in self.SCHEMA_TYPES]
+
+        if not known_types:
             # Only report unknown type for top-level schemas
             # Nested schemas might have custom types
             if is_top_level:
@@ -180,11 +272,15 @@ class StructuredDataModule:
                     'issue_type': 'json_ld_unknown_type',
                     'url': page_url,
                     'source_page': page_url,
-                    'description': f'Unknown schema type: {schema_type}',
+                    'description': f'Unknown schema type: {", ".join(schema_types)}',
                     'severity': 'medium'
                 })
             return
-        
+
+        # JSON-LD allows multiple types; validate required properties only
+        # once, using the first recognised type as the primary one.
+        schema_type = known_types[0]
+
         if is_top_level:
             required = self.REQUIRED_PROPERTIES.get(schema_type, [])
             missing = [prop for prop in required if prop not in schema]
@@ -200,7 +296,7 @@ class StructuredDataModule:
         
         if schema_type == 'Article' and 'headline' in schema:
             headline = schema['headline']
-            if len(headline) < 10:
+            if isinstance(headline, str) and len(headline) < 10:
                 issues.append({
                     'issue_type': 'json_ld_short_headline',
                     'url': page_url,
