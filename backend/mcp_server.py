@@ -14,7 +14,8 @@ from typing import Any, Callable
 
 from mcp.server.mcpserver import MCPServer
 
-from core.pipeline import run_scan_pipeline
+from core.net_guard import NetworkGuard
+from core.pipeline import ScanError, run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
 from limits import get_max_pages_limit
@@ -55,6 +56,12 @@ def build_server() -> tuple[MCPServer, Callable[..., Any]]:
         if not validate_url(url):
             return {"error": f"Invalid URL: {url}"}
 
+        guard = NetworkGuard.from_env()
+        try:
+            await guard.check_url(url)
+        except ValueError as exc:
+            return {"error": str(exc)}
+
         # max_pages >= 1 always; the upper bound applies only when the
         # operator set SEO_PRISM_MAX_PAGES_LIMIT.
         max_pages = max(1, max_pages)
@@ -64,8 +71,10 @@ def build_server() -> tuple[MCPServer, Callable[..., Any]]:
         db = Database()
         try:
             result = await run_scan_pipeline(
-                db, url, max_pages, ignore_robots=is_local(url)
+                db, url, max_pages, ignore_robots=is_local(url), guard=guard
             )
+        except ScanError as exc:
+            return {"error": str(exc)}
         finally:
             db.close()
 

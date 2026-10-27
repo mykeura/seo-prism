@@ -20,6 +20,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 import mcp_server
+from core.pipeline import ScanTargetUnreachable
 
 
 class _QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -75,7 +76,7 @@ class _FakeDB:
 def test_seo_scan_clamps_only_when_env_limit_is_set(monkeypatch):
     captured = {}
 
-    async def fake_pipeline(db, url, max_pages, ignore_robots):
+    async def fake_pipeline(db, url, max_pages, ignore_robots, guard=None):
         captured['max_pages'] = max_pages
         return {'scan_id': 1, 'html_page_count': 1, 'issues': [],
                 'seo_grade': {'grade': 'A', 'score': 95}, 'resource_analysis': {}}
@@ -93,6 +94,37 @@ def test_seo_scan_clamps_only_when_env_limit_is_set(monkeypatch):
 
     asyncio.run(mcp_server.seo_scan('http://127.0.0.1:1', max_pages=0))
     assert captured['max_pages'] == 1
+
+
+def test_seo_scan_blocks_private_target_when_guard_enabled(monkeypatch):
+    calls = []
+
+    async def fake_pipeline(db, url, max_pages, ignore_robots, guard=None):
+        calls.append(url)
+        return {'scan_id': 1, 'html_page_count': 1, 'issues': [],
+                'seo_grade': {'grade': 'A', 'score': 95}, 'resource_analysis': {}}
+
+    monkeypatch.setenv('SEO_PRISM_BLOCK_PRIVATE_TARGETS', '1')
+    monkeypatch.setattr(mcp_server, 'Database', lambda *a, **k: _FakeDB())
+    monkeypatch.setattr(mcp_server, 'run_scan_pipeline', fake_pipeline)
+
+    result = asyncio.run(mcp_server.seo_scan('http://127.0.0.1:1'))
+
+    assert 'error' in result
+    assert 'non-public' in result['error']
+    assert calls == []
+
+
+def test_seo_scan_returns_error_when_target_is_unreachable(monkeypatch):
+    async def unreachable(db, url, max_pages, ignore_robots, guard=None):
+        raise ScanTargetUnreachable(f"Could not reach '{url}'")
+
+    monkeypatch.setattr(mcp_server, 'Database', lambda *a, **k: _FakeDB())
+    monkeypatch.setattr(mcp_server, 'run_scan_pipeline', unreachable)
+
+    result = asyncio.run(mcp_server.seo_scan('http://example.com'))
+
+    assert result == {'error': "Could not reach 'http://example.com'"}
 
 
 def test_mcp_stdio_protocol():

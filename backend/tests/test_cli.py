@@ -12,6 +12,7 @@ import pytest
 from click.testing import CliRunner
 
 import cli
+from core.pipeline import ScanTargetUnreachable
 
 
 def make_issue(issue_type, url, source_page=None, description=None,
@@ -231,6 +232,47 @@ def test_unknown_issue_type_falls_into_other_issues(runner, monkeypatch):
     assert 'https://example.com/mystery' in result.output
     assert '(in https://example.com/)' in result.output
     assert 'A brand new failure type' in result.output
+
+
+class TestFailureExitCodes:
+    def test_invalid_url_exits_nonzero(self, runner):
+        result = runner.invoke(cli.scan, ['--url', 'not a url'])
+
+        assert result.exit_code == 1
+        assert 'Invalid URL' in result.stderr
+        assert result.stdout == ''
+
+    def test_invalid_url_json_emits_machine_readable_error(self, runner):
+        result = runner.invoke(cli.scan, ['--url', 'not a url', '--json'])
+
+        assert result.exit_code == 1
+        assert json.loads(result.stdout) == {'error': 'Invalid URL: not a url'}
+        assert 'Invalid URL' in result.stderr
+
+    def test_scan_failure_exits_nonzero(self, runner, monkeypatch):
+        async def failing_scan(url, max_pages, ignore_robots):
+            raise ScanTargetUnreachable('target is down')
+
+        monkeypatch.setattr(cli, 'run_scan', failing_scan)
+
+        result = runner.invoke(cli.scan, ['--url', 'https://example.com'])
+
+        assert result.exit_code == 1
+        assert 'target is down' in result.stderr
+
+    def test_scan_failure_json_is_machine_readable(self, runner, monkeypatch):
+        async def failing_scan(url, max_pages, ignore_robots):
+            raise ScanTargetUnreachable('target is down')
+
+        monkeypatch.setattr(cli, 'run_scan', failing_scan)
+
+        result = runner.invoke(
+            cli.scan, ['--url', 'https://example.com', '--json'])
+
+        assert result.exit_code == 1
+        assert json.loads(result.stdout) == \
+            {'error': 'Error during scan: target is down'}
+        assert 'Starting scan of' in result.stderr
 
 
 class TestRobotsModeSelection:

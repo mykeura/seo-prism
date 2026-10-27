@@ -4,6 +4,7 @@
 import asyncio
 import json
 import click
+from core.net_guard import NetworkGuard
 from core.pipeline import run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
@@ -13,7 +14,7 @@ from modules.pdf_report_generator import SEOReportPDFGenerator
 
 @click.command()
 @click.option('--url', required=True, help='Target URL to scan')
-@click.option('--max-pages', default=100,
+@click.option('--max-pages', default=100, type=click.IntRange(min=1),
               help='Maximum number of pages to crawl (default: 100; no hard cap, any larger value is honored)')
 @click.option('--ignore-robots', 'ignore_robots_flag', is_flag=True,
               help='Ignore robots.txt even for remote URLs (local URLs are always scanned without robots.txt)')
@@ -50,9 +51,15 @@ def scan(url: str, max_pages: int, ignore_robots_flag: bool, as_json: bool,
         def echo(message=None, err=False):
             click.echo(message, err=err)
 
+    def fail(message: str) -> None:
+        # --json mode keeps stdout machine-readable: exactly one error object.
+        if as_json:
+            click.echo(json.dumps({'error': message}))
+        echo(f"❌ {message}", err=True)
+        raise click.exceptions.Exit(1)
+
     if not validate_url(url):
-        echo(f"❌ Invalid URL: {url}", err=True)
-        return
+        fail(f"Invalid URL: {url}")
 
     is_local_url = is_local(url)
     ignore_robots = is_local_url or ignore_robots_flag
@@ -111,7 +118,7 @@ def scan(url: str, max_pages: int, ignore_robots_flag: bool, as_json: bool,
                 echo(f"❌ Error generating report: {e}", err=True)
 
     except Exception as e:
-        echo(f"❌ Error during scan: {e}", err=True)
+        fail(f"Error during scan: {e}")
 
 
 async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
@@ -126,16 +133,21 @@ async def run_scan(url: str, max_pages: int, ignore_robots: bool) -> dict:
     Returns:
         Scan results dictionary
     """
+    guard = NetworkGuard.from_env()
+    await guard.check_url(url)
+
     db = Database()
-    pipeline_results = await run_scan_pipeline(db, url, max_pages, ignore_robots)
+    try:
+        pipeline_results = await run_scan_pipeline(
+            db, url, max_pages, ignore_robots, guard=guard)
 
-    results = db.get_scan_results(pipeline_results['scan_id'])
-    results['seo_grade'] = pipeline_results['seo_grade']
-    results['resource_analysis'] = pipeline_results['resource_analysis']
-    results['robots_skipped'] = pipeline_results.get('robots_skipped', 0)
-    db.close()
-
-    return results
+        results = db.get_scan_results(pipeline_results['scan_id'])
+        results['seo_grade'] = pipeline_results['seo_grade']
+        results['resource_analysis'] = pipeline_results['resource_analysis']
+        results['robots_skipped'] = pipeline_results.get('robots_skipped', 0)
+        return results
+    finally:
+        db.close()
 
 
 # Ordered display categories: (section title, exact issue types, issue type prefixes).

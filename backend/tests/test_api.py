@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import api.main as main
+from core.pipeline import ScanBlockedByRobots, ScanTargetUnreachable
 from database import Database
 from limits import get_max_pages_limit
 from modules.seo_grade import SEOGradeCalculator
@@ -204,6 +205,32 @@ def test_scan_allows_private_target_without_guard(client):
 
 # --- error hygiene --------------------------------------------------------------
 
+def test_scan_unreachable_returns_502(client, monkeypatch):
+    async def unreachable(db, url, max_pages, ignore_robots):
+        raise ScanTargetUnreachable(f"Could not reach '{url}'")
+
+    monkeypatch.setattr(main, 'run_scan_pipeline', unreachable)
+    http, _ = client
+
+    resp = http.post('/scan', json={'url': 'http://example.com'})
+
+    assert resp.status_code == 502
+    assert resp.json() == {'detail': "Could not reach 'http://example.com'"}
+
+
+def test_scan_blocked_by_robots_returns_400(client, monkeypatch):
+    async def blocked(db, url, max_pages, ignore_robots):
+        raise ScanBlockedByRobots(f"robots.txt disallows the scan target '{url}'")
+
+    monkeypatch.setattr(main, 'run_scan_pipeline', blocked)
+    http, _ = client
+
+    resp = http.post('/scan', json={'url': 'http://example.com'})
+
+    assert resp.status_code == 400
+    assert 'robots.txt disallows' in resp.json()['detail']
+
+
 def test_scan_error_is_sanitized(client, monkeypatch):
     async def boom(db, url, max_pages, ignore_robots):
         raise RuntimeError('secret: sqlite:////home/operator/hidden.db')
@@ -234,6 +261,31 @@ def test_results_error_is_sanitized(client, monkeypatch):
 def test_scan_rejects_invalid_url(client):
     http, _ = client
     assert http.post('/scan', json={'url': 'not-a-url'}).status_code == 400
+
+
+@pytest.mark.parametrize('url', [
+    'http://example.com:99999',
+    'http://example.com:abc',
+    'http://example.com:0',
+    'http://exa mple.com',
+])
+def test_scan_rejects_invalid_port_or_host(client, url):
+    http, captured = client
+
+    resp = http.post('/scan', json={'url': url})
+
+    assert resp.status_code == 400
+    assert resp.json() == {'detail': 'Invalid URL format'}
+    assert 'max_pages' not in captured
+
+
+def test_scan_accepts_ipv6_literal(client):
+    http, captured = client
+
+    resp = http.post('/scan', json={'url': 'http://[::1]:8000'})
+
+    assert resp.status_code == 200
+    assert 'max_pages' in captured
 
 
 # --- /scans history ------------------------------------------------------------

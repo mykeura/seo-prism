@@ -2,23 +2,26 @@
 # SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
 import aiohttp
-from typing import List, Dict
+from typing import List, Dict, Optional
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
+from core.net_guard import NetworkGuard, build_connector
 from database import Database
 
 
 class StandardFilesModule:
     """Module to detect standard web files: robots.txt, sitemap.xml, security.txt, llms.txt"""
     
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, guard: Optional[NetworkGuard] = None):
         """
         Initialize the Standard Files module.
         
         Args:
             db: Database instance
+            guard: Optional SSRF guard for every file request
         """
         self.db = db
+        self.guard = guard or NetworkGuard(False)
     
     async def analyze(self, scan_id: int, base_url: str) -> List[Dict]:
         """
@@ -41,16 +44,20 @@ class StandardFilesModule:
             
             if not domain:
                 return issues
-            
+
+            # IPv6 literals need brackets when rebuilt into URLs.
+            host = f'[{domain}]' if ':' in domain else domain
+
             if port and ((scheme == 'http' and port != 80) or (scheme == 'https' and port != 443)):
-                base_domain = f"{scheme}://{domain}:{port}"
+                base_domain = f"{scheme}://{host}:{port}"
             else:
-                base_domain = f"{scheme}://{domain}"
+                base_domain = f"{scheme}://{host}"
             
         except Exception:
             return issues
         
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(
+                connector=build_connector(self.guard)) as session:
             robots_url = f"{base_domain}/robots.txt"
             robots_found = await self._check_file_with_fallback(session, robots_url)
             if robots_found:

@@ -15,8 +15,8 @@ import uuid
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.net_guard import ensure_public_url
-from core.pipeline import run_scan_pipeline
+from core.net_guard import NetworkGuard
+from core.pipeline import ScanError, run_scan_pipeline
 from core.url_utils import is_local, validate_url
 from database import Database
 from limits import get_max_pages_limit
@@ -155,18 +155,23 @@ async def start_scan(request: ScanRequest):
         raise HTTPException(status_code=400, detail="Invalid URL format")
 
     # Opt-in SSRF guard for hosted deployments; localhost scanning is a
-    # product feature, so the default is off.
-    if os.environ.get("SEO_PRISM_BLOCK_PRIVATE_TARGETS") == "1":
-        try:
-            await ensure_public_url(request.url)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+    # product feature, so the default is off. The same guard is applied to
+    # every connection made by the crawl (redirects, resources, robots and
+    # standard files) through the aiohttp connector.
+    try:
+        await NetworkGuard.from_env().check_url(request.url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     is_local_url = is_local(request.url)
     ignore_robots = is_local_url
     
     try:
         db = Database()
+    except Exception:
+        raise _internal_error()
+
+    try:
         # Same clamp the MCP server enforces: max_pages >= 1 always, and an
         # upper bound only when the operator set SEO_PRISM_MAX_PAGES_LIMIT.
         max_pages = request.max_pages if request.max_pages is not None else 100
@@ -177,7 +182,6 @@ async def start_scan(request: ScanRequest):
         pipeline_results = await run_scan_pipeline(
             db, request.url, max_pages, ignore_robots
         )
-        db.close()
         
         if is_local_url:
             message = "Scan completed in fast mode (ignoring robots.txt)"
@@ -194,8 +198,12 @@ async def start_scan(request: ScanRequest):
             resource_analysis=pipeline_results['resource_analysis']
         )
     
+    except ScanError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
     except Exception:
         raise _internal_error()
+    finally:
+        db.close()
 
 
 @app.get("/results", response_model=ScanResults, dependencies=[Depends(require_api_key)])

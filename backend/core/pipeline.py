@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEO-Prism-Commercial
 # SPDX-FileCopyrightText: 2026 Miguel Euraque (mykeura)
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from core.crawler import Crawler
+from core.net_guard import NetworkGuard
+from core.url_utils import normalize_url
 from database import Database
 from modules.broken_links import BrokenLinksModule
 from modules.canonical_tags import CanonicalTagsModule
@@ -20,6 +22,71 @@ from modules.spa_detection import SpaDetectionModule
 from modules.standard_files import StandardFilesModule
 from modules.structured_data import StructuredDataModule
 from modules.thin_content import ThinContentModule
+
+
+class ScanError(RuntimeError):
+    """A target-level failure that callers must report, not grade."""
+
+    status_code = 400
+
+
+class ScanTargetUnreachable(ScanError):
+    """The target could not be reached (network, timeout or 5xx)."""
+
+    status_code = 502
+
+
+class ScanBlockedByRobots(ScanError):
+    """robots.txt disallowed the scan target itself."""
+
+    status_code = 400
+
+
+def _find_base_entry(crawled_pages: List[Dict], base_url: str) -> Optional[Dict]:
+    base_normalized = normalize_url(base_url)
+    for page in crawled_pages:
+        if page.get('url') == base_normalized:
+            return page
+        if page.get('requested_url') == base_normalized:
+            return page
+    return None
+
+
+def ensure_target_was_crawled(crawled_pages: List[Dict], base_url: str,
+                              robots_skipped_urls) -> None:
+    """Raise when a scan did not obtain a valid HTML page for its target.
+
+    A dead host, a timeout, a 4xx/5xx root or a non-HTML target used to be
+    graded as an F report with four "missing standard file" issues. None of
+    those are something the site owner can fix, so they must become a
+    target-level error instead of a scan result.
+    """
+    base_normalized = normalize_url(base_url)
+
+    if base_normalized in robots_skipped_urls:
+        raise ScanBlockedByRobots(
+            f"robots.txt disallows the scan target '{base_url}'")
+
+    entry = _find_base_entry(crawled_pages, base_url)
+    if entry is None:
+        raise ScanError(f"Could not fetch the scan target '{base_url}'")
+
+    status = entry.get('status', 0)
+    if status == 0:
+        detail = entry.get('error') or 'connection failed'
+        raise ScanTargetUnreachable(f"Could not reach '{base_url}': {detail}")
+    if status == 408:
+        raise ScanTargetUnreachable(f"Timed out while fetching '{base_url}'")
+    if status >= 500:
+        raise ScanTargetUnreachable(
+            f"Target '{base_url}' returned HTTP {status}")
+    if status >= 400:
+        raise ScanError(f"Target '{base_url}' returned HTTP {status}")
+
+    html = entry.get('html')
+    if not html or not html.strip():
+        raise ScanError(
+            f"No HTML content found at '{base_url}' (HTTP {status})")
 
 
 def is_error_response(page: Dict) -> bool:
@@ -71,7 +138,8 @@ def _page_modules(db: Database) -> List:
 
 
 async def run_scan_pipeline(db: Database, url: str, max_pages: int,
-                            ignore_robots: bool) -> Dict:
+                            ignore_robots: bool,
+                            guard: Optional[NetworkGuard] = None) -> Dict:
     """
     Run a full SEO scan: crawl, store results, run every analysis module
     and compute the SEO grade. Shared by the CLI and the HTTP API.
@@ -81,16 +149,25 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
         url: Target URL to scan
         max_pages: Maximum pages to crawl
         ignore_robots: Whether to ignore robots.txt
+        guard: SSRF guard; defaults to the operator's environment setting
 
     Returns:
         Dict with 'scan_id', 'crawled_pages', 'issues', 'seo_grade',
         'resource_analysis', 'html_page_count' and 'robots_skipped'
     """
-    scan_id = db.create_scan(url)
+    if guard is None:
+        guard = NetworkGuard.from_env()
 
-    async with Crawler(url, ignore_robots=ignore_robots) as crawler:
+    async with Crawler(url, ignore_robots=ignore_robots, guard=guard) as crawler:
         crawled_pages = await crawler.crawl(max_pages=max_pages)
     robots_skipped = crawler.robots_skipped_count
+
+    # Do this before creating the scan row: a dead or blocked target must not
+    # leave a phantom F report in the history.
+    ensure_target_was_crawled(
+        crawled_pages, url, crawler.robots_skipped_urls)
+
+    scan_id = db.create_scan(url)
 
     # A 404 page is not a page of the site: drop its content before it is
     # stored, analysed or counted (see discard_error_page_content).
@@ -103,7 +180,7 @@ async def run_scan_pipeline(db: Database, url: str, max_pages: int,
         issues.extend(module.analyze(scan_id, crawled_pages))
 
     # Modules whose analyze() signature differs from the standard one
-    issues.extend(await StandardFilesModule(db).analyze(scan_id, url))
+    issues.extend(await StandardFilesModule(db, guard=guard).analyze(scan_id, url))
     issues.extend(OrphanPagesModule(db).analyze(scan_id, crawled_pages, url))
     issues.extend(SpaDetectionModule(db).analyze(scan_id, crawled_pages, url))
 
