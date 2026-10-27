@@ -14,6 +14,8 @@ interface ScanHistoryProps {
   apiBaseUrl: string
   /** A report is being fetched; rows stay disabled meanwhile. */
   loading: boolean
+  /** Bumped by App after a scan finishes so the list picks up the new row. */
+  refreshKey: number
   onLoadScan: (scanId: number, grade: { grade: string; score: number }) => void
 }
 
@@ -21,9 +23,9 @@ interface ScanHistoryProps {
  * History panel: previous scans from GET /scans, one row per scan with its
  * grade, URL, date and issue count. Picking a row reopens that report in App.
  */
-export function ScanHistory({ apiBaseUrl, loading, onLoadScan }: ScanHistoryProps) {
+export function ScanHistory({ apiBaseUrl, loading, refreshKey, onLoadScan }: ScanHistoryProps) {
   const t = useT()
-  const { scans, error, retry } = useScanHistory(apiBaseUrl)
+  const { scans, error, retry } = useScanHistory(apiBaseUrl, refreshKey)
 
   return (
     <Card>

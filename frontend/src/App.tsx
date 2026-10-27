@@ -33,6 +33,8 @@ function App() {
   const [url, setUrl] = useState('')
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
+  // Bumped after a scan succeeds so an open history panel refetches /scans.
+  const [historyVersion, setHistoryVersion] = useState(0)
 
   const summaries = useMemo(() => (results ? summarizeSections(results) : []), [results])
   const activeSectionId =
@@ -85,6 +87,7 @@ function App() {
       }
 
       setResults(await resultsResponse.json())
+      setHistoryVersion((version) => version + 1)
     } catch (err) {
       if (err instanceof TypeError) {
         // fetch() rejects with TypeError when the server cannot be reached
@@ -156,7 +159,12 @@ function App() {
 
         {historyOpen && (
           <div id="scan-history" className="pb-6">
-            <ScanHistory apiBaseUrl={API_BASE_URL} loading={loading} onLoadScan={handleLoadScan} />
+            <ScanHistory
+              apiBaseUrl={API_BASE_URL}
+              loading={loading}
+              refreshKey={historyVersion}
+              onLoadScan={handleLoadScan}
+            />
           </div>
         )}
 

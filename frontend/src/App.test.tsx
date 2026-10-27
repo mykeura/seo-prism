@@ -287,6 +287,49 @@ describe('scan history', () => {
     expect(screen.getByRole('button', { name: /first\.example\.com/ })).toBeInTheDocument()
   })
 
+  it('refreshes the history when a scan finishes with the panel open', async () => {
+    const finishedScan = {
+      scan_id: 7,
+      url: 'https://example.com',
+      scan_date: '2026-10-27T18:00:00+00:00',
+      grade_letter: 'B',
+      grade_score: 84,
+      total_issues: 4,
+    }
+    let scansCalls = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        const json = (body: unknown, status = 200) =>
+          new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+        if (url.endsWith('/scans')) {
+          scansCalls += 1
+          // The first load predates the scan; the refetch carries its row.
+          return json(scansCalls === 1 ? historyResponse : { scans: [finishedScan, ...historyResponse.scans] })
+        }
+        if (url.endsWith('/scan')) {
+          return json({ scan_id: 7, message: 'Scan completed', seo_grade: grade('B', 84) })
+        }
+        if (/\/results(\/\d+)?$/.test(url)) return json(mixedResults())
+        throw new Error(`unexpected request: ${url}`)
+      }),
+    )
+    render(<App />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Scan history' }))
+    expect(await screen.findByText('https://old.example.com')).toBeInTheDocument()
+    expect(scansCalls).toBe(1)
+
+    await scan('example.com')
+
+    const panel = document.getElementById('scan-history') as HTMLElement
+    expect(await within(panel).findByText('https://example.com')).toBeInTheDocument()
+    expect(scansCalls).toBe(2)
+    expect(within(panel).getByText('https://old.example.com')).toBeInTheDocument()
+  })
+
   it('shows an empty state before the first scan exists', async () => {
     mockApi({ scans: { scans: [] } })
     render(<App />)

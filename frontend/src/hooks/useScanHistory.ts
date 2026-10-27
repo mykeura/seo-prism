@@ -17,10 +17,11 @@ export async function readErrorDetail(response: Response): Promise<string | null
 }
 
 /**
- * Loads GET /scans once per panel open; scans is null while loading.
+ * Loads GET /scans once per panel open and again whenever refreshKey
+ * changes (App bumps it when a scan finishes); scans is null while loading.
  * retry() re-runs the request against the same backend.
  */
-export function useScanHistory(apiBaseUrl: string) {
+export function useScanHistory(apiBaseUrl: string, refreshKey = 0) {
   const t = useT()
   const [scans, setScans] = useState<ScanHistoryEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -55,7 +56,7 @@ export function useScanHistory(apiBaseUrl: string) {
     return () => {
       cancelled = true
     }
-  }, [apiBaseUrl, attempt, t])
+  }, [apiBaseUrl, attempt, refreshKey, t])
 
   const retry = () => setAttempt((n) => n + 1)
   return { scans, error, retry }
