@@ -40,7 +40,7 @@ SEO Prism features a modern web interface that you can use from any browser. Whe
 
 ## Open source, full potential
 
-Everything in this README is part of the open-source edition: no page caps, no pro tiers, no feature gating. Operators who host the tool for other people can optionally add their own guards through environment variables (see [backend/README.md](backend/README.md)), but out of the box nothing is restricted. The only paid thing in this project is the annual commercial license — an AGPL exemption for organizations that need to keep their modifications private, paid by international bank transfer. See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for plans and purchase flow.
+Everything in this README is part of the open-source edition: no page caps, no pro tiers, no feature gating. Operators who host the tool for other people can optionally add their own guards through environment variables (see [backend/README.md](backend/README.md)), but out of the box nothing is restricted. The only paid thing in this project is the annual commercial license — an AGPL exemption for organizations that need to keep their modifications private, invoiced in USD and payable by bank transfer or payment link. See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for plans and purchase flow.
 
 ## SEO Grading
 
@@ -378,7 +378,7 @@ If you are considering the Nous Portal **Plus** plan, you can use [my referral l
 
 *The offer is for new customers starting a new Plus subscription. It applies to the first invoice, and each payment card can be used for only one referral. If the card has already backed another referral, the discount is reversed and no referral reward is paid.*
 
-Using SEO Prism for your company and need a commercial license? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md). It is an annual AGPL-exemption subscription, paid **by international bank transfer only** (email the author, receive an invoice with payment details, pay, and receive the signed PDF license).
+Using SEO Prism for your company and need a commercial license? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md). It is an annual AGPL-exemption subscription: email the author, receive an invoice with the payment details, pay by bank transfer or payment link, and receive the signed PDF license.
 
 ## License
 
@@ -386,4 +386,4 @@ SEO Prism is dual-licensed:
 
 - **AGPL-3.0-only** ([LICENSE](LICENSE)): Free and open source. Every source file carries an `SPDX-License-Identifier` header. The open-source edition offers its full potential — no caps, no gating; the optional operator guards above are off by default. The network-use clause means anyone offering SEO Prism as a hosted service must publish their modified source.
 
-- **LicenseRef-SEO-Prism-Commercial** ([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)): Annual subscription to an AGPL exemption for organizations that need to keep their modifications private. It unlocks nothing — there are no features behind it — and it is paid by international bank transfer.
+- **LicenseRef-SEO-Prism-Commercial** ([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)): Annual subscription to an AGPL exemption for organizations that need to keep their modifications private. It unlocks nothing — there are no features behind it — and it is invoiced annually, payable by bank transfer or payment link.

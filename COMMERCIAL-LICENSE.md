@@ -44,16 +44,20 @@ While a license is active, the Licensee may, according to the purchased plan:
 
 ## How to buy
 
-License fees are payable by **international bank transfer only**. Card-based processors (Stripe, Paddle or similar) are not available to this project, so no other payment method is offered. The exact payment channel and account details are shared privately by email as part of step 2 below.
+Licenses are invoiced in **US dollars (USD)**. The purchase is handled over email, in four steps:
 
-The purchase flow is manual:
+1. Email **mykeura@hotmail.com** with your organization name, the plan you want and the billing details your accounting team needs (legal name, address, tax ID, and a purchase order number if one is required).
+2. You receive a PDF invoice stating the amount, the license term and the payment instructions.
+3. You pay the invoice using either accepted method:
+   - **Bank transfer in USD** to the account shown on the invoice — ACH from the United States, SWIFT from anywhere else.
+   - **Payment link** included in the invoice, for card or local payment methods, when that is easier for the payer.
+4. Once the payment clears, you receive the commercial license agreement, signed by the copyright holder and dated on the payment date, as a PDF. That document is the proof of licensing to keep for procurement and audit.
 
-1. Email **mykeura@hotmail.com** with your organization name, the plan you want, and the billing details your accounting needs (legal name, address, tax ID).
-2. You receive an invoice with the payment details and instructions.
-3. You pay the invoice by international transfer following those instructions.
-4. You receive the commercial license agreement, signed by the copyright holder, as a PDF. That document is your proof of licensing for procurement and audit purposes.
+Payments are collected through **Payoneer**, a cross-border payment provider, so the account on the invoice is denominated in USD and the beneficiary is the copyright holder. Fees charged by the sending or an intermediary bank are borne by the Licensee: the invoiced amount must arrive in full. Invoices are issued in USD; any currency conversion is handled by the payer's bank.
 
-The standard agreement terms are available on request before you pay; paying the invoice means you accept the license.
+Vendor registration forms, purchase orders and tax-residency documentation (including W-8BEN or W-8BEN-E when the payer needs one) are completed on request, normally within two business days.
+
+The standard agreement terms are available before paying; paying the invoice means you accept the license.
 
 ## FAQ
 
